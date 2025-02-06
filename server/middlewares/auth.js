@@ -24,7 +24,7 @@ export const authorizeAdmin = (req, res, next) => {
     }
 
     // Check if the user has the role of admin
-    if (req.user.role !== 'admin') {
+    if (req.user.role !== 'user') {
         return res.status(403).json({ message: 'Access denied, admin only' });
     }
 
