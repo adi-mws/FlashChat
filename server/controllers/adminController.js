@@ -10,30 +10,29 @@ const __dirname = path.dirname(__filename);
 
 // Register Admin
 export const registerAdmin = async (req, res) => {
-    const { email, password } = req.body;
-
+    const { name, email, password } = req.body;
     try {
         const adminExists = await Admin.findOne({ email });
         if (adminExists) {
-            return res.status(400).json({ message: "Admin already exists" });
+            return res.status(400).json({ message: "User already exists" });
         }
 
         // Create admin with hashed password
-        const admin = await Admin.create({ email, password: hashSync(password, 10) });
+        const admin = await Admin.create({ name, email, password: hashSync(password, 10) });
+        console.log(email);
 
-        // Generate JWT token for the admin
-        const token = generateToken(admin._id);
 
-        
+
         // Respond to the client with a success message and token
-        res.status(200).json({
-            message: "Admin registered successfully",
-            token,
-            admin: { id: admin._id, email: admin.email }
+        res.status(201).json({
+            message: "User registered successfully",
+            admin: { id: admin._id, email: admin.email, name: admin.name }
+            
         });
 
     } catch (error) {
-        res.status(500).json({ message: 'Error registering admin', error });
+        
+        res.status(500).json({ message: 'Error registering User', error });
     }
 };
 
@@ -41,6 +40,7 @@ export const registerAdmin = async (req, res) => {
 // Login Admin
 export const loginAdmin = async (req, res) => {
     const { email, password } = req.body;
+
     // console.log(email, password); (DEBUGGER)
 
     try {
@@ -63,8 +63,8 @@ export const loginAdmin = async (req, res) => {
 
         // Generate a token
         const token = generateToken(admin._id);
-
-        res.status(200).json({ message: "admin logged in successfully!", token, admin: {email: admin.email, id: admin._id} });
+        console.log(admin._id);
+        res.status(200).json({ message: "admin logged in successfully!", token, admin: { email: admin.email, id: admin._id } });
     } catch (error) {
         console.error('Error during login:', error); // Log the error for debugging
         res.status(500).json({ message: 'Error logging in admin' });
@@ -112,8 +112,9 @@ export const verifyUserDetails = async (req, res) => {
             // Return full admin details along with a boolean indicating if admin exists
             res.status(200).json({
                 id: admin._id,
+                name: admin.name,
                 email: admin.email,
-         // Boolean indicating if an admin exists in the database
+                // Boolean indicating if an admin exists in the database
             });
         } catch (error) {
             console.error(error);

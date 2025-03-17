@@ -1,0 +1,83 @@
+@keyframes scaleIn {
+    from {
+        transform: scale(0.8);
+        opacity: 0;
+    }
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.notification-table-container {
+    position: fixed;
+    top: .3em;
+    right: 1.1em;
+    z-index: 1000;
+    width: 300px;
+    background: #f9f9f9;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+    overflow: hidden;
+    font-family: var(--rubik);
+    font-size: .8em;
+
+}
+
+.notification-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.notification-table tbody tr {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+    animation: scaleIn 0.3s ease-in-out; /* Scale effect when added */
+    transition: background-color 0.3s, transform 0.3s;
+}
+
+.notification-table tbody tr:hover {
+    background-color: #f1f1f1;
+}
+
+/* Success Notification */
+.notification-success {
+    background-color: #e6f9e6;
+    color: #2e7d32;
+}
+
+/* Error Notification */
+.notification-error {
+    background-color: #fdecea;
+    color: #d32f2f;
+}
+
+/* Warning Notification */
+.notification-warning {
+    background-color: #fff4e5;
+    color: #ed6c02;
+}
+
+/* Info Notification */
+.notification-info {
+    background-color: #e3f2fd;
+    color: #1976d2;
+}
+
+/* Close Button */
+.notification-table .close-button {
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-left: 10px;
+}
+
+.notification-table .close-button:hover {
+    opacity: 0.7;
+}

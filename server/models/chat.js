@@ -3,37 +3,36 @@ import mongoose from "mongoose";
 const messageSchema = new mongoose.Schema(
   {
     sender: {
-      type: String, // Could be ObjectId if using authentication
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Admin", // Reference to the Admin model
       required: true,
     },
-    receiver: {
-      type: String, // Could be ObjectId if using authentication
-      required: true,
-    },
-    text: {
+    content: {
       type: String,
       required: true,
+    },
+    read: {
+      type: Boolean, 
+      default: false,
     },
     timestamp: {
       type: Date,
       default: Date.now,
     },
-    isRead: {
-      type: Boolean,
-      default: false,
-    },
   },
-  { timestamps: true }
+  // { _id: false } // Avoids creating a separate ID for each message
 );
 
 const chatSchema = new mongoose.Schema(
   {
     user1: {
-      type: String, // First participant
+      type: mongoose.Schema.Types.ObjectId, // First participant
+      ref: "Admin", // Reference to the Admin model
       required: true,
     },
     user2: {
-      type: String, // Second participant
+      type: mongoose.Schema.Types.ObjectId, // Second participant
+      ref: "Admin", // Reference to the Admin model
       required: true,
     },
     messages: [messageSchema], // Stores messages for the chat
