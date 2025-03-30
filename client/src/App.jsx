@@ -6,7 +6,7 @@ import ChatInterface from "./components/ChatInterface/ChatInterface";
 import WebsiteLayout from "./layouts/WebsiteLayout";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
-import Landing from "./components/Landing/Landing";
+import Landing from "./components/Landing";
 import NoChatsFound from "./components/NoChatsFound";
 function App() {
   return (

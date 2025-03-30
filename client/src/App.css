@@ -1,9 +1,15 @@
 @import "tailwindcss";
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+
+@theme {
+    --breakpoint-xs: 576px;
+    --breakpoint-2xs: 400px;
+    --color-primary: #ff7300;
+    --color-primary-1: rgba(255, 115, 0, 0.845);
+    --color-primary-2: rgba(255, 115, 0, 0.445);
+    --color-primary-3: rgba(255, 115, 0, 0.145);
+}
 :root {
-    --primary-color: rgb(189, 123, 0);
+    --hover-color: #ff7300;
     --widget-background: rgba(0, 0, 0, 0.5);
     --gray-text: dimgray;
     --primary-font: 'Raleway', serif;
@@ -17,9 +23,7 @@ button {
     cursor: pointer;
 }
 
-/* * {
-    padding: 0;
-    margin: 0;
-    box-sizing: border-box;
+* {
+    /* box-sizing: border-box; */
     font-family: var(--primary-font);
-} */
+}

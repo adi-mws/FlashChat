@@ -19,21 +19,23 @@ export default function Header() {
     navigate('/login');
   }
   return (
-    <header className="header bg-white dark:bg-black text-sm shadow-sm flex h-[60px] px-4 w-screen justify-between flex-row items-center">
+    <>
+    
+    <div className="header-relative h-[60px] w-full"></div>
+    <header className="header fixed top-0 left-0 bg-white dark:bg-black text-sm shadow-sm flex px-5 sm:px-10 h-[60px] w-full justify-between flex-row items-center">
       <div className="flex items-center flex-row gap-5">
         <div className="menu-icon dark:text-white sm-inline-block md:hidden" onClick={() => setMenuOpen(!menuOpen)}>
-          ☰
+          <i className="fa-solid fa-bars"></i>
         </div>
-        <div className="logo text-lg dark:text-white">QuickRTC</div>
+        <Link to='/' className="logo text-lg dark:text-white">QuickRTC</Link>
       </div>
-
 
       {/* Hamburger Menu Icon */}
 
 
       {/* Navigation Links */}
       <nav className={`nav-links ${menuOpen ? "open" : ""} flex flex-row gap-4`}>
-        <button className="w-[40px] h-[40px] hidden xs:block sm:me-5 md:me-10 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition duration-300 dark:text-white rounded-full"><i className="fa-solid fa-moon text-md"></i></button>
+        <button className="w-[40px] h-[40px] hidden 2xs:block sm:me-5 md:me-10 dark:bg-gray-800 bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-700 transition duration-300 dark:text-white rounded-full "><i className="fa-solid fa-moon text-md"></i></button>
         {admin ?
           <>
             {admin ?
@@ -49,12 +51,13 @@ export default function Header() {
           </>
           :
           <>
-            <button className="px-12 py-2 hidden md:block bg-orange-500 hover:bg-orange-600 transition duration-300 text-white rounded-md" onClick={() => { setMenuOpen(false); navigate("/register") }}>Register</button>
+            <button className="px-12 py-2 hidden md:block dark:bg-primary-2 bg-primary-1 hover:bg-primary dark:hover-bg-primary-1 transition duration-300 text-white rounded-md" onClick={() => { setMenuOpen(false); navigate("/register") }}>Register</button>
 
-            <button className="px-12 py-2 border-1 border-orange-500 transition duration-300 hover:bg-orange-600 hover:text-white dark:text-white rounded-md" onClick={() => { setMenuOpen(false); navigate("/login"); }}>Login</button>
+            <button className="px-12 py-2 border-1 hover:bg-primary hover:text-white border-primary transition duration-300 dark:text-white rounded-md" onClick={() => { setMenuOpen(false); navigate("/login"); }}>Login</button>
           </>
         }
       </nav>
     </header>
+    </>
   );
 }

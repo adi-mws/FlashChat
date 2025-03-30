@@ -40,21 +40,21 @@ export default function LoginForm() {
   }
 
   return (
-    <div className="login-container">
-      <h2>Login</h2>
-      <form onSubmit={handleSubmit(onSubmit)}>
-        <div className="form-group">
+    <div className="container gap-10 w-full flex flex-col items-center justify-center p-5">
+      <h2 className="dark:text-white text-2xl font-bold">Login</h2>
+      <form onSubmit={handleSubmit(onSubmit)} className="gap-5 flex flex-col items">
+        <div className="form-group flex flex-col">
           <label>Email:</label>
-          <input
+          <input className="px-2 py-3"
             type="email"
             {...register("email", { required: "Email is required" })}
           />
           {errors.email && <p className="error">{errors.email.message}</p>}
         </div>
 
-        <div className="form-group">
+        <div className="form-group flex flex-col">
           <label>Password:</label>
-          <input
+          <input className="px-2 py-3 w-70"
             type="password"
             {...register("password", { required: "Password is required" })}
           />
