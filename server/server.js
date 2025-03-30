@@ -28,7 +28,7 @@ const io = new Server(server, {
 });
 
 // Mapping the user id with the socket id
-export const users = {}; // Store userId -> socketId mappin
+export const users = new Map(); // Store userId -> socketId mappin
 
 // Handle WebSocket Connection
 io.on("connection", (socket) => {
@@ -55,6 +55,7 @@ io.on("connection", (socket) => {
 app.use(express.json()); // For parsing application/json
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
 connectDB();
 
 // Routes for admin dashboard

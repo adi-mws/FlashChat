@@ -1,9 +1,9 @@
 import React from "react";
 import { useForm } from "react-hook-form";
 import axios from 'axios'
-import { useNotification } from '../../contexts/NotificationContext'
+import { useNotification } from '../contexts/NotificationContext'
 import { useNavigate, useLocation, Link } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../contexts/AuthContext";
 export default function LoginForm() {
 
   const { login } = useAuth();

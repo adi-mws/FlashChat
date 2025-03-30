@@ -28,7 +28,7 @@ export default function ChatInterface() {
   const [userLoading, setUserLoading] = useState(false);
   useEffect(() => {
     socket.connect();
-    socket.emit("join", admin.id);
+    socket.emit("join", admin?.id);
 
     socket.on("receiveMessage", (data) => {
       console.log(data);
@@ -43,7 +43,7 @@ export default function ChatInterface() {
       // if (!admin.name === (users.map((user) => selectedChat.chatId === user.chatId))._id) {
       setMessages((prev) => ({
         ...prev,
-        [chat.chatId]: [  // ✅ Use correct `chatId`
+        [chat.chatId]: [  
           ...(prev[chat.chatId] || []),
           {
             message: data.message,
@@ -78,6 +78,8 @@ export default function ChatInterface() {
           },
         }
       );
+      // hhfc.in api.hhfc.in
+      // http://123.341.231/api
       if (response.status === 201) {
         const d = response.data;
         reset();
