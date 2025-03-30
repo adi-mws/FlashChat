@@ -51,7 +51,7 @@ export default function Header() {
           </>
           :
           <>
-            <button className="px-12 py-2 hidden md:block dark:bg-primary-2 bg-primary-1 hover:bg-primary dark:hover-bg-primary-1 transition duration-300 text-white rounded-md" onClick={() => { setMenuOpen(false); navigate("/register") }}>Register</button>
+            <button className="px-12 py-2 hidden md:block dark:bg-primary-1 bg-primary hover:bg-primary dark:hover-bg-primary-1 transition duration-300 text-white rounded-md" onClick={() => { setMenuOpen(false); navigate("/register") }}>Register</button>
 
             <button className="px-12 py-2 border-1 hover:bg-primary hover:text-white border-primary transition duration-300 dark:text-white rounded-md" onClick={() => { setMenuOpen(false); navigate("/login"); }}>Login</button>
           </>

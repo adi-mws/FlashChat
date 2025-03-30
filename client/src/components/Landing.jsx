@@ -13,7 +13,7 @@ export default function Landing() {
           </div>
         </div>
         <div className='hero-section-image '>
-          <img src="/chattingApp.png" alt="" />
+          <img src="/imgs/chattingApp.png" alt="" />
         </div>
       </div>
     </div>

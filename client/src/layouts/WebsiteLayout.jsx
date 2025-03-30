@@ -6,7 +6,7 @@ export default function WebsiteLayout() {
   return (
     <div className='WebsiteLayout w-full'>
       <Header />
-        <Outlet />
+      <Outlet />
 
     </div>
   )
