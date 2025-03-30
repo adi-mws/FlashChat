@@ -1,6 +1,5 @@
 import React from "react";
 import { useForm } from "react-hook-form";
-import "./RegistrationForm.css"; // Import custom CSS
 import { useNotification } from "../../contexts/NotificationContext";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";

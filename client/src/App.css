@@ -1,0 +1,25 @@
+@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+:root {
+    --primary-color: rgb(189, 123, 0);
+    --widget-background: rgba(0, 0, 0, 0.5);
+    --gray-text: dimgray;
+    --primary-font: 'Raleway', serif;
+    --secondary-font: 'Open Sans', serif;
+    --tertiary-font: 'Merriweather', serif;
+    --head-font: 'K2', serif;
+}
+
+
+button {
+    cursor: pointer;
+}
+
+/* * {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+    font-family: var(--primary-font);
+} */

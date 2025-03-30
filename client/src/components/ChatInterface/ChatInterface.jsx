@@ -41,18 +41,18 @@ export default function ChatInterface() {
         return;
       }
       // if (!admin.name === (users.map((user) => selectedChat.chatId === user.chatId))._id) {
-        setMessages((prev) => ({
-          ...prev,
-          [chat.chatId]: [  // ✅ Use correct `chatId`
-            ...(prev[chat.chatId] || []),
-            {
-              message: data.message,
-              read: false, // or true based on logic
-              sender: data.sender,
-              _id: data._id,
-            },
-          ],
-        }));
+      setMessages((prev) => ({
+        ...prev,
+        [chat.chatId]: [  // ✅ Use correct `chatId`
+          ...(prev[chat.chatId] || []),
+          {
+            message: data.message,
+            read: false, // or true based on logic
+            sender: data.sender,
+            _id: data._id,
+          },
+        ],
+      }));
       // }
     });
 
@@ -225,20 +225,26 @@ export default function ChatInterface() {
           <button type="submit">Chat</button>
         </form>
         {users.map((user, index) => (
-          <div
-            key={index}
-            className={`user-item ${selectedChat.chatId === user ? "active" : ""}`}
-            onClick={() => setSelectedChat({ chatId: user.chatId, name: user.name })}
-          >
-            {user._id == admin.id ? `Me ${(user.name)}` : user.name}
-          </div>
+          <>
+            <div
+              key={index}
+              className={`user-item ${selectedChat.chatId === user ? "active" : ""}`}
+              onClick={() => setSelectedChat({ chatId: user.chatId, name: user.name })}
+            >
+              {user._id == admin.id ? `Me ${(user.name)}` : user.name}
+              <span className="no-of-message">2</span>
+
+            </div>
+          </>
         ))}
+
+
       </div>
 
       <div className="chat-box">
         {selectedChat.chatId ? (
           <>
-            <h2>Chat with {selectedChat.name}</h2>
+            <p className="chat-name">{selectedChat.name}</p>
             <div className="message-container" ref={messageContainer}>
               {/* {console.log(messages)} */}
               {(messages[selectedChat.chatId] || []).map((msg, index) => (
@@ -262,10 +268,10 @@ export default function ChatInterface() {
             </form>
           </>
         ) : (
-          <h2 className="select-user-message">Select a user to chat</h2>
+          <div><p className="chat-name">Select a user to chat</p></div>
         )}
       </div>
-    </div>
+    </div >
   );
 }
 

@@ -14,25 +14,27 @@
     height: 100%;
     background: #181818;
     border-right: 2px solid #ff8c00;
-    padding: 15px;
     display: flex;
     flex-direction: column;
+    gap: .3em;
+    padding: 1em 0;
     align-items: center;
   }
   
   .user-list h3 {
     margin-bottom: 10px;
     font-size: 18px;
-    color: #333;
+    color: white;
   }
   
   .user-item {
-    padding: 12px;
-    margin: 5px 0;
+    padding: 12px 1em;
     cursor: pointer;
-    border-radius: 8px;
-    background: #ff8c00;
+    background: #1f1f1f;
     color: white;
+    display: flex; 
+    justify-content: space-between;
+    align-items: center;
     text-align: center;
     font-weight: bold;
     transition: background 0.3s;
@@ -42,15 +44,31 @@
   
   .user-item:hover,
   .user-item.active {
-    background: #e67e00;
+    background: var(--primary-color);
+  }
+
+  .chat-form {
+    display: flex; 
+    gap: 1em; 
+    justify-content: center;
+    align-items: center;
   }
   
+  .no-of-message {
+    display: grid;
+    place-items: center; 
+    width: 30px;
+    height: 30px;
+    background: var(--primary-color); 
+    color: white;
+
+  }
   /* Chat Box */
   .chat-box {
     width: 100%; 
     height: 100%;
     display: grid;
-    grid-template: 10% 70% 20% / 100%;
+    grid-template: 10% 75% 15% / 100%;
     padding: 10px;
     border-radius: 5px;
   }
@@ -62,7 +80,7 @@
   .chat-box h2 {
     text-align: center;
     font-size: 20px;
-    color: #ff8c00;
+    color: var(--primary-color);
     font-weight: bold;
     margin-bottom: 10px;
   }
@@ -110,25 +128,26 @@
     display: flex;
     justify-content: center;
     height: 100%;
-    gap: 1em;
-    align-items: center;
     /* background: #f8f8f8; */
+    align-items: center;
+    gap: 2em;
+    padding: 2em;
     border-radius: 10px;
-    padding: 0 2em;
   }
   
   .chat-input-wrapper input {
     flex: 1;
-    padding: 12px;
     color: white;
-    border: 2px solid #ff8c00;
+    border: 2px solid var(--primary-color);
     border-radius: 20px;
     outline: none;
+    padding: 1em;
+    height: 60px;
     font-size: 16px;
     min-width: 150px;
     background: transparent;
   }
-  
+
   .chat-input-wrapper button {
     background: #ff8c00;
     padding: 12px;
@@ -148,6 +167,10 @@
     background: #e67e00;
   }
   
+  .chat-name {
+    color: white; 
+    
+  }
   /* Responsive */
   @media (max-width: 768px) {
     .chat-container {
@@ -164,6 +187,7 @@
     .user-item {
       width: auto;
       padding: 10px 15px;
+      
     }
   
     .chat-box {

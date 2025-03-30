@@ -1,11 +1,9 @@
 import React from "react";
 import { useForm } from "react-hook-form";
-import "./LoginForm.css"; // Import custom CSS
 import axios from 'axios'
 import { useNotification } from '../../contexts/NotificationContext'
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
-
 export default function LoginForm() {
   const { login } = useAuth();
   const {
@@ -14,18 +12,20 @@ export default function LoginForm() {
     formState: { errors },
   } = useForm();
   const navigate = useNavigate();
-
+  const location = useLocation();
   const { showNotification } = useNotification();
 
   const onSubmit = async (data) => {
     try {
+
+      const from = location.state?.from?.pathname || "/chat";
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/admin/login-admin`, data);
       if (response.status === 200) {
-        const {token, admin} = response.data
+        const { token, admin } = response.data
         console.log(admin)
         login(token, admin);
         showNotification("success", response.data.message)
-        navigate("/chat");
+        navigate(from, { replace: true })
 
 
       } else {
