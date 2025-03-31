@@ -41,31 +41,31 @@ export const registerUser = async (req, res) => {
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export const googleAuth = async (req, res) => {
-    const { tokenId } = req.body;
+    const { token } = req.body;
 
     try {
         // Verify the Google token
         const ticket = await client.verifyIdToken({
-            idToken: tokenId,
+            idToken: token,
             audience: process.env.GOOGLE_CLIENT_ID
         });
 
         const { sub, email, name, picture } = ticket.getPayload();  // Extract Google user data
 
         // Generate your own JWT token with Google info
-        const token = jwt.sign(
+        const jwtToken = jwt.sign(
             { id: sub, email, name: name, pfp: picture },
             process.env.JWT_SECRET,
             { expiresIn: process.env.JWT_EXPIRES_IN }
         );
 
-        // Store token in an HTTP-only cookie
-        res.cookie('token', token, {
-            httpOnly: true,                      // Secure against XSS
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'Strict',                  // CSRF protection
-            maxAge: 7 * 24 * 60 * 60 * 1000      // 7 days
+        res.cookie('googleToken', jwtToken, {
+            httpOnly: true,       // Prevent client-side access
+            secure: process.env.NODE_ENV === 'production',  // Secure in production
+            sameSite: 'Strict',   // Prevent CSRF attacks
+            maxAge: 7 * 24 * 60 * 60 * 1000  // 7 days expiration
         });
+
 
         res.status(200).json({
             message: "Google Auth Successful",
@@ -139,10 +139,25 @@ export const loginUser = async (req, res) => {
 
 // Logout user
 export const logoutUser = async (req, res) => {
-    if (res.cookie.token)
-        delete res.cookie[token]
-    res.status(200).json({ message: 'Logged out successfully' });
-}
+    try {
+        if (res.cookie.googleToken) {
+            res.cookie('googleToken', '', {
+                httpOnly: true,
+                expires: new Date(0)
+            });
+        } else {
+            res.cookie('token', '', {
+                httpOnly: true,
+                expires: new Date(0)
+            });
+        }
+
+        res.status(200).json({ message: 'Logged out successfully' });
+    } catch (error) {
+        return res.status(500).json({ message: 'Logout Error!', error: error });
+    }
+};
+
 
 // Generate JWT Token
 export const generateToken = (id, name, email) => {
@@ -151,37 +166,40 @@ export const generateToken = (id, name, email) => {
 
 
 
+
 export const verifyUserDetails = async (req, res) => {
-    const token = req.cookies?.token;  // Get token from HTTP-only cookie
-    // console.log(req.cookies)
-    if (!token) {
+    const token = req.cookies?.token || req.headers.authorization?.split(' ')[1];  // Check for JWT token in cookie or header
+    const googleToken = req.cookies?.googleToken;  // Check for Google token
+    if (!token && !googleToken) {
         return res.status(403).json({ message: 'Access denied, no token provided' });
     }
 
     try {
-        // Verify the token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        let user;
 
-        // Find the user by ID from the decoded token
-        const user = await User.findById(decoded.userId);
+        if (token) {
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            user = await User.findById(decoded.userId);
+
+            if (user) {
+                return res.status(200).json({ user })
+            }
+        } else if (googleToken) {
+            const decodedToken = jwt.decode(googleToken);
+            return res.status(200).json({
+                name: decodedToken.name,
+                email: decodedToken.email,
+                pfp: decodedToken.pfp,
+                id: decodedToken.id,
+            })
+        }
 
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        // Create full PFP URL if the user has a PFP
-        const pfpUrl = user.pfp ? `${process.env.BASE_URL}${user.pfp}` : null;
-
-        // Send user details along with PFP
-        res.status(200).json({
-            id: user._id,
-            name: user.name,
-            email: user.email,
-            pfp: pfpUrl  // Include PFP in response
-        });
-
     } catch (error) {
-        console.error('JWT verification failed:', error);
+        console.error('Authentication failed:', error);
         res.status(403).json({ message: 'Invalid or expired token' });
     }
 };

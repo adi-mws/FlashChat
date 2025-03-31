@@ -12,18 +12,21 @@ import AboutPage from "./components/AboutPage";
 import ResetPassword from "./components/forms/ResetPassword";
 import ForgotPassword from "./components/forms/ForgotPassword";
 import NoChatsFound from "./components/NoChatsFound";
+import { GoogleOAuthProvider } from "@react-oauth/google";
 function App() {
   return (
-    <ThemeProvider>
-      <NotificationProvider>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
+      <ThemeProvider>
+        <NotificationProvider>
 
-        <AuthProvider>
-          <Router>
-            <MainApp />
-          </Router>
-        </AuthProvider>
-      </NotificationProvider>
-    </ ThemeProvider>
+          <AuthProvider>
+            <Router>
+              <MainApp />
+            </Router>
+          </AuthProvider>
+        </NotificationProvider>
+      </ ThemeProvider>
+    </GoogleOAuthProvider>
   );
 }
 

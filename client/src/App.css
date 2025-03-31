@@ -27,3 +27,12 @@ button {
     /* box-sizing: border-box; */
     font-family: var(--primary-font);
 }
+
+
+
+  
+.google-login-button-container  > div{
+        width: 100%;
+        overflow: none;
+  }
+  

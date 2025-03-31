@@ -48,32 +48,32 @@ export default function Header() {
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
             <i className={`fa-solid fa-${theme === "dark" ? "sun" : "moon"} text-md`}></i>
           </button>
-
+                        
           {user ? (
             <>
               {/* Profile Section */}
               <div className="relative" ref={dropdownRef}>
                 <div 
-                  className="profile flex gap-3 items-center py-1 px-7 bg-gray-100 dark:bg-gray-600 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-500 transition"
+                  className="profile flex gap-3 items-center py-1 px-7 bg-gray-100 dark:bg-gray-800 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-500 transition"
                   onClick={() => setDropdownOpen(!dropdownOpen)}
                 >
                   <img src={user?.pfp} className="pfp w-8 h-8 rounded-full" alt="Profile" />
                   <p className="name dark:text-white">{user?.name}</p>
-                  <img className={`${dropdownOpen ? "rotate-180" : ""}`} alt="dropdown-icon"></img>
+                  <img className={`${dropdownOpen ? "rotate-180" : ""} transition duration-300`} src="/imgs/dropdown-icon.png" alt="dropdown-icon"></img>
                 </div>
 
                 {/* Dropdown Menu */}
                 {dropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-700 shadow-lg rounded-md z-10">
+                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 shadow-lg rounded-md z-10">
                     <ul className="py-2">
-                      <li className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition">
-                        <i className="fas fa-user mr-2"></i> Profile
+                      <li className="flex items-center px-4 gap-5 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition">
+                        <i className="fas fa-user"></i> <span> Profile</span>
                       </li>
-                      <li className="flex items-center px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition">
-                        <i className="fas fa-cog mr-2"></i> Settings
+                      <li className="flex items-center gap-4 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition">
+                        <i className="fas fa-cog"></i> <span> Settings</span>
                       </li>
-                      <li className="flex items-center px-4 py-2 text-sm text-red-500 hover:bg-red-100 dark:hover:bg-red-600 cursor-pointer transition" onClick={handleLogout}>
-                        <i className="fas fa-sign-out-alt mr-2"></i> Logout
+                      <li className="flex items-center gap-4 px-4 py-2 text-sm text-red-500 hover:bg-red-100 dark:hover:bg-red-600 cursor-pointer transition" onClick={handleLogout}>
+                        <i className="fas fa-sign-out-alt"></i> Logout
                       </li>
                     </ul>
                   </div>

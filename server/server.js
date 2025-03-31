@@ -33,15 +33,15 @@ const io = new Server(server, {
 export const users = new Map(); // Map for userId -> socketId mapping
 
 io.on("connection", (socket) => {
-    console.log(`User connected: ${socket.id}`);
+    // console.log(`User connected: ${socket.id}`);
 
     socket.on("join", (userId) => {
         users.set(userId, socket.id);  //  Use .set() for Map
-        console.log(`User ${userId} joined with socket ID: ${socket.id}`);
+        // console.log(`User ${userId} joined with socket ID: ${socket.id}`);
     });
 
     socket.on("sendMessage", (message) => {
-        console.log(" Message received:", message);
+        // console.log(" Message received:", message);
         io.emit("newMessage", message); // Broadcast message to all clients
     });
 
@@ -50,7 +50,7 @@ io.on("connection", (socket) => {
         for (const [userId, socketId] of users.entries()) {
             if (socketId === socket.id) {
                 users.delete(userId);  //  Use .delete() to properly remove the user
-                console.log(`User ${userId} disconnected`);
+                // console.log(`User ${userId} disconnected`);
                 break;
             }
         }

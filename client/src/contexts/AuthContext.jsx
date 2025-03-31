@@ -4,13 +4,14 @@ import { useNotification } from './NotificationContext';
 
 const AuthContext = createContext();
 
+
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);         // Store user info
   const [loading, setLoading] = useState(true);   // Loading state
   const [error, setError] = useState(null);       // Error handling
   const [userExistence, setUserExistence] = useState(false);
   const { showNotification } = useNotification();
-
   // Verify user based on HTTP-only cookie
   const verifyUserFromCookie = async () => {
     try {
@@ -36,38 +37,10 @@ export const AuthProvider = ({ children }) => {
   };
 
 
-  // Manual Login with email & password
-  const manualLogin = async (data) => {
-    try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/auth/login`,
-        data,
-        { withCredentials: true }  // Store JWT in HTTP-only cookie
-      );
+  useEffect(() => {
+    verifyUserFromCookie();
+  }, []);
 
-      if (response.status === 200) {
-        setUser(response.data.user);
-        showNotification('success', response.data.message)   
-        setLoading(false);
-        setError(null);
-      }
-    } catch (error) {
-      console.error('Login failed:', error);
-      showNotification('error', error.response?.data?.message ?? 'Internal Server Error');
-      setError('Invalid credentials');
-      setUser(null);
-    }
-  };
-
-  // Google Authentication function
-  const handleGoogleLogin = async () => {
-    try {
-      window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;  // Redirect to Google OAuth
-    } catch (error) {
-      console.error('Google Auth Error:', error);
-      setError('Failed to authenticate with Google');
-    }
-  };
 
   // Logout function
   const logout = async () => {
@@ -81,20 +54,19 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Logout failed:', error);
     }
-  };
 
-  //  On component mount, verify the user from cookies
-  useEffect(() => {
-    verifyUserFromCookie();
-  }, []);
+
+    //  On component mount, verify the user from cookies
+    
+  }
 
   return (
     <AuthContext.Provider value={{
       user,
+      setUser,
       loading,
       error,
-      manualLogin,
-      handleGoogleLogin,
+      setLoading, 
       logout,
       userExistence
     }}>
@@ -103,7 +75,7 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// ✅ Custom hook to use AuthContext
+// ustom hook to use AuthContext
 export const useAuth = () => {
   return useContext(AuthContext);
 };
