@@ -14,14 +14,13 @@ const __dirname = path.dirname(__filename);
 export const registerUser = async (req, res) => {
     const { name, email, password } = req.body;
     try {
-        const Us = await User.findOne({ email });
+        const userExists = await User.findOne({ email });
         if (userExists) {
             return res.status(400).json({ message: "User already exists" });
         }
 
         // Create user with hashed password
-        const user = await user.create({ name, email, password: hashSync(password, 10) });
-        console.log(email);
+        const user = await User.create({ name, email, password: hashSync(password, 10) });
 
 
 
@@ -84,89 +83,105 @@ export const googleAuth = async (req, res) => {
     }
 };
 
-// Login user
-export const loginUser = async (req, res) => {
-    const { username, password } = req.body;
 
-    // console.log(email, password); (DEBUGGER)
+
+export const loginUser = async (req, res) => {
+    const { email, password } = req.body;
 
     try {
-        // Await the result of the findOne query
-        const user = await user.findOne({ username });
+        // Find user by email
+        const user = await User.findOne({ email });
 
         if (!user) {
             return res.status(401).json({ message: 'Invalid Credentials' });
         }
 
-        // console.log(user.email); {DEBUGGER}
-
-        // Compare the provided password with the hashed password
+        // Check if the password matches
         const isPasswordMatch = await bcrypt.compare(password, user.password);
-        // console.log(isPasswordMatch); {DEBUGGER}
 
         if (!isPasswordMatch) {
             return res.status(401).json({ message: 'Invalid Credentials' });
         }
 
-        // Generate a token
-        const token = generateToken(user._id);
-        console.log(user._id);
-        res.status(200).json({ message: "user logged in successfully!", token, user: { username: user.username, pfp: user.pfp, email: user.email, id: user._id } });
+        // Generate JWT token
+        const token = jwt.sign(
+            { userId: user._id, email: user.email },  // Payload
+            process.env.JWT_SECRET,                   // Secret Key
+            { expiresIn: '7d' }                       // Expiration Time
+        );
+
+        // Set token in HTTP-only cookie
+        res.cookie('token', token, {
+            httpOnly: true,       // Prevent client-side access
+            secure: process.env.NODE_ENV === 'production',  // Secure in production
+            sameSite: 'Strict',   // Prevent CSRF attacks
+            maxAge: 7 * 24 * 60 * 60 * 1000  // 7 days expiration
+        });
+
+        // Send response with user details
+        res.status(200).json({
+            message: "User logged in successfully!",
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                pfp: user.pfp ? `${process.env.BASE_URL}${user.pfp}` : null
+            }
+        });
+
     } catch (error) {
-        console.error('Error during login:', error); // Log the error for debugging
+        console.error('Error during login:', error);
         res.status(500).json({ message: 'Error logging in user' });
     }
 };
 
 
+
 // Logout user
 export const logoutUser = async (req, res) => {
+    if (res.cookie.token)
+        delete res.cookie[token]
     res.status(200).json({ message: 'Logged out successfully' });
 }
 
 // Generate JWT Token
-export const generateToken = (userId) => {
-    return jwt.sign({ userId }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
+export const generateToken = (id, name, email) => {
+    return jwt.sign({ id, name, email }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
 };
 
 
 
-
-
-
-// Verify user Details
-
 export const verifyUserDetails = async (req, res) => {
-    const token = req.headers['authorization']?.split(' ')[1]; // Bearer token
+    const token = req.cookies?.token;  // Get token from HTTP-only cookie
+    // console.log(req.cookies)
     if (!token) {
         return res.status(403).json({ message: 'Access denied, no token provided' });
     }
 
-    jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
-        if (err) {
-            return res.status(403).json({ message: 'Invalid token' });
+    try {
+        // Verify the token
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        // Find the user by ID from the decoded token
+        const user = await User.findById(decoded.userId);
+
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
         }
 
-        try {
-            // Find the user by id from the decoded token
-            const user = await user.findById(decoded.userId);
+        // Create full PFP URL if the user has a PFP
+        const pfpUrl = user.pfp ? `${process.env.BASE_URL}${user.pfp}` : null;
 
-            if (!user) {
-                return res.status(404).json({ message: 'user not found' });
-            }
+        // Send user details along with PFP
+        res.status(200).json({
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            pfp: pfpUrl  // Include PFP in response
+        });
 
-
-            // Return full user details along with a boolean indicating if user exists
-            res.status(200).json({
-                id: user._id,
-                name: user.name,
-                email: user.email,
-                // Boolean indicating if an user exists in the database
-            });
-        } catch (error) {
-            console.error(error);
-            res.status(500).json({ message: 'Error fetching user data', error });
-        }
-    });
+    } catch (error) {
+        console.error('JWT verification failed:', error);
+        res.status(403).json({ message: 'Invalid or expired token' });
+    }
 };
-

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNotification } from './NotificationContext';
 
 const AuthContext = createContext();
 
@@ -8,6 +9,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);   // Loading state
   const [error, setError] = useState(null);       // Error handling
   const [userExistence, setUserExistence] = useState(false);
+  const { showNotification } = useNotification();
 
   // Verify user based on HTTP-only cookie
   const verifyUserFromCookie = async () => {
@@ -18,7 +20,7 @@ export const AuthProvider = ({ children }) => {
 
       if (response.status === 200) {
         console.log('User Verified:', response.data);
-        setUser(response.data.user);    
+        setUser(response.data);
         setLoading(false);
         setError(null);
       } else {
@@ -33,6 +35,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+
   // Manual Login with email & password
   const manualLogin = async (data) => {
     try {
@@ -43,7 +46,8 @@ export const AuthProvider = ({ children }) => {
       );
 
       if (response.status === 200) {
-        setUser(response.data.user);    // Store user data
+        setUser(response.data.user);
+        showNotification('success', response.data.message)   
         setLoading(false);
         setError(null);
       }
@@ -85,14 +89,14 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ 
-      user, 
-      loading, 
-      error, 
-      manualLogin, 
-      handleGoogleLogin, 
-      logout, 
-      userExistence 
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      error,
+      manualLogin,
+      handleGoogleLogin,
+      logout,
+      userExistence
     }}>
       {children}
     </AuthContext.Provider>

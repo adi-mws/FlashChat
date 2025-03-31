@@ -6,6 +6,7 @@ import authRoutes from './routes/authRoutes.js';
 import cors from 'cors';
 import chatRoutes from './routes/chatRoutes.js';
 import { Server } from "socket.io";
+import path from 'path';
 import cookieParser from 'cookie-parser'; 
 
 dotenv.config();
@@ -29,31 +30,35 @@ const io = new Server(server, {
     },
 });
 
-// Mapping the user id with the socket id
-export const users = new Map(); // Store userId -> socketId mappin
+export const users = new Map(); // Map for userId -> socketId mapping
 
-// Handle WebSocket Connection
 io.on("connection", (socket) => {
-    console.log(`⚡ User connected: ${socket.id}`);
+    console.log(`User connected: ${socket.id}`);
 
     socket.on("join", (userId) => {
-        users[userId] = socket.id;
-    })
+        users.set(userId, socket.id);  //  Use .set() for Map
+        console.log(`User ${userId} joined with socket ID: ${socket.id}`);
+    });
+
     socket.on("sendMessage", (message) => {
-        console.log("📩 Message received:", message);
+        console.log(" Message received:", message);
         io.emit("newMessage", message); // Broadcast message to all clients
     });
 
     socket.on("disconnect", () => {
-        const userId = Object.keys(users).find((key) => users[key] === socket.id);
-        if (userId) {
-            delete users[userId];
-            console.log(`User ${userId} disconnected`);
+        // Find the user by socket ID
+        for (const [userId, socketId] of users.entries()) {
+            if (socketId === socket.id) {
+                users.delete(userId);  //  Use .delete() to properly remove the user
+                console.log(`User ${userId} disconnected`);
+                break;
+            }
         }
     });
 });
 
 
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 app.use(express.json()); // For parsing application/json
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));

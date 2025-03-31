@@ -8,7 +8,7 @@ import { registerUser, loginUser, logoutUser, verifyUserDetails, googleAuth } fr
 router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.post('/google', googleAuth);
-router.post('/verify-user', verifyUserDetails);
-router.post('/logout-user', authenticateJWT, logoutUser)
+router.get('/verify-user', verifyUserDetails);
+router.post('/logout', authenticateJWT, logoutUser)
 
 export default router;
