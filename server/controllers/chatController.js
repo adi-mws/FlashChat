@@ -1,6 +1,6 @@
 
 import Chat from "../models/chat.js";
-import Admin from "../models/admin.js";
+import Admin from "../models/user.js";
 import { json } from "express";
 import { io, users } from "../server.js"; // Import WebSocket server
 

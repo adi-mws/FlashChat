@@ -1,34 +1,40 @@
 import jwt from 'jsonwebtoken';
 
+// Middleware to authenticate using cookies
 const authenticateJWT = (req, res, next) => {
-    const token = req.headers['authorization']?.split(' ')[1]; // Bearer token
+    const token = req.cookies?.token;  // Extract the token from HTTP cookie
 
     if (!token) {
-        return res.status(403).json({ message: 'Access denied, no token provided' });
+        return res.status(401).json({ message: 'Access denied, no token provided' });
     }
 
-    jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
         if (err) {
-            return res.status(403).json({ message: 'Invalid token' });
+            return res.status(403).json({ message: 'Invalid or expired token' });
         }
-        req.user = user; // Attach user to request
-        next(); // Proceed to the next middleware
+
+        req.user = decoded;
+
+        // Check for token expiration
+        const currentTime = Math.floor(Date.now() / 1000);
+        if (decoded.exp && decoded.exp < currentTime) {
+            return res.status(401).json({ message: 'Token expired' });
+        }
+
+        next();
     });
 };
 
-// Middleware to verify if the user has admin privileges
-export const authorizeAdmin = (req, res, next) => {
-    // Ensure the user is authenticated first
+// Middleware for role-based authorization
+export const authorizeRole = (role) => (req, res, next) => {
     if (!req.user) {
         return res.status(401).json({ message: 'Unauthorized access' });
     }
 
-    // Check if the user has the role of admin
-    if (req.user.role !== 'user') {
-        return res.status(403).json({ message: 'Access denied, admin only' });
+    if (req.user.role !== role) {
+        return res.status(403).json({ message: `Access denied, ${role} only` });
     }
 
-    // Proceed to the next middleware or route handler if the user is an admin
     next();
 };
 

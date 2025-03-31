@@ -1,6 +1,6 @@
 import "./App.css";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import LoginForm from "./components/LoginForm";
+import LoginForm from "./components/forms/LoginForm";
 import RegistrationForm from "./components/forms/RegistrationForm";
 import ChatInterface from "./components/ChatInterface/ChatInterface";
 import WebsiteLayout from "./layouts/WebsiteLayout";
@@ -9,23 +9,26 @@ import { NotificationProvider } from "./contexts/NotificationContext";
 import Landing from "./components/Landing";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import AboutPage from "./components/AboutPage";
+import ResetPassword from "./components/forms/ResetPassword";
+import ForgotPassword from "./components/forms/ForgotPassword";
 import NoChatsFound from "./components/NoChatsFound";
 function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <NotificationProvider>
+      <NotificationProvider>
+
+        <AuthProvider>
           <Router>
             <MainApp />
           </Router>
-        </NotificationProvider>
-      </AuthProvider>
+        </AuthProvider>
+      </NotificationProvider>
     </ ThemeProvider>
   );
 }
 
 const MainApp = () => {
-  const { admin } = useAuth();
+  const { user } = useAuth();
   return (
     <Routes>
       <Route path="/" element={<WebsiteLayout />}>
@@ -33,6 +36,8 @@ const MainApp = () => {
         <Route path='/test' element={<NoChatsFound />} />
         <Route path="/login" element={<LoginForm />} />
         <Route path="/register" element={<RegistrationForm />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/chats" element={<ChatInterface />} />
         <Route path="/about" element={<AboutPage />} />
       </Route>

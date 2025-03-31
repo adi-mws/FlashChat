@@ -1,6 +1,7 @@
-//Admins Model
+//users Model
 import mongoose from "mongoose";
-const adminSchema = new mongoose.Schema({
+const userSchema = new mongoose.Schema({
+
     name: {
         type: String,
         required: true,
@@ -13,9 +14,14 @@ const adminSchema = new mongoose.Schema({
     password: {
         type: String,
         required: true
+    },
+    pfp : {
+        type: String, 
+        required: false,
+        default: '/uploads/pfps/default-pfp.jpg'
     }
 });
 
-const Admin = mongoose.model('Admin', adminSchema);
+const User = mongoose.model('user', userSchema);
 
-export default Admin;
+export default User;

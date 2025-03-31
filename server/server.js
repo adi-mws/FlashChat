@@ -1,11 +1,13 @@
 import express from 'express';
-import connectDB from './db/connectDb.js';
+import connectDB from './lib/connectDb.js';
 import dotenv from 'dotenv';
 import http from 'http'
-import adminRoutes from './routes/adminRoutes.js';
+import authRoutes from './routes/authRoutes.js';
 import cors from 'cors';
 import chatRoutes from './routes/chatRoutes.js';
 import { Server } from "socket.io";
+import cookieParser from 'cookie-parser'; 
+
 dotenv.config();
 
 const app = express();
@@ -55,11 +57,11 @@ io.on("connection", (socket) => {
 app.use(express.json()); // For parsing application/json
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
-
+app.use(cookieParser());
 connectDB();
 
-// Routes for admin dashboard
-app.use('/api/admin', adminRoutes);
+// Routes for users authentication and profile management settings
+app.use('/api/auth', authRoutes);
 app.use('/api/chats', chatRoutes);
 
 server.listen(PORT, () => {

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { io } from "socket.io-client";
-import "./ChatInterface.css";
 import { useAuth } from "../../contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
@@ -18,9 +17,9 @@ export default function ChatInterface() {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState({});
   const [users, setUsers] = useState([]);
-  const { admin } = useAuth();
+  const { user } = useAuth();
   const [selectedChat, setSelectedChat] = useState({});
-  const currentUser = admin.id;
+  const currentUser = user.id;
 
   const navgiate = useNavigate();
 
@@ -28,7 +27,7 @@ export default function ChatInterface() {
   const [userLoading, setUserLoading] = useState(false);
   useEffect(() => {
     socket.connect();
-    socket.emit("join", admin?.id);
+    socket.emit("join", user?.id);
 
     socket.on("receiveMessage", (data) => {
       console.log(data);
@@ -40,7 +39,7 @@ export default function ChatInterface() {
         console.warn("Chat ID not found for received message:", data);
         return;
       }
-      // if (!admin.name === (users.map((user) => selectedChat.chatId === user.chatId))._id) {
+      // if (!user.name === (users.map((user) => selectedChat.chatId === user.chatId))._id) {
       setMessages((prev) => ({
         ...prev,
         [chat.chatId]: [  
@@ -59,11 +58,11 @@ export default function ChatInterface() {
     return () => {
       socket.off("receiveMessage");
     };
-  }, [admin, useMemo(() => users, [users])]);
+  }, [user, useMemo(() => users, [users])]);
 
   // Form onSubmit
   const onSubmit = async (data) => {
-    data.user1Id = admin.id;
+    data.user1Id = user.id;
     // console.log(data);
 
     try {
@@ -108,7 +107,7 @@ export default function ChatInterface() {
 
     const fetchData = async () => {
       try {
-        const response = await axios.get(`${import.meta.env.VITE_API_URL}/chats/${admin.id}`, { // Removed extra `}`
+        const response = await axios.get(`${import.meta.env.VITE_API_URL}/chats/${user.id}`, { // Removed extra `}`
           headers: {
             Authorization: `Bearer ${localStorage.getItem('jwtToken')}`
           }
@@ -128,7 +127,7 @@ export default function ChatInterface() {
     }
     fetchData();
     // console.log(users);
-  }, []); // Dependency array should include `admin.id` if it changes dynamically
+  }, []); // Dependency array should include `user.id` if it changes dynamically
 
 
 
@@ -233,7 +232,7 @@ export default function ChatInterface() {
               className={`user-item ${selectedChat.chatId === user ? "active" : ""}`}
               onClick={() => setSelectedChat({ chatId: user.chatId, name: user.name })}
             >
-              {user._id == admin.id ? `Me ${(user.name)}` : user.name}
+              {user._id == user.id ? `Me ${(user.name)}` : user.name}
               <span className="no-of-message">2</span>
 
             </div>
