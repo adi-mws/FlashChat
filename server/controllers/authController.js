@@ -125,7 +125,7 @@ export const loginUser = async (req, res) => {
                 id: user._id,
                 name: user.name,
                 email: user.email,
-                pfp: user.pfp ? `${process.env.BASE_URL}${user.pfp}` : null
+                pfp: user.pfp ? `${process.env.BASE_URL}/${user.pfp}` : null
             }
         });
 
@@ -182,7 +182,7 @@ export const verifyUserDetails = async (req, res) => {
             user = await User.findById(decoded.userId);
 
             if (user) {
-                return res.status(200).json({ user })
+                return res.status(200).json({ id: user._id, email: user.email, pfp: `${process.env.BASE_URL}/${user.pfp}`, name:user.name })
             }
         } else if (googleToken) {
             const decodedToken = jwt.decode(googleToken);

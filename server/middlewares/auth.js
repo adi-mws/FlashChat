@@ -3,12 +3,12 @@ import jwt from 'jsonwebtoken';
 // Middleware to authenticate using cookies
 const authenticateJWT = (req, res, next) => {
     const token = req.cookies?.token;  // Extract the token from HTTP cookie
-
-    if (!token) {
+    const googleToken = req.cookies?.googleToken
+    if (!token && !googleToken) {
         return res.status(401).json({ message: 'Access denied, no token provided' });
     }
-
-    jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    let verificationToken = token ? token : googleToken 
+    jwt.verify(verificationToken, process.env.JWT_SECRET, (err, decoded) => {
         if (err) {
             return res.status(403).json({ message: 'Invalid or expired token' });
         }

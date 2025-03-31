@@ -15,11 +15,19 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    pfp : {
-        type: String, 
+    pfp: {
+        type: String,
         required: false,
-        default: '/uploads/pfps/default-pfp.jpg'
-    }
+        default: 'uploads/pfps/default-pfp.jpg'
+    },
+
+    chats: [{
+        type: mongoose.Types.ObjectId,
+        ref: 'Chat',
+    }],
+
+
+
 });
 
 const User = mongoose.model('user', userSchema);

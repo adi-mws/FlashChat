@@ -86,12 +86,12 @@ export default function LoginForm() {
 
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="gap-5 text-sm flex flex-col bg-gray-50 p-5 rounded-lg dark:bg-gray-900"
+        className="gap-5 text-sm flex flex-col bg-gray-50 p-7 rounded-lg dark:bg-gray-900"
       >
-        <div className="form-group flex gap-2 flex-col">
+        <div className="form-group flex gap-2  flex-col">
           <label className="dark:text-white">Email</label>
           <input
-            className="py-3 focus:outline-1 dark:bg-gray-950 outline-primary rounded-md bg-gray-100 px-5 dark:text-white"
+            className="py-3 focus:outline-1 w-60 xs:w-70 dark:bg-gray-950 outline-primary rounded-md bg-gray-100 px-5 dark:text-white"
             type="email"
             placeholder="Enter Email"
             {...register("email", { required: "Email is required" })}
@@ -104,7 +104,7 @@ export default function LoginForm() {
         <div className="form-group flex gap-2 flex-col">
           <label className="dark:text-white">Password</label>
           <input
-            className="py-3 w-60 focus:outline-1 outline-primary rounded-md bg-gray-100 px-5 dark:text-white dark:bg-gray-950"
+            className="py-3 w-60 xs:w-70 focus:outline-1 outline-primary rounded-md bg-gray-100 px-5 dark:text-white dark:bg-gray-950"
             placeholder="Enter Password"
             type="password"
             {...register("password", { required: "Password is required" })}

@@ -2,7 +2,7 @@ import "./App.css";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import LoginForm from "./components/forms/LoginForm";
 import RegistrationForm from "./components/forms/RegistrationForm";
-import ChatInterface from "./components/ChatInterface/ChatInterface";
+import ChatInterface from "./components/ChatInterface";
 import WebsiteLayout from "./layouts/WebsiteLayout";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
@@ -32,6 +32,7 @@ function App() {
 
 const MainApp = () => {
   const { user } = useAuth();
+  console.log(user)
   return (
     <Routes>
       <Route path="/" element={<WebsiteLayout />}>
