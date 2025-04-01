@@ -7,7 +7,7 @@ import cors from 'cors';
 import chatRoutes from './routes/chatRoutes.js';
 import { Server } from "socket.io";
 import path from 'path';
-import cookieParser from 'cookie-parser'; 
+import cookieParser from 'cookie-parser';
 
 dotenv.config();
 

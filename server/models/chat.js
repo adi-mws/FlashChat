@@ -1,44 +1,56 @@
 import mongoose from "mongoose";
 
-const messageSchema = new mongoose.Schema(
-  {
-    sender: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Admin", // Reference to the Admin model
-      required: true,
-    },
-    content: {
-      type: String,
-      required: true,
-    },
-    read: {
-      type: Boolean, 
-      default: false,
-    },
-    timestamp: {
-      type: Date,
-      default: Date.now,
-    },
-  },
-  // { _id: false } // Avoids creating a separate ID for each message
-);
+const chatSchema = new mongoose.Schema({
+  // Array of user references participating in the chat
+  participants: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  }],
 
-const chatSchema = new mongoose.Schema(
-  {
-    user1: {
-      type: mongoose.Schema.Types.ObjectId, // First participant
-      ref: "Admin", // Reference to the Admin model
-      required: true,
-    },
-    user2: {
-      type: mongoose.Schema.Types.ObjectId, // Second participant
-      ref: "Admin", // Reference to the Admin model
-      required: true,
-    },
-    messages: [messageSchema], // Stores messages for the chat
+  // Last message reference for quick access
+  lastMessage: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Message',
+    default: null
   },
-  { timestamps: true }
-);
+  
+  // Additional metadata
+  createdAt: {
+    type: Date,
+    default: Date.now
+  },
+  updatedAt: {
+    type: Date,
+    default: Date.now
+  }
+}, {
+  timestamps: true 
+});
 
-const Chat = mongoose.model("Chat", chatSchema);
+// Indexes for faster queries
+chatSchema.index({ participants: 1 });
+chatSchema.index({ lastMessage: 1 });
+chatSchema.index({ updatedAt: -1 });
+
+const Chat = mongoose.model('Chat', chatSchema);
 export default Chat;
+// Future Purpose
+
+  // For group chats
+  // isGroupChat: {
+  //   type: Boolean,
+  //   default: false
+  // },
+  // groupName: {
+  //   type: String,
+  //   trim: true
+  // },
+  // groupAdmin: {
+  //   type: mongoose.Schema.Types.ObjectId,
+  //   ref: 'User'
+  // },
+  // groupPhoto: {
+  //   type: String,
+  //   default: ''
+  // },

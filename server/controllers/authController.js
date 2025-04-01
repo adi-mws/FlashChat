@@ -66,12 +66,17 @@ export const googleAuth = async (req, res) => {
             maxAge: 7 * 24 * 60 * 60 * 1000  // 7 days expiration
         });
 
+        const generateUserName = (name) => {
+            const randomDigits = Math.floor(1000 + Math.random() * 9000); // Generates a 4-digit random number
+            return name.replace(/ /g, '-').toLowerCase() + randomDigits;
+        };
 
         res.status(200).json({
             message: "Google Auth Successful",
             user: {
                 id: sub,                  // Google ID
-                username: name,           // Google Username
+                username: generateUserName(name),
+                name: name,        // Google Username
                 email,                    // Google Email
                 pfp: picture              // Google Profile Picture
             }
@@ -84,13 +89,12 @@ export const googleAuth = async (req, res) => {
 };
 
 
-
 export const loginUser = async (req, res) => {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
 
     try {
-        // Find user by email
-        const user = await User.findOne({ email });
+        // Find user by username
+        const user = await User.findOne({ username });
 
         if (!user) {
             return res.status(401).json({ message: 'Invalid Credentials' });
@@ -126,7 +130,8 @@ export const loginUser = async (req, res) => {
                 name: user.name,
                 email: user.email,
                 pfp: user.pfp ? `${process.env.BASE_URL}/${user.pfp}` : null
-            }
+            },
+            token // Also send the token in response
         });
 
     } catch (error) {
@@ -182,7 +187,7 @@ export const verifyUserDetails = async (req, res) => {
             user = await User.findById(decoded.userId);
 
             if (user) {
-                return res.status(200).json({ id: user._id, email: user.email, pfp: `${process.env.BASE_URL}/${user.pfp}`, name:user.name })
+                return res.status(200).json({ id: user._id, email: user.email, pfp: `${process.env.BASE_URL}/${user.pfp}`, name: user.name })
             }
         } else if (googleToken) {
             const decodedToken = jwt.decode(googleToken);

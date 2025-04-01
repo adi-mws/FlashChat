@@ -3,73 +3,73 @@ import Chat from "../models/chat.js";
 import Admin from "../models/user.js";
 import { json } from "express";
 import { io, users } from "../server.js"; // Import WebSocket server
-
-
-export const createChat = async (req, res) => {
-    try {
-        const { user1Id, user2Email } = req.body; // Get user1 ID and user2 email from request
-        // Find user2 by email
-        // console.log(user1Id, user2Email)
-        const user2 = await Admin.findOne({ email: user2Email });
-        if (!user2) {
-            return res.status(404).json({ message: "User2 not found" });
-        }
-
-        // Check if a chat already exists
-        const existingChat = await Chat.findOne({
-            $or: [
-                { user1: user1Id, user2: user2._id },
-                { user1: user2._id, user2: user1Id },
-            ],
-        });
-
-        if (existingChat) {
-            return res.status(200).json({ message: "Chat already exists", chat: existingChat });
-        }
-
-        // Create a new chat
-        const newChat = new Chat({
-            user1: user1Id,
-            user2: user2._id,
-            messages: [],
-        });
-
-        await newChat.save();
-
-        res.status(201).json({ message: "Chat created successfully", user: { chatId: newChat._id, name: user2.name, email: user2.email, _id: user2._id } });
-    }
-    catch (error) {
-        res.status(500).json({ message: "Error creating chat", error });
-    }
-};
-
+import Message from "../models/message.js";
 
 export const showAllChatsOfUser = async (req, res) => {
     try {
-        const { _id } = req.params; // User ID from request
+        const { _id } = req.params;
 
-        // Find all chats where the user is either user1 or user2
+        // Find only 1-on-1 chats involving this user
         const chats = await Chat.find({
-            $or: [{ user1: _id }, { user2: _id }]
-        }).populate("user1 user2", "name email"); // Populate user details
-        // console.log(_id)
-        if (chats.length === 0) {
-            return res.status(404).json({ message: "No chats found for this user" });
-        }
+            participants: _id,
+            $where: 'this.participants.length === 2'
+        })
+            .populate({
+                path: 'participants',
+                select: 'username name pfp',
+                match: { _id: { $ne: _id } }
+            })
+            .populate({
+                path: 'lastMessage',
+                select: 'content sender createdAt',
+                populate: {
+                    path: 'sender',
+                    select: 'name'
+                }
+            })
+            .sort({ updatedAt: -1 })
+            .lean();
 
-        // Extract only the corresponding user (exclude messages)
-        const userList = chats.map(chat => {
-            return chat.user1._id.toString() === _id
-                ? { chatId: chat._id, _id: chat.user2._id, name: chat.user2.name, email: chat.user2.email }
-                : { chatId: chat._id, _id: chat.user1._id, name: chat.user1.name, email: chat.user1.email };
+        // Calculate unread counts for each chat
+        const chatsWithUnreadCounts = await Promise.all(
+            chats.map(async chat => {
+                const unreadCount = await Message.countDocuments({
+                    chat: chat._id,
+                    readBy: { $ne: _id }, // Not read by current user
+                    sender: { $ne: _id }  // Exclude messages sent by current user
+                });
+
+                const otherParticipant = chat.participants[0];
+
+                return {
+                    _id: chat._id,
+                    participant: otherParticipant,
+                    lastMessage: chat.lastMessage ? {
+                        _id: chat.lastMessage._id,
+                        content: chat.lastMessage.content,
+                        sender: chat.lastMessage.sender,
+                        createdAt: chat.lastMessage.createdAt
+                    } : null,
+                    unreadCount, // Now with actual count
+                    updatedAt: chat.updatedAt
+                };
+            })
+        );
+
+        res.status(200).json({
+            success: true,
+            message: "Chats retrieved successfully",
+            chats: chatsWithUnreadCounts
         });
-
-        res.status(200).json({ message: "Chats retrieved successfully", users: userList });
     } catch (error) {
-        res.status(500).json({ message: "Error fetching chats", error });
+        console.error("Error fetching chats:", error);
+        res.status(500).json({
+            success: false,
+            message: "Error fetching chats",
+            error: error.message
+        });
     }
 };
-
 
 export const deleteChat = async (req, res) => {
     try {
@@ -92,52 +92,91 @@ export const deleteChat = async (req, res) => {
 
 
 
-
 export const sendMessage = async (req, res) => {
     try {
-        const { chatId, senderId, message } = req.body;
+        const { senderId, message, receiverId } = req.body;
 
-        const chat = await Chat.findById(chatId);
-        if (!chat) {
-            return res.status(404).json({ message: 'Chat not found!' });
-        }
-
-        // Ensure ObjectId comparison works correctly
-        const receiverId = chat.user1.equals(senderId) ? chat.user2 : chat.user1;
-
-        // Create a new message
-        const newMessage = {
-            sender: senderId,
-            content: message
-        };
-
-        // Push to chat messages array
-        chat.messages.push(newMessage);
-
-        // Save chat and ensure it is stored in MongoDB
-        await chat.save();
-
-        // Get the saved message (MongoDB assigns _id automatically)
-        const savedMessage = chat.messages[chat.messages.length - 1];
-
-        // Emit message to receiver if they are online
-        if (receiverId && users[receiverId]) {
-            io.to(users[receiverId]).emit("receiveMessage", {
-                chatId: chatId,
-                senderId: savedMessage.sender,
-                _id: savedMessage._id, // Now `_id` is defined
-                message: savedMessage.content
+        // Validate input
+        if (!senderId || !receiverId || !message) {
+            return res.status(400).json({
+                success: false,
+                message: "Missing required fields (senderId, chatId, or message)"
             });
         }
 
-        res.status(201).json({ message: "Message sent successfully", newMessage: savedMessage });
+        let newChat;
+
+        // 1. Find the chat
+        let chat = await Chat.findOne({
+            participants: { $all: [senderId, receiverId], $size: 2 }
+        })
+
+        if (!chat) {
+            chat = await Chat.create({
+                createdAt: Date.now(),
+                updatedAt: Data.now(),
+                participants: [senderId, receiverId],
+                lastMessage: null
+            })
+            await newChat.save();
+        }
+
+        const newMessage = await Message.create({
+            chat: chat._id,
+            content: message,
+            createdAt: new Date(),
+            readBy: [senderId]
+        })
+        await newMessage.save();
+
+        newChat.lastMessage = newMessage._id;
+        await newChat.save();
+
+        // 3. Get the saved message with populated sender
+        const savedMessage = await Message.findById(chat.messages[chat.messages.length - 1]._id)
+            .populate('sender', 'name pfp username');
+
+        // 4. Prepare response data
+        const messageData = {
+            chatId: chat._id,
+            _id: savedMessage._id,
+            content: savedMessage.content,
+            sender: {
+                _id: savedMessage.sender._id,
+                name: savedMessage.sender.name,
+                avatar: savedMessage.sender.avatar
+            },
+            createdAt: savedMessage.createdAt,
+            isRead: false // For receiver
+        };
+
+        // 6. Emit real-time message to receiver if online
+        if (receiverId && users[receiverId]) {
+            io.to(users[receiverId]).emit("receiveMessage", {
+                ...messageData,
+                unreadCount: await Message.countDocuments({
+                    chat: chat._id,
+                    readBy: { $ne: receiverId },
+                    sender: { $ne: receiverId }
+                })
+            });
+        }
+
+        res.status(201).json({
+            success: true,
+            message: "Message sent successfully",
+            data: messageData
+        });
+
     } catch (error) {
-        console.error("Error sending message:", error);
-        res.status(500).json({ message: "Error sending message", error: error.message });
+        console.error("Error in sendMessage:", error);
+        res.status(500).json({
+            success: false,
+            message: "Failed to send message",
+            error: error.message
+        });
     }
 };
-
-
 
 export const getMessages = async (req, res) => {
     const { _id } = req.params;

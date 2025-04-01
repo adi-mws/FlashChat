@@ -89,15 +89,15 @@ export default function LoginForm() {
         className="gap-5 text-sm flex flex-col bg-gray-50 p-7 rounded-lg dark:bg-gray-900"
       >
         <div className="form-group flex gap-2  flex-col">
-          <label className="dark:text-white">Email</label>
+          <label className="dark:text-white">Username</label>
           <input
             className="py-3 focus:outline-1 w-60 xs:w-70 dark:bg-gray-950 outline-primary rounded-md bg-gray-100 px-5 dark:text-white"
-            type="email"
-            placeholder="Enter Email"
-            {...register("email", { required: "Email is required" })}
+            type="text"
+            placeholder="Enter Username"
+            {...register("username", { required: "Email is required" })}
           />
-          {errors.email && (
-            <p className="text-red-500 text-xs">{errors.email.message}</p>
+          {errors.username && (
+            <p className="text-red-500 text-xs">{errors.username.message}</p>
           )}
         </div>
 

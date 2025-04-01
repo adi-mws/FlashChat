@@ -2,7 +2,6 @@ import "./App.css";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import LoginForm from "./components/forms/LoginForm";
 import RegistrationForm from "./components/forms/RegistrationForm";
-import ChatInterface from "./components/ChatInterface";
 import WebsiteLayout from "./layouts/WebsiteLayout";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
@@ -13,6 +12,9 @@ import ResetPassword from "./components/forms/ResetPassword";
 import ForgotPassword from "./components/forms/ForgotPassword";
 import NoChatsFound from "./components/NoChatsFound";
 import { GoogleOAuthProvider } from "@react-oauth/google";
+import { ChatProvider } from "./contexts/ChatsContext";
+import ChatLayout from "./layouts/ChatLayout";
+import { PopUpProvider } from "./contexts/PopUpProvider";
 function App() {
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
@@ -20,9 +22,13 @@ function App() {
         <NotificationProvider>
 
           <AuthProvider>
-            <Router>
-              <MainApp />
-            </Router>
+            <PopUpProvider>
+              <ChatProvider>
+                <Router>
+                  <MainApp />
+                </Router>
+              </ChatProvider>
+            </PopUpProvider>
           </AuthProvider>
         </NotificationProvider>
       </ ThemeProvider>
@@ -42,9 +48,10 @@ const MainApp = () => {
         <Route path="/register" element={<RegistrationForm />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
-        <Route path="/chats" element={<ChatInterface />} />
         <Route path="/about" element={<AboutPage />} />
       </Route>
+      <Route path="/chats" element={<ChatLayout />} />
+
     </Routes>
   );
 };
