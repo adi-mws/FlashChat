@@ -24,11 +24,10 @@ const userSchema = new mongoose.Schema({
         required: false,
         default: 'uploads/pfps/default-pfp.jpg'
     },
-
-    chats: [{
-        type: mongoose.Types.ObjectId,
-        ref: 'Chat',
-    }],
+    accountType: {
+        type: String, 
+        enum: ['normal', 'google']
+    }
 });
 
 const User = mongoose.model('user', userSchema);

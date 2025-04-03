@@ -6,6 +6,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 import { GoogleLogin } from "@react-oauth/google";
 import { useTheme } from "../../contexts/ThemeContext";
+import jwtDecode from 'jwt-decode'
 export default function LoginForm() {
   const {
     register,
@@ -42,7 +43,18 @@ export default function LoginForm() {
 
   const handleGoogleSuccess = async (credentialResponse) => {
     console.log("Google Login Success:", credentialResponse);
-
+    let decode = jwtDecode(credentialResponse.credential);
+    console.log(decode.email);
+    
+    // verifying the value; 
+    // try {
+    //   const response = await axios.post(
+    //     `${import.meta.env.VITE_API_URL}/auth/google-email-check`
+    //   )
+    // } catch (error) {
+    //   console.error(error);
+    // }
+    
     try {
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/auth/google`,
