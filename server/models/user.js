@@ -24,7 +24,7 @@ const userSchema = new mongoose.Schema({
         required: false,
         default: 'uploads/pfps/default-pfp.jpg'
     },
-    accountType: {
+    type: {
         type: String, 
         enum: ['normal', 'google']
     }

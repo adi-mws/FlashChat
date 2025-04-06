@@ -1,12 +1,12 @@
-import React from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import axios from "axios";
-import { useNotification } from "../../contexts/NotificationContext";
+import { useNotification } from "../../hooks/NotificationContext";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../../hooks/AuthContext";
 import { GoogleLogin } from "@react-oauth/google";
-import { useTheme } from "../../contexts/ThemeContext";
-import jwtDecode from 'jwt-decode'
+import { useTheme } from "../../hooks/ThemeContext";
+import UserNameForm from "./UserNameForm";
 export default function LoginForm() {
   const {
     register,
@@ -15,6 +15,7 @@ export default function LoginForm() {
   } = useForm({ mode: "onChange" });
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const [showUsernameForm, setShowUsernameForm] = useState(false);
   const { showNotification } = useNotification();
   const { setUser, setLoading } = useAuth();
 
@@ -43,39 +44,40 @@ export default function LoginForm() {
 
   const handleGoogleSuccess = async (credentialResponse) => {
     console.log("Google Login Success:", credentialResponse);
-    let decode = jwtDecode(credentialResponse.credential);
-    console.log(decode.email);
-    
-    // verifying the value; 
-    // try {
-    //   const response = await axios.post(
-    //     `${import.meta.env.VITE_API_URL}/auth/google-email-check`
-    //   )
-    // } catch (error) {
-    //   console.error(error);
-    // }
-    
     try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/auth/google`,
-        { token: credentialResponse.credential},
-        {withCredentials: true}
-      );
-
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/google-check`, { token: credentialResponse.credential }, { withCredentials: true });
       if (response.status === 200) {
-        const user = response.data.user; 
-        user.name = user.username; 
-        delete user['username'] 
-        setUser(user);
-        showNotification("success", "Login Successful!");
-        navigate('/')
-      } else {
-        showNotification("error", "Failed to login");
+        console.log('Pre auth response = ', response.data);
+        if (response.data.available) {
+          try {
+            const r = await axios.post(
+              `${import.meta.env.VITE_API_URL}/auth/google`,
+              { token: credentialResponse.credential, available: response.data.available },
+              { withCredentials: true }
+            );
+
+            if (r.status === 200) {
+              const user = r.data.user;
+              user.name = user.username;
+              delete user['username']
+              setUser(user);
+              showNotification("success", "Login Successful!");
+              navigate('/')
+            } else {
+              showNotification("error", "Failed to login");
+            }
+          } catch (error) {
+            console.error("Google Auth API Error:", error);
+            showNotification("error", "Authentication failed!");
+          }
+        } else {
+          setShowUsernameForm(true);
+        }
       }
     } catch (error) {
-      console.error("Google Auth API Error:", error);
-      showNotification("error", "Authentication failed!");
+      showNotification("error", "Something went wrong!");
     }
+
   };
 
   const handleGoogleFailure = () => {
@@ -106,7 +108,13 @@ export default function LoginForm() {
             className="py-3 focus:outline-1 w-60 xs:w-70 dark:bg-gray-950 outline-primary rounded-md bg-gray-100 px-5 dark:text-white"
             type="text"
             placeholder="Enter Username"
-            {...register("username", { required: "Email is required" })}
+            {...register("username", {
+              required: "Username is required",
+              pattern: {
+                value: /^[a-z0-9_-]+$/,
+                message: "Only lowercase letters, numbers, _ and - allowed"
+              }
+            })}
           />
           {errors.username && (
             <p className="text-red-500 text-xs">{errors.username.message}</p>
@@ -156,6 +164,7 @@ export default function LoginForm() {
           New Here? Create Your Account
         </Link>
       </form>
+      <UserNameForm setShowForm={setShowUsernameForm} showForm={showUsernameForm} />
     </div>
   );
 }

@@ -45,9 +45,12 @@ export const AuthProvider = ({ children }) => {
   // Logout function
   const logout = async () => {
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/auth/logout`, {}, {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/logout`, {}, {
         withCredentials: true,
       });
+
+      // if (response.status === 403) // invalid or forbidden token
+      //   setUser(null);
 
       setUser(null);
       setLoading(false);

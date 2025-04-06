@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import ChatListHeader from './ChatListHeader'
-import { useChat } from '../contexts/ChatsContext'
-import { usePopUp } from '../contexts/PopUpProvider';
+import { useChat } from '../hooks/ChatsContext'
+import { usePopUp } from '../hooks/PopUpContext';
 
 
 export default function ChatsList() {

@@ -1,15 +1,15 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
-import { useNotification } from "../contexts/NotificationContext";
+import { useNotification } from "../hooks/NotificationContext";
 import axios from "axios";
-import { useAuth } from "../contexts/AuthContext";
+import { useAuth } from "../hooks/AuthContext";
 import SelectChat from '../components/SelectChat'
 import NoChatsFound from '../components/NoChatsFound'
 import SearchUsers from '../components/forms/SearchUsers'
 import ChatsList from '../components/ChatsList'
-import { usePopUp } from "../contexts/PopUpProvider";
-import { useChat } from "../contexts/ChatsContext";
+import { usePopUp } from "../hooks/PopUpContext";
+import { useChat } from "../hooks/ChatsContext";
 
 export default function ChatLayout() {
     const {

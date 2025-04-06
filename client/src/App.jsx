@@ -3,18 +3,18 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import LoginForm from "./components/forms/LoginForm";
 import RegistrationForm from "./components/forms/RegistrationForm";
 import WebsiteLayout from "./layouts/WebsiteLayout";
-import { AuthProvider, useAuth } from "./contexts/AuthContext";
-import { NotificationProvider } from "./contexts/NotificationContext";
+import { AuthProvider, useAuth } from "./hooks/AuthContext";
+import { NotificationProvider } from "./hooks/NotificationContext";
 import Landing from "./components/Landing";
-import { ThemeProvider } from "./contexts/ThemeContext";
+import { ThemeProvider } from "./hooks/ThemeContext";
 import AboutPage from "./components/AboutPage";
 import ResetPassword from "./components/forms/ResetPassword";
 import ForgotPassword from "./components/forms/ForgotPassword";
 import NoChatsFound from "./components/NoChatsFound";
 import { GoogleOAuthProvider } from "@react-oauth/google";
-import { ChatProvider } from "./contexts/ChatsContext";
+import { ChatProvider } from "./hooks/ChatsContext";
 import ChatLayout from "./layouts/ChatLayout";
-import { PopUpProvider } from "./contexts/PopUpProvider";
+import { PopUpProvider } from "./hooks/PopUpContext";
 function App() {
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>

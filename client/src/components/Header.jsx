@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
-import { useNotification } from "../contexts/NotificationContext";
-import { useTheme } from "../contexts/ThemeContext";
+import { useAuth } from "../hooks/AuthContext";
+import { useNotification } from "../hooks/NotificationContext";
+import { useTheme } from "../hooks/ThemeContext";
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);

@@ -1,7 +1,7 @@
 import React from "react";
 import { useForm } from "react-hook-form";
 import axios from "axios";
-import { useNotification } from "../../contexts/NotificationContext";
+import { useNotification } from "../../hooks/NotificationContext";
 import { useNavigate } from "react-router-dom";
 
 export default function ForgotPassword() {
