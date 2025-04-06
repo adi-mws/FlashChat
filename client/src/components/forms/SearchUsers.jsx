@@ -20,32 +20,28 @@ export default function SearchUsers({ showSearchUsers, setShowSearchUsers }) {
                 setUsers([]);
                 return;
             }
-
+    
             setLoading(true);
-
+    
             try {
-                const response = await axios.get(`https://jsonplaceholder.typicode.com/users`);
-
-                // Filter matching users
-                const filteredUsers = response.data.filter((user) =>
-                    user.username.toLowerCase().startsWith(search.toLowerCase())
+                const response = await axios.get(
+                    `${import.meta.env.VITE_API_URL}/user/get-users?username=${search}`,
+                    { withCredentials: true }
                 );
-
-                setUsers(filteredUsers);
+    
+                setUsers(response.data.users);
             } catch (error) {
                 console.error('Error fetching users:', error);
             } finally {
                 setLoading(false);
             }
         };
-
-        // Add a delay to avoid excessive API calls
-        const timer = setTimeout(() => {
-            fetchUsers();
-        }, 500);
-
+    
+        const timer = setTimeout(fetchUsers, 500);
+    
         return () => clearTimeout(timer);
     }, [search]);
+    
 
     return (
         <>

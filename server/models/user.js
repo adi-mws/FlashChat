@@ -1,4 +1,3 @@
-//users Model
 import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
@@ -17,16 +16,24 @@ const userSchema = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: true
+        required: function () {
+            return this.type === 'normal';
+        }
+    },
+    googleId: {
+        type: String,
+        required: function () {
+            return this.type === 'google';
+        }
     },
     pfp: {
         type: String,
-        required: false,
         default: 'uploads/pfps/default-pfp.jpg'
     },
     type: {
         type: String, 
-        enum: ['normal', 'google']
+        enum: ['normal', 'google'],
+        required: true
     }
 });
 

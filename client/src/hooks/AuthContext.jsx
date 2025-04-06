@@ -20,17 +20,16 @@ export const AuthProvider = ({ children }) => {
       });
 
       if (response.status === 200) {
-        console.log('User Verified:', response.data);
         setUser(response.data);
         setLoading(false);
         setError(null);
-      } else {
-        console.error('Verification failed:', response);
+      } else if (response.status === 403) {
         setUser(null);
+        logout();
       }
     } catch (err) {
-      console.error('Error verifying user:', err);
-      setError('Failed to authenticate user');
+      // console.error('Error verifying user:', err);
+      // setError('Failed to authenticate user');
       setUser(null);
       logout();
     }
@@ -38,7 +37,9 @@ export const AuthProvider = ({ children }) => {
 
 
   useEffect(() => {
-    verifyUserFromCookie();
+
+      verifyUserFromCookie();
+   
   }, []);
 
 
@@ -60,7 +61,7 @@ export const AuthProvider = ({ children }) => {
 
 
     //  On component mount, verify the user from cookies
-    
+
   }
 
   return (
@@ -69,7 +70,7 @@ export const AuthProvider = ({ children }) => {
       setUser,
       loading,
       error,
-      setLoading, 
+      setLoading,
       logout,
       userExistence
     }}>

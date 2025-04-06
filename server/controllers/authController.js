@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
 
 // Register user
 export const registerUser = async (req, res) => {
-    const { name, email, password } = req.body;
+    const { username, name, email, password } = req.body;
     try {
         const userExists = await User.findOne({ email });
         if (userExists) {
@@ -20,7 +20,7 @@ export const registerUser = async (req, res) => {
         }
 
         // Create user with hashed password
-        const user = await User.create({ name, email, password: hashSync(password, 10) });
+        const user = await User.create({ username: username, name: name, email: email, password: hashSync(password, 10), type: 'normal' });
 
 
 
@@ -43,7 +43,7 @@ export const registerUser = async (req, res) => {
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 export const googleAuthPreCheck = async (req, res) => {
     const { token } = req.body;
-    
+
     try {
 
         const ticket = await client.verifyIdToken({
@@ -51,11 +51,10 @@ export const googleAuthPreCheck = async (req, res) => {
             audience: process.env.GOOGLE_CLIENT_ID
         });
 
-        console.log(ticket.getPayload())
 
         const { email, sub } = ticket.getPayload();
-        const user = await User.findOne({ email: email, type: 'google'});
-        console.log("User detection Pre AUth: ", user);
+        const user = await User.findOne({ email: email, type: 'google', googleId: sub });
+        // console.log("User detection Pre AUth: ", user);
         if (!user) {
             return res.status(200).json({ available: false });
         } else {
@@ -78,7 +77,7 @@ export const googleAuth = async (req, res) => {
 
         const { sub, email, name, picture } = ticket.getPayload();  // Extract Google user data
         if (available) { // if user already exists
-            const user = await User.findOne({ email: email, type: google, _id: sub }) // fetch the existing user
+            const user = await User.findOne({ email: email, type: "google", googleId: sub }) // fetch the existing user
             if (!user) {
                 return res.status(404).json({ message: "User not found in database! for Google Auth Login" })
             }
@@ -105,13 +104,12 @@ export const googleAuth = async (req, res) => {
                     type: 'google'
                 }
             })
-
-
         }
+
         // Registration of new user
         if (username && !available) {
             const newUser = await User.create({
-                _id: sub,
+                googleId: sub,
                 username: username,
                 name: name,
                 email: email,
@@ -132,8 +130,8 @@ export const googleAuth = async (req, res) => {
                 sameSite: 'Strict',   // Prevent CSRF attacks
                 maxAge: 7 * 24 * 60 * 60 * 1000  // 7 days expiration
             });
-            return res.status(200).json({
-                message: "Google Auth Successful",
+            return res.status(201).json({
+                message: "Google Auth Successfull",
                 user: {
                     id: newUser._id,             // Google ID
                     username: newUser.username,
@@ -155,13 +153,12 @@ export const googleAuth = async (req, res) => {
 
 
 export const isUsernameExists = async (req, res) => {
-    const { username } = req.params;
     try {
         const un = await User.findOne({ username: req.params.username });
         if (!un) {
             return res.status(200).json({ available: true, message: "Availability sent successfully!" });
         }
-        return res.status(200).json({ available: true, message: "Availability sent successfully!" });
+        return res.status(200).json({ available: false, message: "Availability sent successfully!" });
     } catch (error) {
         return res.status(500).json({ message: "Error in checking username!" })
     }
@@ -172,7 +169,7 @@ export const loginUser = async (req, res) => {
 
     try {
         // Find user by username
-        const user = await User.findOne({ username });
+        const user = await User.findOne({ username: username, type: 'normal' });
 
         if (!user) {
             return res.status(401).json({ message: 'Invalid Credentials' });
@@ -187,7 +184,7 @@ export const loginUser = async (req, res) => {
 
         // Generate JWT token
         const token = jwt.sign(
-            { userId: user._id, email: user.email },  // Payload
+            { id: user._id, email: user.email },  // Payload
             process.env.JWT_SECRET,                   // Secret Key
             { expiresIn: '7d' }                       // Expiration Time
         );
@@ -250,37 +247,33 @@ export const generateToken = (id, name, email) => {
 };
 
 
-
-
 export const verifyUserDetails = async (req, res) => {
-    const token = req.cookies?.token || req.headers.authorization?.split(' ')[1];  // Check for JWT token in cookie or header
+    const normalToken = req.cookies?.token;  // Check for JWT token in cookie 
     const googleToken = req.cookies?.googleToken;  // Check for Google token
-    if (!token && !googleToken) {
+    if (!normalToken && !googleToken) {
         return res.status(403).json({ message: 'Access denied, no token provided' });
     }
 
     try {
-        let user;
+
+        let user, token;
+        token = googleToken ? googleToken : normalToken;
+
 
         if (token) {
-            const decoded = jwt.verify(token, process.env.JWT_SECRET);
-            user = await User.findById(decoded.userId);
+            jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
 
-            if (user) {
-                return res.status(200).json({ id: user._id, email: user.email, pfp: `${process.env.BASE_URL}/${user.pfp}`, name: user.name })
-            }
-        } else if (googleToken) {
-            const decodedToken = jwt.decode(googleToken);
-            return res.status(200).json({
-                name: decodedToken.name,
-                email: decodedToken.email,
-                pfp: decodedToken.pfp,
-                id: decodedToken.id,
-            })
-        }
-
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
+                if (err) {
+                    return res.status(403).json({ message: 'Invalid or expired token' })
+                }
+                user = await User.findById(decoded.id);
+                if (!user) {
+                    return res.status(404).json({ message: 'User not found' });
+                }
+                else {
+                    return res.status(200).json({ id: user._id, email: user.email, username: user.username, pfp: String(user.pfp).startsWith('https') ? user.pfp : `${process.env.BASE_URL}/${user.pfp}`, name: user.name })
+                }
+            });
         }
 
     } catch (error) {

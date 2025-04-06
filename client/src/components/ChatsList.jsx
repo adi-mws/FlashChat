@@ -9,7 +9,6 @@ export default function ChatsList() {
     const { chats } = useChat();
     const { setShowSearchUsers } = usePopUp();
     useEffect(() => {
-        console.log(chats);
     }, [])
     return (
         <div className="chats-list dark:bg-gray-950 h-full border-r-1 border-gray-300 dark:border-gray-900 flex flex-col">

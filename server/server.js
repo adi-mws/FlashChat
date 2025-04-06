@@ -6,6 +6,7 @@ import authRoutes from './routes/authRoutes.js';
 import cors from 'cors';
 import chatRoutes from './routes/chatRoutes.js';
 import { Server } from "socket.io";
+import userRoutes from './routes/userRoutes.js'
 import path from 'path';
 import cookieParser from 'cookie-parser';
 
@@ -68,6 +69,7 @@ connectDB();
 // Routes for users authentication and profile management settings
 app.use('/api/auth', authRoutes);
 app.use('/api/chats', chatRoutes);
+app.use('/api/user', userRoutes);
 
 server.listen(PORT, () => {
     app.get('/', (req, res) => {

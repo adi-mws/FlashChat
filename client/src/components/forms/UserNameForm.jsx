@@ -2,14 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import axios from 'axios';
 import useDebounce from '../../hooks/useDebounce';
+import { useAuth } from '../../hooks/AuthContext';
+import { useNotification } from '../../hooks/NotificationContext';
+import { useNavigate } from 'react-router-dom';
 
-export default function UserNameForm({ showForm, setShowForm }) {
+export default function UserNameForm({ showForm, setShowForm, credentialResponse }) {
   const {
     register,
     handleSubmit,
     formState: {
-        isValid
-    }, 
+      isValid
+    },
     reset,
     formState: { errors },
     setValue,
@@ -17,14 +20,25 @@ export default function UserNameForm({ showForm, setShowForm }) {
   } = useForm();
 
   const [checkingUsername, setCheckingUsername] = useState(false);
+
   const [usernameAvailable, setUsernameAvailable] = useState(null);
   const [username, setUsername] = useState("");
-
   const debouncedUsername = useDebounce(username, 500);
 
-  const onSubmit = (data) => {
-    console.log("Username Form Submission :", data.username);
-    // You can add actual submission logic here
+  const { navigate } = useNavigate();
+  const { showNotification } = useNotification();
+  const onSubmit = async (data) => {
+    try {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/google`, { token: credentialResponse.credential, username: data.username }, { withCredentials: true });
+      if (response.status === 201) {
+        // Actually 201 signs that the user is registered for the first time by Google Auth and also 
+        // logged in 
+        showNotification("success", "Login Successful!");
+        navigate('/chats')
+      }
+    } catch (error) {
+      showNotification("error", "Something went wrong!");
+    }
   };
 
   useEffect(() => {

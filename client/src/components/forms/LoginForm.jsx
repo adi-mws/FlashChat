@@ -16,6 +16,7 @@ export default function LoginForm() {
   const { theme } = useTheme();
   const navigate = useNavigate();
   const [showUsernameForm, setShowUsernameForm] = useState(false);
+  const [googleCredentialResponse, setGoogleCredentialResponse] = useState({});
   const { showNotification } = useNotification();
   const { setUser, setLoading } = useAuth();
 
@@ -31,7 +32,7 @@ export default function LoginForm() {
         setUser(response.data.user);
         showNotification("success", response.data.message);
         setLoading(false);
-        navigate('/');
+        navigate('/chats');
       }
     } catch (error) {
       console.error("Login failed:", error);
@@ -43,6 +44,7 @@ export default function LoginForm() {
   };
 
   const handleGoogleSuccess = async (credentialResponse) => {
+    setGoogleCredentialResponse(credentialResponse)
     console.log("Google Login Success:", credentialResponse);
     try {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/google-check`, { token: credentialResponse.credential }, { withCredentials: true });
@@ -62,7 +64,7 @@ export default function LoginForm() {
               delete user['username']
               setUser(user);
               showNotification("success", "Login Successful!");
-              navigate('/')
+              navigate('/chats')
             } else {
               showNotification("error", "Failed to login");
             }
@@ -164,7 +166,7 @@ export default function LoginForm() {
           New Here? Create Your Account
         </Link>
       </form>
-      <UserNameForm setShowForm={setShowUsernameForm} showForm={showUsernameForm} />
+      <UserNameForm setShowForm={setShowUsernameForm} showForm={showUsernameForm} credentialResponse={googleCredentialResponse}/>
     </div>
   );
 }
