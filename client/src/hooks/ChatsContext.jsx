@@ -116,6 +116,7 @@ export const ChatProvider = ({ children }) => {
         <ChatContext.Provider
             value={{
                 chats,
+                setChats,
                 selectedChat,
                 messages,
                 loading,

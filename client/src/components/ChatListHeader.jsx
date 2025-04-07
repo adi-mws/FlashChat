@@ -12,8 +12,8 @@ export default function ChatListHeader() {
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
   const dropdownRef = useRef(null);
-
   useEffect(() => {
+    console.log(user?.pfp)
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         setDropdownOpen(false);
@@ -30,6 +30,7 @@ export default function ChatListHeader() {
     showNotification("success", "Logout Successful!");
     navigate("/login");
   };
+
 
   return (
     <>
@@ -67,6 +68,10 @@ export default function ChatListHeader() {
                       <li className="flex items-center px-4 gap-5 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition">
                         <i className="fas fa-user"></i> <span> Profile</span>
                       </li>
+                      <li className="flex items-center px-4 gap-5 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition" onClick={() => {theme === 'light' ? setTheme('dark') : setTheme('light')}}>
+                        <i className={`fas fa-${theme ==='dark'?  'sun' : 'moon'}`}></i> <span> Appearence</span>
+                      </li>
+                      
                       <li className="flex items-center gap-4 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition">
                         <i className="fas fa-cog"></i> <span> Settings</span>
                       </li>

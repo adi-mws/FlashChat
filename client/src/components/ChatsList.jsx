@@ -6,8 +6,12 @@ import { usePopUp } from '../hooks/PopUpContext';
 
 export default function ChatsList() {
     const [chatList, setChatList] = useState([]);
-    const { chats } = useChat();
+    const { chats, setChats } = useChat();
     const { setShowSearchUsers } = usePopUp();
+
+    const handleNewChat = () => {
+        setChats()
+    }
     useEffect(() => {
     }, [])
     return (

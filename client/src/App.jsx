@@ -38,7 +38,9 @@ function App() {
 }
 const MainApp = () => {
   const { user, loading } = useAuth();
+  console.log(user)
   if (loading) return <div className="loding">loading...</div>
+
   return (
     <Routes>
       <Route path="/" element={<WebsiteLayout />}>
