@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-export default function SearchUsers({ showSearchUsers, setShowSearchUsers }) {
+export default function SearchUsers({ showSearchUsers, setShowSearchUsers, createNewChat }) {
     const [search, setSearch] = useState('');
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -16,7 +16,7 @@ export default function SearchUsers({ showSearchUsers, setShowSearchUsers }) {
     useEffect(() => {
         if (showSearchUsers) {
             setSearch('');
-            setUsers([]); 
+            setUsers([]);
         }
     }, [showSearchUsers])
 
@@ -50,14 +50,15 @@ export default function SearchUsers({ showSearchUsers, setShowSearchUsers }) {
         return () => clearTimeout(timer);
     }, [search]);
 
-    const handleNewChat = (id) => {
-        
+    const handleNewChat = (user) => {
+        setShowSearchUsers(false);
+        createNewChat(user);
     }
 
     return (
         <>
             <div className={`${showSearchUsers ? 'opacity-100 z-200' : 'opacity-0 z-[-1]'} transparent transition duration-500  h-full fixed top-0 left-0 backdrop-blur-xs  flex-col items-center justify-center w-full`} onClick={(e) => { setShowSearchUsers(false) }}>
-                <div className={`${showSearchUsers ? 'scale-100 opacity-100 z-201' : 'scale-0 opacity-0 z-[-1]'} fixed top-[50%] left-[50%]  transition duration-500  bg-white dark:bg-gray-800 translate-y-[-50%] translate-x-[-50%] rounded-md shadow-md rounded-lg p-6 w-full max-w-lg`} onClick={(e) => { e.stopPropagation() }}>
+                <div className={`${showSearchUsers ? 'scale-100 opacity-100 z-201' : 'scale-0 opacity-0 z-[-1]'} fixed top-[50%] left-[50%]  transition duration-500  bg-white dark:bg-gray-800 translate-y-[-50%] translate-x-[-50%] shadow-md rounded-lg p-6 w-full max-w-lg`} onClick={(e) => { e.stopPropagation() }}>
                     <h1 className="text-xl mb-4 dark:text-white">Search Users and Start Chatting</h1>
 
                     <form className="relative">
@@ -89,7 +90,7 @@ export default function SearchUsers({ showSearchUsers, setShowSearchUsers }) {
                                             <span className="usernam dark:font-normal font-bold text-primary">{user?.username}</span>
 
                                         </div>
-                                        <button className='flex-1/5 bg-primary-2 rounded-lg hover:bg-primary-1 text-white' onClick={() => {handleNewChat(user?.id)}}>Start Chatting</button>
+                                        <button className='flex-1/5 bg-primary-2 rounded-lg hover:bg-primary-1 text-white' onClick={() => { handleNewChat(user) }}>Start Chatting</button>
                                     </li>
                                 ))}
                             </ul>

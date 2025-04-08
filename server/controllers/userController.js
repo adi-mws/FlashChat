@@ -27,6 +27,8 @@ export const getUserWithUsername = async (req, res) => {
       });
     });
 
+    excludedUserIds.add(currentUserId); // <-- ✅ Exclude current user too
+
     // Step 3: Fetch users with regex and exclude those in one-on-one chats
     const users = await User.find({
       _id: { $nin: Array.from(excludedUserIds) },
@@ -49,6 +51,3 @@ export const getUserWithUsername = async (req, res) => {
     return res.status(500).json({ message: "Server error while fetching users." });
   }
 };
-
-
-

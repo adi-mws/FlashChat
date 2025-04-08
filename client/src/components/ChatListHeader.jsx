@@ -75,7 +75,7 @@ export default function ChatListHeader() {
                       <li className="flex items-center gap-4 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition">
                         <i className="fas fa-cog"></i> <span> Settings</span>
                       </li>
-                      <li className="flex items-center gap-4 px-4 py-2 text-sm text-red-500 hover:bg-red-100 dark:hover:bg-red-600 cursor-pointer transition" onClick={handleLogout}>
+                      <li className="flex items-center gap-4 px-4 py-2 text-sm text-red-500 hover:bg-red-100 dark:hover:bg-gray-100 cursor-pointer transition" onClick={handleLogout}>
                         <i className="fas fa-sign-out-alt"></i> Logout
                       </li>
                     </ul>

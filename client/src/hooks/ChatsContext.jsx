@@ -8,10 +8,40 @@ const ChatContext = createContext();
 export const ChatProvider = ({ children }) => {
     const [chats, setChats] = useState([]);
     const [selectedChat, setSelectedChat] = useState(null);
-    const [messages, setMessages] = useState([]);
+    const [messages, setMessages] = useState([
+
+        {
+            _id: "msg1",
+            chatId: "chat123",
+            content: "Hello!",
+            sender: {
+                _id: "userA",
+                name: "Alice",
+                avatar: "/images/alice.jpg"
+            },
+            createdAt: "2025-04-08T10:00:00.000Z",
+            isRead: true
+        },
+        {
+            _id: "msg2",
+            chatId: "chat123",
+            content: "Hi Alice, how are you?",
+            sender: {
+                _id: "userB",
+                name: "Bob",
+                avatar: "/images/bob.jpg"
+            },
+            createdAt: "2025-04-08T10:01:00.000Z",
+            isRead: false
+        }
+
+
+    ]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-
+    useEffect(() => {
+        console.log(messages);
+    }, [])
     const socket = io('http://localhost:3000'); // Connect to backend WebSocket
 
 
@@ -19,7 +49,7 @@ export const ChatProvider = ({ children }) => {
     // useEffect(() => {
 
     //     socket.connect();
-    //     socket.emit("join", user?.id);
+    //     socket.emit("join",  ?.id);
 
     //     socket.on("receiveMessage", (data) => {
     //         console.log(data);
@@ -109,7 +139,7 @@ export const ChatProvider = ({ children }) => {
     };
 
     useEffect(() => {
-        fetchChats();
+        // fetchChats();
     }, []);
 
     return (
