@@ -1,14 +1,32 @@
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
     --breakpoint-xs: 576px;
     --breakpoint-2xs: 400px;
-    --color-primary: #ff7300;
+    --color-primary: #312277;
+    --color-primary-1: #3e2a97;
+    --color-primary-2: #443586ad;
+    --color-primary-3: #4435864f;
+}
+
+:root {
+    --breakpoint-xs: 576px;
+    --breakpoint-2xs: 400px;
+    --color-primary: #3d2c86;
+    --color-primary-1: #4b35ad;
+    --color-primary-2: #443586ad;
+    --color-primary-3: #4435864f;
+    /* --color-primary: #ff7300;
+
     --color-primary-1: rgba(255, 115, 0, 0.845);
     --color-primary-2: rgba(255, 115, 0, 0.445);
     --color-primary-3: rgba(255, 115, 0, 0.145);
-}
-:root {
+
+    --color-primary-2: rgba(255, 115, 0, 0.445);
+    --color-primary-3: rgba(255, 115, 0, 0.145); */
+
+
     --hover-color: #ff7300;
     --widget-background: rgba(0, 0, 0, 0.5);
     --gray-text: dimgray;
@@ -30,9 +48,8 @@ button {
 
 
 
-  
-.google-login-button-container  > div{
-        width: 100%;
-        overflow: none;
-  }
-  
+
+.google-login-button-container>div {
+    width: 100%;
+    overflow: none;
+}

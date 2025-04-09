@@ -1,23 +1,23 @@
 
 import Chat from "../models/chat.js";
-import Admin from "../models/user.js";
+import User from "../models/user.js";
 import { json } from "express";
 import { io, users } from "../server.js"; // Import WebSocket server
 import Message from "../models/message.js";
 
+
 export const showAllChatsOfUser = async (req, res) => {
     try {
-        const { _id } = req.params;
+        const { id } = req.params;
 
         // Find only 1-on-1 chats involving this user
         const chats = await Chat.find({
-            participants: _id,
+            participants: id,
             $where: 'this.participants.length === 2'
         })
             .populate({
                 path: 'participants',
-                select: 'username name pfp',
-                match: { _id: { $ne: _id } }
+                select: 'username name pfp'
             })
             .populate({
                 path: 'lastMessage',
@@ -30,27 +30,27 @@ export const showAllChatsOfUser = async (req, res) => {
             .sort({ updatedAt: -1 })
             .lean();
 
-        // Calculate unread counts for each chat
         const chatsWithUnreadCounts = await Promise.all(
             chats.map(async chat => {
+                // Filter out the current user from participants
+                const otherParticipant = chat.participants.find(p => p._id.toString() !== id);
+
                 const unreadCount = await Message.countDocuments({
                     chat: chat._id,
-                    readBy: { $ne: _id }, // Not read by current user
-                    sender: { $ne: _id }  // Exclude messages sent by current user
+                    readBy: { $ne: id },
+                    sender: { $ne: id }
                 });
-
-                const otherParticipant = chat.participants[0];
 
                 return {
                     _id: chat._id,
-                    participant: otherParticipant,
+                    participant: otherParticipant, // Only the other user
                     lastMessage: chat.lastMessage ? {
                         _id: chat.lastMessage._id,
                         content: chat.lastMessage.content,
                         sender: chat.lastMessage.sender,
                         createdAt: chat.lastMessage.createdAt
                     } : null,
-                    unreadCount, // Now with actual count
+                    unreadCount,
                     updatedAt: chat.updatedAt
                 };
             })
@@ -70,6 +70,7 @@ export const showAllChatsOfUser = async (req, res) => {
         });
     }
 };
+
 
 export const deleteChat = async (req, res) => {
     try {
@@ -100,43 +101,44 @@ export const sendMessage = async (req, res) => {
         if (!senderId || !receiverId || !message) {
             return res.status(400).json({
                 success: false,
-                message: "Missing required fields (senderId, chatId, or message)"
+                message: "Missing required fields (senderId, receiverId, or message)"
             });
         }
 
-        let newChat;
-
-        // 1. Find the chat
+        // 1. Find existing chat between sender and receiver
         let chat = await Chat.findOne({
             participants: { $all: [senderId, receiverId], $size: 2 }
-        })
+        });
 
+        // 2. If no chat found, create a new one
         if (!chat) {
             chat = await Chat.create({
-                createdAt: Date.now(),
-                updatedAt: Data.now(),
                 participants: [senderId, receiverId],
+                createdAt: new Date(),
+                updatedAt: new Date(),
                 lastMessage: null
-            })
-            await newChat.save();
+            });
         }
 
+        // 3. Create a new message
         const newMessage = await Message.create({
             chat: chat._id,
             content: message,
+            sender: senderId,
             createdAt: new Date(),
             readBy: [senderId]
-        })
-        await newMessage.save();
+        });
 
-        newChat.lastMessage = newMessage._id;
-        await newChat.save();
+        // 4. Update the chat with the last message
+        chat.lastMessage = newMessage._id;
+        chat.updatedAt = new Date();
+        await chat.save();
 
-        // 3. Get the saved message with populated sender
-        const savedMessage = await Message.findById(chat.messages[chat.messages.length - 1]._id)
-            .populate('sender', 'name pfp username');
+        // 5. Populate the sender info in the saved message
+        const savedMessage = await Message.findById(newMessage._id)
+            .populate('sender', 'name avatar username');
 
-        // 4. Prepare response data
+        // 6. Prepare response object
         const messageData = {
             chatId: chat._id,
             _id: savedMessage._id,
@@ -147,10 +149,10 @@ export const sendMessage = async (req, res) => {
                 avatar: savedMessage.sender.avatar
             },
             createdAt: savedMessage.createdAt,
-            isRead: false // For receiver
+            isRead: false // for receiver
         };
 
-        // 6. Emit real-time message to receiver if online
+        // 7. Emit real-time message to receiver if online
         if (receiverId && users[receiverId]) {
             io.to(users[receiverId]).emit("receiveMessage", {
                 ...messageData,
@@ -162,7 +164,8 @@ export const sendMessage = async (req, res) => {
             });
         }
 
-        res.status(201).json({
+        // 8. Send response
+        res.status(200).json({
             success: true,
             message: "Message sent successfully",
             data: messageData
@@ -179,26 +182,27 @@ export const sendMessage = async (req, res) => {
 };
 
 export const getMessages = async (req, res) => {
-    const { _id } = req.params;
-    console.log('Get message', _id)
-    try {
+    const { _id } = req.params; // This is the chat ID
 
+    try {
+        // Optional: Check if chat exists
         const chat = await Chat.findById(_id);
         if (!chat) {
-            return res.status(404).json({ message: "Chat Not Found" });
+            return res.status(404).json({ message: "Chat not found" });
         }
-        if (chat && chat.messages.length === 0) {
-            return res.status(200).json({ messages: [], message: "No messages in this chat!" })
-        }
-        const messages = chat?.messages?.map((msg) => ({
-            message: msg.content,
-            read: msg.read,
-            sender: msg.sender,
-            _id: msg._id
-        })) || [];
 
-        res.status(200).json({ messages, message: "Messages sent successfully!" });
+        // Fetch messages related to the chat ID
+        const messages = await Message.find({ chat: _id })
+            .populate('sender', 'name username pfp') // populate sender details
+            .sort({ createdAt: 1 }) // you can change to -1 if you want latest first
+
+        if (!messages || messages.length === 0) {
+            return res.status(200).json({ messages: [], message: "No messages in this chat!" });
+        }
+
+        res.status(200).json({ messages, message: "Messages fetched successfully!" });
     } catch (e) {
-        res.status(500).json({ message: 'Internal Server Error' })
+        console.error("Error fetching messages:", e);
+        res.status(500).json({ message: 'Internal Server Error' });
     }
-}
+};
