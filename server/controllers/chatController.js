@@ -2,7 +2,6 @@
 import Chat from "../models/chat.js";
 import User from "../models/user.js";
 import { json } from "express";
-import { io, users } from "../server.js"; // Import WebSocket server
 import Message from "../models/message.js";
 
 
@@ -96,7 +95,8 @@ export const deleteChat = async (req, res) => {
 export const sendMessage = async (req, res) => {
     try {
         const { senderId, message, receiverId } = req.body;
-
+        const io = req.app.get('io');
+        const users = req.app.get('users');
         // Validate input
         if (!senderId || !receiverId || !message) {
             return res.status(400).json({
@@ -104,14 +104,14 @@ export const sendMessage = async (req, res) => {
                 message: "Missing required fields (senderId, receiverId, or message)"
             });
         }
-
         // 1. Find existing chat between sender and receiver
         let chat = await Chat.findOne({
             participants: { $all: [senderId, receiverId], $size: 2 }
         });
-
+        let isChatExisted = true;
         // 2. If no chat found, create a new one
         if (!chat) {
+            isChatExisted = false;
             chat = await Chat.create({
                 participants: [senderId, receiverId],
                 createdAt: new Date(),
@@ -136,34 +136,92 @@ export const sendMessage = async (req, res) => {
 
         // 5. Populate the sender info in the saved message
         const savedMessage = await Message.findById(newMessage._id)
-            .populate('sender', 'name avatar username');
+            .populate('sender', 'name pfp username');
 
         // 6. Prepare response object
         const messageData = {
-            chatId: chat._id,
+            chat: chat._id,
             _id: savedMessage._id,
             content: savedMessage.content,
             sender: {
                 _id: savedMessage.sender._id,
                 name: savedMessage.sender.name,
-                avatar: savedMessage.sender.avatar
+                username: savedMessage.sender.username,
+                pfp: String(savedMessage.sender.pfp) ? savedMessage.sender.pfp : `${process.env.BASE_URL}/${savedMessage.sender.pfp}`,
             },
             createdAt: savedMessage.createdAt,
             isRead: false // for receiver
         };
+        // console.log('here is the receiever of message' , receiverId)
 
         // 7. Emit real-time message to receiver if online
-        if (receiverId && users[receiverId]) {
-            io.to(users[receiverId]).emit("receiveMessage", {
-                ...messageData,
-                unreadCount: await Message.countDocuments({
+
+        if (users.has(receiverId)) {
+            console.log(isChatExisted);
+            if (!isChatExisted) {
+                const sender = await User.findById(senderId);
+                const participant = {
+                    name: sender.name,
+                    username: sender.username,
+                    pfp: String(sender.pfp).startsWith("https") ? sender.pfp : `${process.env.BASE_URL}/${sender.pfp}`,
+                    _id: sender._id
+                }
+                io.to(users.get(receiverId)).emit("receiveMessage", {
+                    messageData,
+                    participant,
+                    receiverId: receiverId,
                     chat: chat._id,
-                    readBy: { $ne: receiverId },
-                    sender: { $ne: receiverId }
-                })
-            });
+                    unreadCount: await Message.countDocuments({
+                        chat: chat._id,
+                        readBy: { $ne: receiverId },
+                        sender: { $ne: receiverId }
+                    })
+                });
+
+            } else {
+                io.to(users.get(receiverId)).emit("receiveMessage", {
+                    ...messageData,
+                    unreadCount: await Message.countDocuments({
+                        chat: chat._id,
+                        readBy: { $ne: receiverId },
+                        sender: { $ne: receiverId }
+                    })
+                });
+            }
         }
 
+        if (users.has(senderId)) {
+            if (!isChatExisted) {
+                const receiver = await User.findById(receiverId);
+                const participant = {
+                    name: receiver.name,
+                    username: receiver.username,
+                    pfp: String(receiver.pfp).startsWith("https") ? receiver.pfp : `${process.env.BASE_URL}/${receiver.pfp}`,
+                    _id: receiver._id
+                }
+                io.to(users.get(senderId)).emit("receiveMessage", {
+                    messageData,
+                    participant,
+                    chat: chat._id,
+                    unreadCount: await Message.countDocuments({
+                        chat: chat._id,
+                        readBy: { $ne: receiverId },
+                        sender: { $ne: receiverId }
+                    })
+                });
+
+            } else {
+
+                io.to(users.get(senderId)).emit("receiveMessage", {
+                    ...messageData,
+                    unreadCount: await Message.countDocuments({
+                        chat: chat._id,
+                        readBy: { $ne: receiverId },
+                        sender: { $ne: receiverId }
+                    })
+                });
+            }
+        }
         // 8. Send response
         res.status(200).json({
             success: true,

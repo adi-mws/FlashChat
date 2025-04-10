@@ -7,130 +7,175 @@ import { useAuth } from './AuthContext';
 
 const ChatContext = createContext();
 
+// Create socket instance ONCE outside component scope
+const socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000', {
+    autoConnect: false,
+});
+
 export const ChatProvider = ({ children }) => {
     const [chats, setChats] = useState([]);
     const [selectedChat, setSelectedChat] = useState(null);
-    const { showNotification } = useNotification()
     const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+
+    const { showNotification } = useNotification();
     const { user } = useAuth();
+
+    //  Socket connection logic
     useEffect(() => {
-        // console.log(messages);
-    }, [])
-    const socket = io('http://localhost:3000'); // Connect to backend WebSocket
+        if (!user) return;
+
+        // Connect only if not already connected
+        if (!socket.connected) {
+            socket.connect();
+            socket.emit("join", user.id);
+
+            socket.on("disconnect", () => {
+                console.warn('socket disconnected')
+            })
+        }
+
+        const handleReceiveMessage = (data) => {
+            console.log("Received via socket:", data);
 
 
-    // loading States
-    // useEffect(() => {
+            if (data.messageData) {
+                const newChat = {
+                    _id: data.chat,
+                    lastMessage: data.messageData,
+                    participant: data.participant,
+                    updatedAt: data.chatUpdatedAt,
+                    unreadCount: data.unreadCount
+                }
 
-    //     socket.connect();
-    //     socket.emit("join",  ?.id);
 
-    //     socket.on("receiveMessage", (data) => {
-    //         console.log(data);
+                setMessages(prev => ({
+                    ...prev,
+                    [data.chat]: [
+                        ...(prev[data.chat] || []),
+                        data.messageData
+                    ],
+                }));
 
-    //         // Find the correct chat object
-    //         const chat = chats.find((e) => e.chatId === data.chatId);
+                if (data.messageData.sender._id === user.id) {
+                    console.log("yess!");
 
-    //         if (!chat) {
-    //             console.warn("Chat ID not found for received message:", data);
-    //             return;
-    //         }
-    //         // if (!user.name === (chats.map((user) => selectedChat.chatId === user.chatId))._id) {
-    //         setMessages((prev) => ({
-    //             ...prev,
-    //             [chat.chatId]: [
-    //                 ...(prev[chat.chatId] || []),
-    //                 {
-    //                     message: data.message,
-    //                     read: false, // or true based on logic
-    //                     sender: data.sender,
-    //                     _id: data._id,
-    //                 },
-    //             ],
-    //         }));
-    //         // }
-    //     });
+                    setChats(prev => {
+                        const filtered = prev.filter(chat => chat._id != null);
+                        console.log('Filtered value: ', filtered);
+                        return [newChat, ...filtered];
+                    });
+                    setSelectedChat(newChat);
 
-    //     return () => {
-    //         socket.off("receiveMessage");
-    //     };
-    // }, [user, useMemo(() => chats, [chats])]);
-
-    // Fetch user's chat list
-    const fetchChats = async () => {
-        console.log("Selected Chat", selectedChat)
-
-        try {
-
-            setLoading(true);
-            const response = await axios.get(`${import.meta.env.VITE_API_URL}/chats/get-all/${user.id}`, { withCredentials: true });
-            console.log('THis is the response from API', response.data);
-            if (response.status === 200) {
-                const data = response.data;
-                setError(null);
-                setChats(data.chats);
+                }
+                else {
+                    setChats(prev => [newChat, ...prev])
+                }
             } else {
-                console.error(response.data)
-            }
+                setMessages(prev => ({
+                    ...prev,
+                    [data.chat]: [
+                        ...(prev[data.chat] || []),
+                        data
+                    ],
+                }));
 
+            }
+        }
+
+
+
+
+        socket.off("receiveMessage"); // remove ALL previous listeners
+        socket.on("receiveMessage", handleReceiveMessage);
+
+        return () => {
+            socket.off("receiveMessage", handleReceiveMessage);
+            socket.disconnect();
+        };
+    }, [user?.id]);
+
+    // Fetch all chats
+    const fetchChats = async () => {
+        try {
+            setLoading(true);
+            const response = await axios.get(`${import.meta.env.VITE_API_URL}/chats/get-all/${user.id}`, {
+                withCredentials: true,
+            });
+
+            if (response.status === 200) {
+                console.log(response.data)
+                setChats(response.data.chats);
+                setError(null);
+            } else {
+                console.error(response.data);
+            }
         } catch (err) {
             setError(err.response?.data?.message || err.message);
         } finally {
             setLoading(false);
         }
     };
-    useEffect(() => {
 
-        if (user?.id) {
-            fetchChats();
-        }
+    // Fetch messages for a chat
+    const fetchMessages = async (chat) => {
+        if (!chat) return;
 
-    }, [user]);
-
-    // Fetch messages for a specific chat
-    const fetchMessages = async (chatId) => {
         try {
-            if (!chatId) return;
-
             setLoading(true);
-            const response = await axios.get(`${import.meta.env.VITE_API_URL}/chats/get-messages/${chatId}`, { withCredentials: true });
+            const response = await axios.get(`${import.meta.env.VITE_API_URL}/chats/get-messages/${chat}`, {
+                withCredentials: true,
+            });
+
             if (response.status === 200) {
-                setMessages(response.data.messages);
+
+                setMessages(prev => {
+                    // If chat already exists in the messages object
+                    if (prev[chat]) {
+                        return {
+                            ...prev,
+                            [chat]: response.data.messages, // Replace old messages with new ones
+                        };
+                    } else {
+                        return {
+                            ...prev,
+                            [chat]: response.data.messages, // Add new chat with its messages
+                        };
+                    }
+                });
+
+
                 setError(null);
             } else {
                 showNotification("error", "Something went wrong!");
             }
-
         } catch (err) {
             setError(err.response?.data?.message || err.message);
         } finally {
+            console.log(messages)
             setLoading(false);
         }
     };
 
-
-
-    // Send a new message
+    // Send a message
     const sendMessage = async (message, receiverId, senderId, selectedChat) => {
         try {
             const response = await axios.post(
                 `${import.meta.env.VITE_API_URL}/chats/send-message`,
                 {
-                    message,
-                    receiverId,
-                    senderId,
+                    message: message,
+                    receiverId: receiverId,
+                    senderId: senderId,
                 },
                 { withCredentials: true }
             );
 
             if (response.status === 200) {
                 const data = response.data.data;
-                // console.log(data.sender)
-                // console.log(data)
+
                 const messageData = {
-                    chatId: data.chatId,
+                    chat: data.chat, // rename to chat for consistency
                     _id: data._id,
                     content: data.content,
                     sender: {
@@ -141,10 +186,6 @@ export const ChatProvider = ({ children }) => {
                     isRead: false,
                 };
 
-                // Update messages locally
-                setMessages(prev => [...prev, messageData]);
-
-                // Update chat list to move this chat to the top
                 setChats(prev => {
                     const updatedChats = prev.filter(chat => chat._id !== selectedChat._id);
                     return [
@@ -160,6 +201,9 @@ export const ChatProvider = ({ children }) => {
     };
 
 
+    useEffect(() => {
+        if (user?.id) fetchChats();
+    }, [user])
 
     return (
         <ChatContext.Provider
@@ -167,16 +211,15 @@ export const ChatProvider = ({ children }) => {
                 chats,
                 setChats,
                 selectedChat,
+                setSelectedChat,
                 messages,
                 loading,
                 error,
                 fetchChats,
                 fetchMessages,
                 sendMessage,
-                setSelectedChat
             }}
         >
-
             {children}
         </ChatContext.Provider>
     );

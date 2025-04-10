@@ -29,15 +29,16 @@ export default function ChatLayout() {
 
     // Form onSubmit
     const onSubmit = () => {
-            // Calling api function for message sendingd
-            console.log(selectedChat, user.id)
+            // Calling api function for message sending
+            // console.log(selectedChat, user.id)
         if (message.trim().length > 0) {
-            sendMessage(message, selectedChat?.participant?._id, user?.id, selectedChat)
+            sendMessage(message, selectedChat.participant._id, user.id, selectedChat)
             setMessage('')
         }
     }
 
     useState(() => {
+        console.log(chats);
         console.log(messages)
     }, [loading])
 
@@ -92,15 +93,15 @@ export default function ChatLayout() {
 
                                 </div>
                                 <div className="message-container overflow-y-auto bg-cover bg-center h-full max-h-full w-full flex flex-col justify-end dark:bg-zinc-950">
-                                    {/* {console.log(messages)} */}
-                                    {(messages || []).map((msg, index) => (
+                                    {console.log(chats)}
+                                    {(messages[selectedChat._id] || []).map((msg, index) => (
                                         <div
                                             key={index}
                                             className={`message`}
                                         >
-                                            <div className={`dark:text-white p-1 flex ${msg.sender._id === user?.id ? 'justify-end' : 'justify-start'}`}>
-                                                <span className={`bg-orange-200 ${msg.sender._id === user?.id ? 'dark:bg-primary-2' : 'dark:bg-zinc-800'} p-3 rounded-xl text-sm block max-w-[60%] w-auto`}>
-                                                    {msg.content}
+                                            <div className={`dark:text-white p-1 flex ${msg?.sender?._id === user?.id ? 'justify-end' : 'justify-start'}`}>
+                                                <span className={`bg-orange-200 ${msg?.sender?._id === user?.id ? 'dark:bg-primary-2' : 'dark:bg-zinc-800'} p-3 rounded-xl text-sm block max-w-[60%] w-auto`}>
+                                                    {msg?.content}
                                                 </span>
                                             </div>
 

@@ -34,10 +34,11 @@ const io = new Server(server, {
 export const users = new Map(); // Map for userId -> socketId mapping
 
 io.on("connection", (socket) => {
-    // console.log(`User connected: ${socket.id}`);
 
     socket.on("join", (userId) => {
         users.set(userId, socket.id);  //  Use .set() for Map
+        console.log(`User connected: ${socket.id}, ${userId}`);
+
         // console.log(`User ${userId} joined with socket ID: ${socket.id}`);
     });
 
@@ -51,12 +52,21 @@ io.on("connection", (socket) => {
         for (const [userId, socketId] of users.entries()) {
             if (socketId === socket.id) {
                 users.delete(userId);  //  Use .delete() to properly remove the user
-                // console.log(`User ${userId} disconnected`);
+                console.log(`User ${userId} disconnected`);
                 break;
             }
         }
     });
+
+    // Debugger to test the map
+    
 });
+// setInterval(() => {
+//     console.log(users)
+// }, 5000)
+
+app.set("io", io);
+app.set("users", users);
 
 
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
