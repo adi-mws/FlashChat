@@ -1,6 +1,7 @@
 import User from "../models/user.js";
 import Chat from "../models/chat.js";
 
+
 export const getUserWithUsername = async (req, res) => {
   const { username } = req.query;
   const currentUserId = req.user.id;
@@ -51,3 +52,5 @@ export const getUserWithUsername = async (req, res) => {
     return res.status(500).json({ message: "Server error while fetching users." });
   }
 };
+
+

@@ -6,6 +6,7 @@ import authRoutes from './routes/authRoutes.js';
 import cors from 'cors';
 import chatRoutes from './routes/chatRoutes.js';
 import { Server } from "socket.io";
+import Chat from './models/chat.js';
 import userRoutes from './routes/userRoutes.js'
 import path from 'path';
 import cookieParser from 'cookie-parser';
@@ -31,38 +32,41 @@ const io = new Server(server, {
     },
 });
 
-export const users = new Map(); // Map for userId -> socketId mapping
+const users = new Map(); // userId -> socketId
+const socketUserMap = new Map(); // socketId -> userId
 
 io.on("connection", (socket) => {
-
     socket.on("join", (userId) => {
-        users.set(userId, socket.id);  //  Use .set() for Map
-        console.log(`User connected: ${socket.id}, ${userId}`);
+        if (!userId || typeof userId !== "string") {
+            console.warn("Invalid userId received");
+            return;
+        }
 
-        // console.log(`User ${userId} joined with socket ID: ${socket.id}`);
-    });
+        users.set(userId, socket.id);
+        socketUserMap.set(socket.id, userId);
+        console.log(`User joined: ${userId}`);
 
-    socket.on("sendMessage", (message) => {
-        // console.log(" Message received:", message);
-        io.emit("newMessage", message); // Broadcast message to all clients
+        // Broadcast updated online users
+        io.emit("onlineUsers", [...users.keys()]);
     });
 
     socket.on("disconnect", () => {
-        // Find the user by socket ID
-        for (const [userId, socketId] of users.entries()) {
-            if (socketId === socket.id) {
-                users.delete(userId);  //  Use .delete() to properly remove the user
-                console.log(`User ${userId} disconnected`);
-                break;
-            }
+        const userId = socketUserMap.get(socket.id);
+        if (userId) {
+            users.delete(userId);
+            socketUserMap.delete(socket.id);
+            console.log(`User ${userId} disconnected`);
+
+            // Broadcast updated online users
+            io.emit("onlineUsers", [...users.keys()]);
         }
     });
-
-    // Debugger to test the map
-    
 });
+
+
+// Debugger to check the map
 // setInterval(() => {
-//     console.log(users)
+//     console.log()
 // }, 5000)
 
 app.set("io", io);
