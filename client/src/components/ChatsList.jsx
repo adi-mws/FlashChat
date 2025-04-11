@@ -10,11 +10,11 @@ import { useTheme } from '../hooks/ThemeContext';
 export default function ChatsList() {
     const { chats, setChats, loading, setSelectedChat, fetchMessages } = useChat();
     const { setShowSearchUsers } = usePopUp();
-    const { user, logout} = useAuth();
+    const { user, logout } = useAuth();
     const [sliderMenu, setSliderMenu] = useState(false);
     const dropdownRef = useRef(null);
     const { theme, setTheme } = useTheme();
-    
+
 
     const handleLogout = () => {
         logout();
@@ -69,19 +69,23 @@ export default function ChatsList() {
 
             <div className="chat-list-container flex flex-col items-center w-full h-full">
                 {!loading && Array.isArray(chats) && chats.map((chat, index) => (
-                        <div onClick={() => {setSelectedChat(chat); fetchMessages(chat._id);}} key={chat._id} className="chat-list-item flex w-full cursor-pointer dark:hover:bg-zinc-950 items-center gap-5 py-4 px-5 border-b-1 dark:border-zinc-800 border-zinc-300">
-                            <div className="pfp-user-details flex items-center gap-5">
-                                <div className="pfp-wrapper relative">
-                                    <img src={chat.participant?.pfp} className="w-10 h-10 rounded-full" alt="" />
-                                    <span className="w-3 h-3 rounded-full bg-green-700 absolute bottom-0 right-1"></span>
-                                </div>
-                                <div className="user-details flex flex-col gap-1">
-                                    <p className="user-name dark:text-white text-sm">{chat.participant?.name}</p>
-                                    <p className="user-username dark:text-zinc-400 font-bold zinc-200 text-xs">{chat.participant?.username}</p>
-                                </div>
+                    <div onClick={() => { setSelectedChat(chat); fetchMessages(chat._id); }} key={chat._id} className="chat-list-item flex w-full cursor-pointer dark:hover:bg-zinc-950 items-center gap-5 py-4 px-5 border-b-1 dark:border-zinc-800 border-zinc-300">
+                        <div className="pfp-user-details w-full flex items-center gap-5">
+                            <div className="pfp-wrapper relative">
+                                <img src={chat.participant?.pfp} className="w-10 h-10 rounded-full" alt="" />
+                                <span className="w-3 h-3 rounded-full bg-green-700 absolute bottom-0 right-1"></span>
                             </div>
-
+                            <div className="user-details flex w-full flex-col gap-1">
+                                <p className="user-name dark:text-white text-sm">{chat.participant?.name}</p>
+                                <p className="user-username dark:text-zinc-400 font-bold zinc-200 text-xs">{chat.participant?.username}</p>
+                            </div>
+                            <div className="read-count-wrapper w-full flex justify-end items-center">
+                                <span className="unread-count bg-primary rounded-full text-white w-5 h-5 justify-center items-center flex text-xs">{chat.unreadCount}</span>
+                                
+                            </div>
                         </div>
+
+                    </div>
                 ))}
             </div>
             <div className="chats-list-header bg-slate-100 dark:bg-zinc-900 border-t-1 border-zinc-800 flex flex-row items-center h-21 px-5 justify-between">
