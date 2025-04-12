@@ -18,7 +18,7 @@ export const ChatProvider = ({ children }) => {
     const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-
+    const [onlineUsers, setOnlineUsers] = useState([]);
     const { showNotification } = useNotification();
     const { user } = useAuth();
 
@@ -36,6 +36,8 @@ export const ChatProvider = ({ children }) => {
             })
         }
 
+
+
         const handleReceiveMessage = (data) => {
             console.log("Received via socket:", data);
 
@@ -51,15 +53,15 @@ export const ChatProvider = ({ children }) => {
 
 
                 setMessages(prev => ({
-                    ...prev,
                     [data.chat]: [
                         ...(prev[data.chat] || []),
                         data.messageData
                     ],
+                    ...prev,
+
                 }));
 
                 if (data.messageData.sender._id === user.id) {
-                    console.log("yess!");
 
                     setChats(prev => {
                         const filtered = prev.filter(chat => chat._id != null);
@@ -81,20 +83,49 @@ export const ChatProvider = ({ children }) => {
                     ],
                 }));
 
+                if (data.messageData.sender._id !== user.id) {
+                    setChats(prev => prev.map(chat => {
+                        if (chat._id === data.chat) {
+                            return { ...chat, unreadCount: data.unreadCount };
+                        }
+                        return chat;
+                    }));
+                }
+
+
+
+
+
+                // setChats(prev => {
+                //     const updatedChat = prev.filter((chat) => chat._id == data.chat);
+                //     const prevChats = prev.filter(chat => chat._id != data.chat);
+                //     console.log(updatedChat, prevChats)
+                //     return [updatedChat, prevChats];
+                // })
+
             }
         }
-
-
 
 
         socket.off("receiveMessage"); // remove ALL previous listeners
         socket.on("receiveMessage", handleReceiveMessage);
 
+
+        const handleUserOnline = (users) => {
+
+            setOnlineUsers(users)
+        };
+
+        socket.on("onlineUsers", handleUserOnline);
         return () => {
             socket.off("receiveMessage", handleReceiveMessage);
+            socket.off("onlineUsers", handleUserOnline);
             socket.disconnect();
         };
     }, [user?.id]);
+
+
+
 
     // Fetch all chats
     const fetchChats = async () => {
@@ -186,13 +217,13 @@ export const ChatProvider = ({ children }) => {
                     isRead: false,
                 };
 
-                setChats(prev => {
-                    const updatedChats = prev.filter(chat => chat._id !== selectedChat._id);
-                    return [
-                        { ...selectedChat, lastMessage: messageData, updatedAt: new Date() },
-                        ...updatedChats,
-                    ];
-                });
+                // setChats(prev => {
+                //     const updatedChats = prev.filter(chat => chat._id !== selectedChat._id);
+                //     return [
+                //         { ...selectedChat, lastMessage: messageData, updatedAt: new Date() },
+                //         ...updatedChats,
+                //     ];
+                // });
             }
         } catch (error) {
             console.error("Error sending message: ", error);
@@ -212,6 +243,7 @@ export const ChatProvider = ({ children }) => {
                 setChats,
                 selectedChat,
                 setSelectedChat,
+                onlineUsers,
                 messages,
                 loading,
                 error,

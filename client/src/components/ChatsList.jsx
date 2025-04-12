@@ -5,10 +5,11 @@ import { usePopUp } from '../hooks/PopUpContext';
 import { useAuth } from '../hooks/AuthContext';
 import { useRef } from 'react';
 import { useTheme } from '../hooks/ThemeContext';
+import axios from 'axios';
 
 
 export default function ChatsList() {
-    const { chats, setChats, loading, setSelectedChat, fetchMessages } = useChat();
+    const { chats, setChats, loading, setSelectedChat, fetchMessages, onlineUsers } = useChat();
     const { setShowSearchUsers } = usePopUp();
     const { user, logout } = useAuth();
     const [sliderMenu, setSliderMenu] = useState(false);
@@ -36,26 +37,29 @@ export default function ChatsList() {
         };
     }, []);
 
-    // {
-    //     "_id": "66113f912312a5a5b3ff11e1",
-    //     "participant": {
-    //       "_id": "660ff1a0123bde4321f456aa",
-    //       "username": "alice123",
-    //       "name": "Alice Smith",
-    //       "pfp": "https://cdn.example.com/images/alice.jpg"
-    //     },
-    //     "lastMessage": {
-    //       "_id": "66113f9d123987a9fceaa55c",
-    //       "content": "Don't forget the meeting at 5 PM.",
-    //       "sender": {
-    //         "_id": "660ff1a0123bde4321f456aa",
-    //         "name": "Alice Smith"
-    //       },
-    //       "createdAt": "2025-04-06T10:45:00.000Z"
-    //     },
-    //     "unreadCount": 1,
-    //     "updatedAt": "2025-04-06T10:45:00.000Z"
-    //   },
+    const handleReadCount = async (chatId, userId) => {
+
+        try {
+            const response = await axios.post(
+                `${import.meta.env.VITE_API_URL}/chats/message-read`,
+                { chatId: chatId, userId: userId },
+                { withCredentials: true }
+            );
+            if (response.status === 200) {
+                setChats(prev => prev.map(chat => {
+                    if (chat._id === chatId) {
+                        return { ...chat, unreadCount: 0 };
+                    }
+                    return chat;
+                }));
+            } else {
+                console.warn(response.data.message);
+            }
+        }
+        catch (error) {
+            console.error(error);
+        }
+    }
 
     useEffect(() => {
         console.log(chats)
@@ -66,22 +70,24 @@ export default function ChatsList() {
             {/* <div className="chat-list-categories flex flex-row p-2 ">
                 <span className='block py-2 px-3 border-1 border-primary dark:text-white rounded-full font-semibold text-xs cursor-pointer'>Unread</span>
             </div> */}
-
-            <div className="chat-list-container flex flex-col items-center w-full h-full">
+            <div className="chat-list-container flex flex-col items-center h-full">
                 {!loading && Array.isArray(chats) && chats.map((chat, index) => (
-                    <div onClick={() => { setSelectedChat(chat); fetchMessages(chat._id); }} key={chat._id} className="chat-list-item flex w-full cursor-pointer dark:hover:bg-zinc-950 items-center gap-5 py-4 px-5 border-b-1 dark:border-zinc-800 border-zinc-300">
-                        <div className="pfp-user-details w-full flex items-center gap-5">
-                            <div className="pfp-wrapper relative">
-                                <img src={chat.participant?.pfp} className="w-10 h-10 rounded-full" alt="" />
-                                <span className="w-3 h-3 rounded-full bg-green-700 absolute bottom-0 right-1"></span>
+                    <div onClick={() => { setSelectedChat(chat); handleReadCount(chat._id, user.id); fetchMessages(chat._id); }} key={chat._id} className="chat-list-item flex w-full cursor-pointer dark:hover:bg-zinc-950 items-center gap-5 py-4 px-5 border-b-1 dark:border-zinc-800 border-zinc-300">
+                        <div className="pfp-user-details flex justify-between w-full gap-5">
+                            <div className="flex items-center gap-4">
+                                <div className="pfp-wrapper relative">
+                                    <img src={chat.participant?.pfp} className="w-10 h-10 rounded-full" alt="" />
+                                    {onlineUsers.includes(chat.participant?._id) ? <span className="w-3 h-3 rounded-full bg-green-700 absolute bottom-0 right-1"></span> : <></>}
+                                </div>
+                                <div className="user-details flex flex-col gap-1">
+                                    <p className="user-name dark:text-white text-sm">{chat.participant?.name}</p>
+                                    <p className="user-username dark:text-zinc-400 font-bold zinc-200 text-xs">{chat.participant?.username}</p>
+                                </div>
                             </div>
-                            <div className="user-details flex w-full flex-col gap-1">
-                                <p className="user-name dark:text-white text-sm">{chat.participant?.name}</p>
-                                <p className="user-username dark:text-zinc-400 font-bold zinc-200 text-xs">{chat.participant?.username}</p>
-                            </div>
-                            <div className="read-count-wrapper w-full flex justify-end items-center">
-                                <span className="unread-count bg-primary rounded-full text-white w-5 h-5 justify-center items-center flex text-xs">{chat.unreadCount}</span>
-                                
+
+                            <div className="read-count-wrapper flex justify-end items-center">
+                                {chat.unreadCount > 0 ? <span className="unread-count bg-primary rounded-full text-white w-5 h-5 justify-center items-center flex text-xs">{chat.unreadCount}</span> : <></>}
+
                             </div>
                         </div>
 

@@ -264,3 +264,40 @@ export const getMessages = async (req, res) => {
         res.status(500).json({ message: 'Internal Server Error' });
     }
 };
+
+
+
+export const readMessage = async (req, res) => {
+    const { chatId, userId } = req.body;
+    try {
+        const messages = await Message.find({ chat: chatId });
+        if (!messages) return res.status(400).json({ message: "No messages not found!" });
+        const user = await User.findById(userId);
+        if (!user) return res.status(400).json({ message: "User not found" });
+
+        // validation done
+
+        const bulkOperations = [];
+
+        messages.forEach((message) => {
+            if (!message.readBy.includes(userId)) {
+                bulkOperations.push({
+                    updateOne: {
+                        filter: { _id: message._id },
+                        update: { $addToSet: { readBy: userId } }, // Ensures no  
+                    },
+                });
+            }
+        });
+
+        if (bulkOperations.length > 0) {
+            await Message.bulkWrite(bulkOperations);
+        }
+
+
+        return res.status(200).json({ message: "Read count updated successfully!" });
+    } catch (error) {
+        return res.status(500).json({ message: "Internal Server Error", error: error });
+    }
+
+}

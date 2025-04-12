@@ -23,14 +23,14 @@ export default function ChatLayout() {
     const { showNotification } = useNotification();
     const [message, setMessage] = useState("");
     const { user, loading } = useAuth();
-    const { chats, setChats, sendMessage, setSelectedChat, selectedChat, messages, setMessages } = useChat();
+    const { chats, setChats, sendMessage, setSelectedChat, selectedChat, messages, onlineUsers, setMessages } = useChat();
     const navgiate = useNavigate();
 
 
     // Form onSubmit
     const onSubmit = () => {
-            // Calling api function for message sending
-            // console.log(selectedChat, user.id)
+        // Calling api function for message sending
+        // console.log(selectedChat, user.id)
         if (message.trim().length > 0) {
             sendMessage(message, selectedChat.participant._id, user.id, selectedChat)
             setMessage('')
@@ -83,17 +83,15 @@ export default function ChatLayout() {
                         <NoChatsFound setShowSearchUsers={setShowSearchUsers} />
                         : selectedChat ? (
                             <>
-                                <div className="chat-header  bg-gray-100 p-2 w-full h-20 flex dark:bg-zinc-900 gap-5 items-center px-10 ">
+                                <div className="chat-header bg-gray-100 p-2 w-full h-20 flex dark:bg-zinc-900 gap-5 items-center px-10 ">
                                     <img src={selectedChat?.participant?.pfp} alt="" className="w-10 h-10 rounded-full" />
                                     <div className="chat-header-labels flex gap-1 flex-col">
                                         <p className="chat-user-username dark:text-gray-400 text-sm">{selectedChat?.participant?.username}</p>
-                                        <p className="chat-user-name text-green-500 flex gap-1 text-xs items-center"><span className="h-2 w-2 rounded-full bg-green-500 block"></span>Online</p>
+                                        {onlineUsers.includes(selectedChat?.participant._id) ? <p className="chat-user-name text-green-500 flex gap-1 text-xs items-center"><span className="h-2 w-2 rounded-full bg-green-500 block"></span>Online</p> : <></>}
 
                                     </div>
-
                                 </div>
                                 <div className="message-container overflow-y-auto bg-cover bg-center h-full max-h-full w-full flex flex-col justify-end dark:bg-zinc-950">
-                                    {console.log(chats)}
                                     {(messages[selectedChat._id] || []).map((msg, index) => (
                                         <div
                                             key={index}
