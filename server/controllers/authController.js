@@ -100,7 +100,7 @@ export const googleAuth = async (req, res) => {
                     username: user.username,
                     name: user.name,
                     email: user.email,
-                    pfp: `${process.env.BASE_URL}/${user.pfp}`,
+                    pfp: user.pfp,
                     type: 'google'
                 }
             })
@@ -113,7 +113,7 @@ export const googleAuth = async (req, res) => {
                 username: username,
                 name: name,
                 email: email,
-                pfp: picture,
+                pfp: 'uploads/pfps/default-pfp.jpeg',
                 type: 'google'
             })
             await newUser.save();

@@ -10,6 +10,7 @@ import SearchUsers from '../components/forms/SearchUsers'
 import ChatsList from '../components/ChatsList'
 import { usePopUp } from "../hooks/PopUpContext";
 import { useChat } from "../hooks/ChatsContext";
+import ProfileForm from "../components/forms/ProfileForm";
 
 export default function ChatLayout() {
     const {
@@ -139,7 +140,7 @@ export default function ChatLayout() {
                                 <div className="chat-box grid grid-rows-[70px_calc(100%-130px)_60px] items-center h-screen w-full ">
 
                                     <div className="chat-header bg-gray-100 p-2 w-full h-20 flex dark:bg-zinc-900 gap-5 items-center px-10 ">
-                                        <img src={selectedChat?.participant?.pfp} alt="" className="w-10 h-10 rounded-full" />
+                                        <img src={`${import.meta.env.VITE_BACKEND_URL}/${selectedChat?.participant?.pfp}`} alt="" className="w-10 h-10 rounded-full" />
                                         <div className="chat-header-labels flex gap-1 flex-col">
                                             <p className="chat-user-username dark:text-gray-400 text-sm">{selectedChat?.participant?.username}</p>
                                             {onlineUsers.includes(selectedChat?.participant._id) ? <p className="chat-user-name text-green-500 flex gap-1 text-xs items-center"><span className="h-2 w-2 rounded-full bg-green-500 block"></span>Online</p> : <></>}
@@ -193,7 +194,7 @@ export default function ChatLayout() {
                                         </button>
                                     </form>
                                 </div>
-
+                                <ProfileForm />
                             </>
                         ) : (
 
