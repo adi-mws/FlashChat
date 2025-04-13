@@ -100,7 +100,7 @@ export const googleAuth = async (req, res) => {
                     username: user.username,
                     name: user.name,
                     email: user.email,
-                    pfp: String(user.pfp).startsWith('https') ? user.pfp : `${process.env.BASE_URL}/${user.pfp}`,
+                    pfp: `${process.env.BASE_URL}/${user.pfp}`,
                     type: 'google'
                 }
             })
@@ -203,6 +203,7 @@ export const loginUser = async (req, res) => {
             user: {
                 id: user._id,
                 name: user.name,
+                username: user.username,
                 email: user.email,
                 pfp: user.pfp ? `${process.env.BASE_URL}/${user.pfp}` : null
             },
@@ -271,7 +272,7 @@ export const verifyUserDetails = async (req, res) => {
                     return res.status(404).json({ message: 'User not found' });
                 }
                 else {
-                    return res.status(200).json({ id: user._id, email: user.email, username: user.username, pfp: String(user.pfp).startsWith('https') ? user.pfp : `${process.env.BASE_URL}/${user.pfp}`, name: user.name })
+                    return res.status(200).json({ id: user._id, email: user.email, username: user.username, pfp:`${process.env.BASE_URL}/${user.pfp}`, name: user.name })
                 }
             });
         }

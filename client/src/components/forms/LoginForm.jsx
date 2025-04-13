@@ -60,8 +60,6 @@ export default function LoginForm() {
 
             if (r.status === 200) {
               const user = r.data.user;
-              user.name = user.username;
-              delete user['username']
               setUser(user);
               showNotification("success", "Login Successful!");
               navigate('/chats')

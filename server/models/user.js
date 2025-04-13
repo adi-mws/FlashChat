@@ -28,7 +28,7 @@ const userSchema = new mongoose.Schema({
     },
     pfp: {
         type: String,
-        default: 'uploads/pfps/default-pfp.jpg'
+        default: 'uploads/pfps/default-pfp.jpeg'
     },
     type: {
         type: String, 

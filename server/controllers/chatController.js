@@ -163,7 +163,7 @@ export const sendMessage = async (req, res) => {
                 const participant = {
                     name: sender.name,
                     username: sender.username,
-                    pfp: String(sender.pfp).startsWith("https") ? sender.pfp : `${process.env.BASE_URL}/${sender.pfp}`,
+                    pfp: `${process.env.BASE_URL}/${sender.pfp}`,
                     _id: sender._id
                 }
                 io.to(users.get(receiverId)).emit("receiveMessage", {
@@ -196,7 +196,7 @@ export const sendMessage = async (req, res) => {
                 const participant = {
                     name: receiver.name,
                     username: receiver.username,
-                    pfp: String(receiver.pfp).startsWith("https") ? receiver.pfp : `${process.env.BASE_URL}/${receiver.pfp}`,
+                    pfp: `${process.env.BASE_URL}/${receiver.pfp}`,
                     _id: receiver._id
                 }
                 io.to(users.get(senderId)).emit("receiveMessage", {

@@ -41,9 +41,7 @@ export const getUserWithUsername = async (req, res) => {
       id: user._id,
       username: user.username,
       name: user.name,
-      pfp: user.pfp?.startsWith("https")
-        ? user.pfp
-        : `${process.env.BASE_URL}/${user.pfp}`
+      pfp: `${process.env.BASE_URL}/${user.pfp}`
     }));
 
     return res.status(200).json({ users: modifiedUsers });

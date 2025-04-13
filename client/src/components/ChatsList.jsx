@@ -15,8 +15,8 @@ export default function ChatsList() {
     const [sliderMenu, setSliderMenu] = useState(false);
     const dropdownRef = useRef(null);
     const { theme, setTheme } = useTheme();
-
-
+    const sideBarRef = useRef(null);
+   
     const handleLogout = () => {
         logout();
         showNotification("success", "Logout Successful!");
@@ -65,9 +65,9 @@ export default function ChatsList() {
         console.log(chats)
     }, [])
     return (
-        <div className="chats-list dark:bg-zinc-900 h-full border-r-1 border-zinc-300 dark:border-zinc-900 flex flex-col justify-between ">
+        <div ref={sideBarRef} className="chats-list dark:bg-zinc-900 h-full border-r-1 border-zinc-300 dark:border-zinc-900 flex flex-col justify-between ">
             <ChatListHeader />
-            {/* <div className="chat-list-categories flex flex-row p-2 ">
+            {/* <lassName="chat-list-categories flex flex-row p-2 ">
                 <span className='block py-2 px-3 border-1 border-primary dark:text-white rounded-full font-semibold text-xs cursor-pointer'>Unread</span>
             </div> */}
             <div className="chat-list-container flex flex-col items-center h-full">
@@ -76,7 +76,8 @@ export default function ChatsList() {
                         <div className="pfp-user-details flex justify-between w-full gap-5">
                             <div className="flex items-center gap-4">
                                 <div className="pfp-wrapper relative">
-                                    <img src={chat.participant?.pfp} className="w-10 h-10 rounded-full" alt="" />
+                                    {console.log(`${import.meta.env.VITE_BACKEND_URL}/${chat.participant?.pfp}`)}
+                                    <img src={`${import.meta.env.VITE_BACKEND_URL}/${chat.participant?.pfp}`} className="w-10 h-10 rounded-full" alt="" />
                                     {onlineUsers.includes(chat.participant?._id) ? <span className="w-3 h-3 rounded-full bg-green-700 absolute bottom-0 right-1"></span> : <></>}
                                 </div>
                                 <div className="user-details flex flex-col gap-1">
