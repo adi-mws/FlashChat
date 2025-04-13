@@ -152,13 +152,34 @@ export default function ChatLayout() {
                                         <div className="overflow-y-auto scrollbar-thin flex flex-col-reverse scrollbar-thumb-zinc-400 scrollbar-track-transparent">
                                             <div>
                                                 {(messages[selectedChat._id] || []).map((msg, index) => (
-                                                    <div key={index} className="message">
+                                                    <div key={index} className="message group">
                                                         <div className={`dark:text-white p-1 flex ${msg?.sender?._id === user?.id ? 'justify-end' : 'justify-start'}`}>
+                                                            {msg?.sender?._id === user?.id ? <div className="dropdown group-hover:flex flex-col justify-center mr-2 hidden">
+                                                                <button><i className="fas fa-circle-chevron-down text-sm text-zinc-700"></i></button>
+                                                            </div> : <></>}
+                                                            {console.log(messages)}
                                                             <span className={`bg-orange-200 ${msg?.sender?._id === user?.id ? 'dark:bg-primary-2 bg-primary-2 text-white' : 'dark:bg-zinc-800 bg-zinc-200'} p-3 rounded-xl text-sm block max-w-[60%] w-auto`}>
-                                                                {msg?.content}
+                                                                {msg?.content} <span className="text-2xs ms-2 text-zinc-400">{
+                                                                    new Date(msg.createdAt).toLocaleTimeString([], {
+                                                                        hour: '2-digit',
+                                                                        minute: '2-digit',
+                                                                        hour12: false,
+                                                                    })
+                                                                }</span>   
+                                                                {msg?.sender?._id === user?.id ? <span className={`ms-2 ${msg?.readBy?.length > 1 ? 'text-violet-500': 'text-zinc-500'}`}><i className="fas fa-circle-check"></i></span> : <></>}
                                                             </span>
+
+                                                            {msg?.sender?._id !== user?.id ? <div className="dropdown hidden flex-col group-hover:flex justify-center ms-2">
+                                                                <button><i className="fas fa-circle-chevron-down text-sm text-zinc-700"></i></button>
+                                                            </div> : <></>}
+
+                                                            <div className="hidden">
+                                                                <button>Select</button>
+                                                                <button>Delete</button>
+                                                            </div>
                                                         </div>
                                                     </div>
+
                                                 ))}
                                                 <div ref={messagesEndRef} />
                                             </div>
@@ -194,7 +215,7 @@ export default function ChatLayout() {
                                         </button>
                                     </form>
                                 </div>
-                                <ProfileForm />
+                                {/* <ProfileForm /> */}
                             </>
                         ) : (
 
