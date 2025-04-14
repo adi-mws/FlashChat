@@ -52,3 +52,14 @@ export const getUserWithUsername = async (req, res) => {
 };
 
 
+
+export const updateLastOnline = async (id, lastOnline) => {
+  try {
+    const user = await User.findByIdAndUpdate(id, {lastOnline: lastOnline});
+    if (user) {
+      
+    }
+  } catch (error) {
+    console.error("Error while updating Last Online Time: ", error);
+  }
+}

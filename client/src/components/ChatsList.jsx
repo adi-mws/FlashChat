@@ -9,14 +9,14 @@ import axios from 'axios';
 
 
 export default function ChatsList() {
-    const { chats, setChats, loading, setSelectedChat, fetchMessages, onlineUsers } = useChat();
+    const { chats, setChats, loading, setSelectedChat, emitSeenMessages,  selectedChat, messages, fetchMessages, onlineUsers } = useChat();
     const { setShowSearchUsers } = usePopUp();
     const { user, logout } = useAuth();
     const [sliderMenu, setSliderMenu] = useState(false);
     const dropdownRef = useRef(null);
     const { theme, setTheme } = useTheme();
     const sideBarRef = useRef(null);
-   
+
     const handleLogout = () => {
         logout();
         showNotification("success", "Logout Successful!");
@@ -61,8 +61,10 @@ export default function ChatsList() {
         }
     }
 
+    
+
     useEffect(() => {
-        console.log(chats)
+        // console.log(chats)
     }, [])
     return (
         <div ref={sideBarRef} className="chats-list dark:bg-zinc-900 h-full border-r-1 border-zinc-300 dark:border-zinc-900 flex flex-col justify-between ">
@@ -72,11 +74,12 @@ export default function ChatsList() {
             </div> */}
             <div className="chat-list-container flex flex-col items-center h-full">
                 {!loading && Array.isArray(chats) && chats.map((chat, index) => (
-                    <div onClick={() => { setSelectedChat(chat); handleReadCount(chat._id, user.id); fetchMessages(chat._id); }} key={chat._id} className="chat-list-item flex w-full cursor-pointer dark:hover:bg-zinc-950 items-center gap-5 py-4 px-5 border-b-1 dark:border-zinc-800 border-zinc-300">
+                    <div onClick={() => { setSelectedChat(chat); handleReadCount(chat._id, user.id); emitSeenMessages(chat._id); fetchMessages(chat._id); }} key={chat._id} className="chat-list-item flex w-full cursor-pointer dark:hover:bg-zinc-950 items-center gap-5 py-4 px-5 border-b-1 dark:border-zinc-800 border-zinc-300">
+                        {/* {console.log(selectedChat)} */}
                         <div className="pfp-user-details flex justify-between w-full gap-5">
                             <div className="flex items-center gap-4">
                                 <div className="pfp-wrapper relative">
-                                    {console.log(`${import.meta.env.VITE_BACKEND_URL}/${chat.participant?.pfp}`)}
+                                    {/* {console.log(`${import.meta.env.VITE_BACKEND_URL}/${chat.participant?.pfp}`)} */}
                                     <img src={`${import.meta.env.VITE_BACKEND_URL}/${chat.participant?.pfp}`} className="w-10 h-10 rounded-full" alt="" />
                                     {onlineUsers.includes(chat.participant?._id) ? <span className="w-3 h-3 rounded-full bg-green-700 absolute bottom-0 right-1"></span> : <></>}
                                 </div>
@@ -87,7 +90,7 @@ export default function ChatsList() {
                             </div>
 
                             <div className="read-count-wrapper flex justify-end items-center">
-                                {chat.unreadCount > 0 ? <span className="unread-count bg-primary rounded-full text-white w-5 h-5 justify-center items-center flex text-xs">{chat.unreadCount}</span> : <></>}
+                                {chat.unreadCount > 0 ? <span className="unread-count bg-red-600 rounded-full text-white w-5 h-5 justify-center items-center flex text-xs">{chat.unreadCount}</span> : <></>}
 
                             </div>
                         </div>

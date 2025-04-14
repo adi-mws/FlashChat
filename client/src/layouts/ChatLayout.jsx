@@ -135,7 +135,7 @@ export default function ChatLayout() {
                 <div className="chat-box-wrapper overflow-hidden flex h-screen justify-center align-center" style={{ width: `calc(100% - ${sidebarWidth}px)` }}>
                     {chats.length === 0 ?
                         <NoChatsFound setShowSearchUsers={setShowSearchUsers} />
-                        : selectedChat ? (
+                        : Object.keys(selectedChat).length != 0 ? (
                             <>
                                 <div className="chat-box grid grid-rows-[70px_calc(100%-130px)_60px] items-center h-screen w-full ">
 
@@ -157,7 +157,7 @@ export default function ChatLayout() {
                                                             {msg?.sender?._id === user?.id ? <div className="dropdown group-hover:flex flex-col justify-center mr-2 hidden">
                                                                 <button><i className="fas fa-circle-chevron-down text-sm text-zinc-700"></i></button>
                                                             </div> : <></>}
-                                                            {console.log(messages)}
+                                                            {/* {console.log(messages)} */}
                                                             <span className={`bg-orange-200 ${msg?.sender?._id === user?.id ? 'dark:bg-primary-2 bg-primary-2 text-white' : 'dark:bg-zinc-800 bg-zinc-200'} p-3 rounded-xl text-sm block max-w-[60%] w-auto`}>
                                                                 {msg?.content} <span className="text-2xs ms-2 text-zinc-400">{
                                                                     new Date(msg.createdAt).toLocaleTimeString([], {

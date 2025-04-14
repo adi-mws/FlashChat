@@ -1,5 +1,5 @@
 // context/ChatContext.js
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { io } from "socket.io-client";
 import { useNotification } from './NotificationContext';
@@ -10,17 +10,33 @@ const ChatContext = createContext();
 // Create socket instance ONCE outside component scope
 const socket = io(import.meta.env.VITE_SOCKET_URL || 'http://localhost:3000', {
     autoConnect: false,
+    withCredentials: true
+
 });
 
 export const ChatProvider = ({ children }) => {
     const [chats, setChats] = useState([]);
-    const [selectedChat, setSelectedChat] = useState(null);
+    const [selectedChat, setSelectedChat] = useState({});
     const [messages, setMessages] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [onlineUsers, setOnlineUsers] = useState([]);
     const { showNotification } = useNotification();
     const { user } = useAuth();
+    const selectedChatRef = useRef(null);
+    const chatsRef = useRef(null);
+    const messagesRef = useRef(messages);
+    useEffect(() => {
+        chatsRef.current = chats;
+    }, [chats]);
+
+    useEffect(() => {
+        messagesRef.current = messages;
+    }, [messages])
+
+    useEffect(() => {
+        selectedChatRef.current = selectedChat;
+    }, [selectedChat]);
 
     //  Socket connection logic
     useEffect(() => {
@@ -35,14 +51,12 @@ export const ChatProvider = ({ children }) => {
                 console.warn('socket disconnected')
             })
         }
-
-
-
         const handleReceiveMessage = (data) => {
             console.log("Received via socket:", data);
 
 
             if (data.messageData) {
+                console.log('If condition is running!')
                 const newChat = {
                     _id: data.chat,
                     lastMessage: data.messageData,
@@ -75,6 +89,29 @@ export const ChatProvider = ({ children }) => {
                     setChats(prev => [newChat, ...prev])
                 }
             } else {
+                // If it is an old chat 
+                // Setting the message Count live 
+                if (selectedChatRef.current._id != data.chat) {
+                    console.log("Chat id  ", data.chat)
+                    const receivedChat = chatsRef.current.find((chat) => chat._id === data.chat)
+                    receivedChat.unreadCount = data.unreadCount;
+                    const remainingChats = chatsRef.current.filter((chat) => chat._id !== data.chat);
+                    if (receivedChat) {
+                        setChats([receivedChat, ...remainingChats])
+                    }
+                } else {
+                    // if user is selected the current message chat then the seen count should be updated 
+                    // in the server through the emit below
+                    if (data.sender._id !== user.id) {
+                        socket.emit('seenMessage', {
+                            messageId: data._id,
+                            chatId: data.chat,
+                            senderId: data.sender._id,
+                            userId: user.id
+                        })
+                    }
+                }
+
                 setMessages(prev => ({
                     ...prev,
                     [data.chat]: [
@@ -82,17 +119,6 @@ export const ChatProvider = ({ children }) => {
                         data
                     ],
                 }));
-
-                if (data.messageData.sender._id !== user.id) {
-                    setChats(prev => prev.map(chat => {
-                        if (chat._id === data.chat) {
-                            return { ...chat, unreadCount: data.unreadCount };
-                        }
-                        return chat;
-                    }));
-                }
-
-
 
 
 
@@ -106,25 +132,65 @@ export const ChatProvider = ({ children }) => {
             }
         }
 
+        const handleReceiverSeenMessage = (data) => {
+            console.log('Chat Id: ', data.chatId);
+            console.log("Message Id: ", data.messageId)
+
+            setMessages(prev => ({
+                ...prev,
+                [data.chatId]: prev[data.chatId].map(message =>
+                    message._id === data.messageId
+                        ? {
+                            ...message,
+                            readBy: Array.isArray(message.readBy)
+                                ? [...message.readBy, data.receiverId]
+                                : [data.receiverId]
+                        }
+                        : message
+                )
+            }))
+        }
+
 
         socket.off("receiveMessage"); // remove ALL previous listeners
         socket.on("receiveMessage", handleReceiveMessage);
+        socket.on("receiverSeenMessage", handleReceiverSeenMessage);
 
 
         const handleUserOnline = (users) => {
-
             setOnlineUsers(users)
         };
 
         socket.on("onlineUsers", handleUserOnline);
         return () => {
             socket.off("receiveMessage", handleReceiveMessage);
+            socket.off("receiverSeenMessage", handleReceiverSeenMessage);
             socket.off("onlineUsers", handleUserOnline);
+
             socket.disconnect();
         };
     }, [user?.id]);
 
 
+    const emitSeenMessages = (chatId) => {
+        console.log("Function Emit seeen messages triggered!");
+        // Filter unread messages
+        if (Object.keys(messages).includes(chatId)) {
+            const unreadMessages = messages[chatId].filter(message =>
+                !message.readBy.includes(user.id) // Assuming readBy is an array of userIds that have read the message
+            );
+            console.log("Unread Messages : ", unreadMessages);
+
+            // Emit the 'seenMessage' event for each unread message
+            unreadMessages.forEach(message => {
+                socket.emit('seenMessage', {
+                    messageId: message._id,
+                    chatId: chatId,
+                    senderId: message.sender._id,
+                });
+            })
+        }
+    }
 
 
     // Fetch all chats
@@ -190,7 +256,7 @@ export const ChatProvider = ({ children }) => {
     };
 
     // Send a message
-    const sendMessage = async (message, receiverId, senderId, selectedChat) => {
+    const sendMessage = async (message, receiverId, senderId) => {
         try {
             const response = await axios.post(
                 `${import.meta.env.VITE_API_URL}/chats/send-message`,
@@ -243,6 +309,7 @@ export const ChatProvider = ({ children }) => {
                 setChats,
                 selectedChat,
                 setSelectedChat,
+                emitSeenMessages,
                 onlineUsers,
                 messages,
                 loading,

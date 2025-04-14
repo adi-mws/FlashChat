@@ -2,9 +2,9 @@ import mongoose from "mongoose";
 
 const userSchema = new mongoose.Schema({
     username: {
-        type: String, 
+        type: String,
         required: true,
-        unique: true, 
+        unique: true,
     },
     name: {
         type: String,
@@ -31,10 +31,22 @@ const userSchema = new mongoose.Schema({
         default: 'uploads/pfps/default-pfp.jpeg'
     },
     type: {
-        type: String, 
+        type: String,
         enum: ['normal', 'google'],
         required: true
-    }
+    },
+    lastOnline: {
+        type: Date,
+        default: Date.now
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now
+    },
+    updatedAt: {
+        type: Date,
+        default: Date.now
+    },
 });
 
 const User = mongoose.model('User', userSchema);

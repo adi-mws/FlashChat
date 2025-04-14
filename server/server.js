@@ -10,12 +10,14 @@ import Chat from './models/chat.js';
 import userRoutes from './routes/userRoutes.js'
 import path from 'path';
 import cookieParser from 'cookie-parser';
-
+import socketAuth from './middlewares/socketAuth.js'
+import Message from './models/message.js';
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Socket Auth Middlware usage
 
 const server = http.createServer(app); // Create HTTP server
 // CORS configuration
@@ -31,6 +33,9 @@ const io = new Server(server, {
         credentials: true,
     },
 });
+
+io.use(socketAuth);
+
 
 const users = new Map(); // userId -> socketId
 const socketUserMap = new Map(); // socketId -> userId
@@ -49,6 +54,33 @@ io.on("connection", (socket) => {
         // Broadcast updated online users
         io.emit("onlineUsers", [...users.keys()]);
     });
+
+
+    socket.on("seenMessage", async (data) => {
+        
+        try {
+            console.log(socket.user.id)
+            const updatedMessage = await Message.findByIdAndUpdate(
+                data.messageId,
+                { $push: { readBy: socket.user.id } },
+                { new: true } // Ensures the updated document is returned
+            );
+        } catch (err) {
+            console.log("Error updating message:", err);
+        }
+
+        
+        const senderSocket = users.get(data.senderId); 
+        console.log("Sender socket: ", senderSocket);
+        if (senderSocket) {
+            io.to(senderSocket).emit('receiverSeenMessage', {
+                chatId: data.chatId, 
+                messageId: data.messageId, 
+                receiverId: socket.user.id
+            })
+        }
+        
+    })
 
     socket.on("disconnect", () => {
         const userId = socketUserMap.get(socket.id);

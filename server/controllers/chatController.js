@@ -98,6 +98,8 @@ export const sendMessage = async (req, res) => {
         const io = req.app.get('io');
         const users = req.app.get('users');
         // Validate input
+        if (senderId === receiverId) console.log(true, "Receiver and sender are same");
+        else console.log("Sender : ", senderId, " reciver : ", receiverId);
         if (!senderId || !receiverId || !message) {
             return res.status(400).json({
                 success: false,
@@ -147,10 +149,10 @@ export const sendMessage = async (req, res) => {
                 _id: savedMessage.sender._id,
                 name: savedMessage.sender.name,
                 username: savedMessage.sender.username,
-                pfp: String(savedMessage.sender.pfp) ? savedMessage.sender.pfp : `${process.env.BASE_URL}/${savedMessage.sender.pfp}`,
+                pfp: savedMessage.sender.pfp,
             },
             createdAt: savedMessage.createdAt,
-            isRead: false // for receiver
+            readBy: savedMessage.readBy // for receiver
         };
         // console.log('here is the receiever of message' , receiverId)
 
@@ -159,6 +161,7 @@ export const sendMessage = async (req, res) => {
         if (users.has(receiverId)) {
             console.log(isChatExisted);
             if (!isChatExisted) {
+
                 const sender = await User.findById(senderId);
                 const participant = {
                     name: sender.name,
@@ -222,6 +225,7 @@ export const sendMessage = async (req, res) => {
                 });
             }
         }
+
         // 8. Send response
         res.status(200).json({
             success: true,
