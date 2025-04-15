@@ -16,7 +16,7 @@ export default function ChatListHeader() {
 
   return (
     <>
-      <div className="ChatHeader flex bg-white z-100 w-full dark:bg-zinc-900 border-b-1 border-zinc-800 text-sm shadow-sm px-5 sm:px-10 h-[60px] justify-between flex-row items-center">
+      <div className="ChatHeader flex bg-white z-100 w-full dark:bg-zinc-900 border-b-1 dark:border-zinc-800 border-zinc-100 text-sm shadow-sm px-5 sm:px-10 h-[60px] justify-between flex-row items-center">
         <div className="flex items-center flex-row gap-5">
           {/* <div className="menu-icon dark:text-white sm-inline-block md:hidden" onClick={() => setMenuOpen(!menuOpen)}>
             <i className="fa-solid fa-bars"></i>

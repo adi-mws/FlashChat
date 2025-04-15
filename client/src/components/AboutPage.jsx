@@ -39,10 +39,10 @@ export default function AboutPage() {
         <div className='AboutPage'>
             <div className="update-container flex flex-col gap-3 p-5">
                 {updates.map((item, index) => (
-                    <div className="update flex flex-col gap-2 rounded-md shadow-sm p-5 dark:bg-gray-900">
+                    <div className="update flex flex-col gap-2 rounded-md shadow-sm p-5 dark:bg-zinc-900">
                         <div className="title-container flex flex-col gap-4 xs:gap-0 xs:flex-row justify-between ">
                             <p className="title dark:text-white text-center xs:text-start font-bold text-lg">{item?.title}</p>
-                            <p className="title dark:text-primary text-sm bg-primary-3 text-center font-bold dark:font-normal xs:text-start text-primary-1 rounded-md py-2 px-5 ">Version {item?.version}</p>
+                            <p className="title dark:text-white text-sm bg-primary text-center font-bold dark:font-normal xs:text-start text-white rounded-md py-2 px-5 ">Version {item?.version}</p>
                         </div>
                         <div className="description flex-col dark:text-gray-300 text-gray-700 text-sm">
                             {item?.description}

@@ -74,7 +74,7 @@ export default function ChatsList() {
             </div> */}
             <div className="chat-list-container flex flex-col items-center h-full">
                 {!loading && Array.isArray(chats) && chats.map((chat, index) => (
-                    <div onClick={() => { setSelectedChat(chat); handleReadCount(chat._id, user.id); emitSeenMessages(chat._id); fetchMessages(chat._id); }} key={chat._id} className="chat-list-item flex w-full cursor-pointer dark:hover:bg-zinc-950 items-center gap-5 py-4 px-5 border-b-1 dark:border-zinc-800 border-zinc-300">
+                    <div onClick={() => { setSelectedChat(chat); handleReadCount(chat._id, user.id); emitSeenMessages(chat._id); fetchMessages(chat._id); }} key={chat._id} className="chat-list-item flex w-full cursor-pointer dark:hover:bg-zinc-950 items-center gap-5 py-4 px-5 border-b-1 dark:border-zinc-800 border-zinc-200">
                         {/* {console.log(selectedChat)} */}
                         <div className="pfp-user-details flex justify-between w-full gap-5">
                             <div className="flex items-center gap-4">

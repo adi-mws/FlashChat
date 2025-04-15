@@ -159,14 +159,14 @@ export default function ChatLayout() {
                                                             </div> : <></>}
                                                             {/* {console.log(messages)} */}
                                                             <span className={`bg-orange-200 ${msg?.sender?._id === user?.id ? 'dark:bg-primary-2 bg-primary-2 text-white' : 'dark:bg-zinc-800 bg-zinc-200'} p-3 rounded-xl text-sm block max-w-[60%] w-auto`}>
-                                                                {msg?.content} <span className="text-2xs ms-2 text-zinc-400">{
+                                                                {msg?.content} <span className={`text-2xs ms-2 ${msg?.sender?._id === user?.id ? 'text-zinc-300 dark:text-zinc-500' : 'text-zinc-600'}`}>{
                                                                     new Date(msg.createdAt).toLocaleTimeString([], {
                                                                         hour: '2-digit',
                                                                         minute: '2-digit',
                                                                         hour12: false,
                                                                     })
                                                                 }</span>   
-                                                                {msg?.sender?._id === user?.id ? <span className={`ms-2 ${msg?.readBy?.length > 1 ? 'text-violet-500': 'text-zinc-500'}`}><i className="fas fa-circle-check"></i></span> : <></>}
+                                                                {msg?.sender?._id === user?.id ? <span className={`ms-2 ${msg?.readBy?.length > 1 ? 'text-violet-300 dark:text-violet-500': 'text-zinc-300 dark:text-zinc-500'}`}><i className="fas fa-circle-check"></i></span> : <></>}
                                                             </span>
 
                                                             {msg?.sender?._id !== user?.id ? <div className="dropdown hidden flex-col group-hover:flex justify-center ms-2">
