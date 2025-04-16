@@ -45,11 +45,11 @@ export default function LoginForm() {
 
   const handleGoogleSuccess = async (credentialResponse) => {
     setGoogleCredentialResponse(credentialResponse)
-    console.log("Google Login Success:", credentialResponse);
+   
     try {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/google-check`, { token: credentialResponse.credential }, { withCredentials: true });
       if (response.status === 200) {
-        console.log('Pre auth response = ', response.data);
+        // console.log('Pre auth response = ', response.data);
         if (response.data.available) {
           try {
             const r = await axios.post(

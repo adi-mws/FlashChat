@@ -10,18 +10,20 @@ export default function ChatListHeader() {
   const { showNotification } = useNotification();
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
-  
 
-  
+
+
 
   return (
     <>
-      <div className="ChatHeader flex bg-white z-100 w-full dark:bg-zinc-900 border-b-1 dark:border-zinc-800 border-zinc-100 text-sm shadow-sm px-5 sm:px-10 h-[60px] justify-between flex-row items-center">
+      <div className="ChatHeader flex bg-white z-100 w-full dark:bg-zinc-900 border-b-1 dark:border-zinc-800 border-zinc-100 text-sm shadow-sm px-2 h-[60px] justify-between flex-row items-center">
         <div className="flex items-center flex-row gap-5">
           {/* <div className="menu-icon dark:text-white sm-inline-block md:hidden" onClick={() => setMenuOpen(!menuOpen)}>
             <i className="fa-solid fa-bars"></i>
           </div> */}
-          <Link to="/" className="logo text-lg dark:text-white">FlashChat</Link>
+           <Link to="/" className="logo text-lg dark:text-white flex dark:hidden gap-2 items-center"><img className="h-10 w-10 rounded-full text-xs" src='/imgs/logo.png' alt='logo'/>FlashChat</Link>
+           <Link to="/" className="logo text-lg dark:text-white dark:flex gap-2 hidden  items-center"><img className="h-10 w-10 rounded-full text-xs" src='/imgs/logo-dark.png' alt='logo'/>FlashChat</Link>
+
         </div>
 
         {/* Navigation Links */}
@@ -31,7 +33,7 @@ export default function ChatListHeader() {
             <i className={`fa-solid fa-${theme === "dark" ? "sun" : "moon"} text-md`}></i>
           </button>
 
-         
+
         </nav>
       </div>
     </>
