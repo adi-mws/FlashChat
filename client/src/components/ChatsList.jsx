@@ -25,7 +25,7 @@ export default function ChatsList() {
 
 
     useEffect(() => {
-
+        
         const handleClickOutside = (event) => {
             if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
                 setSliderMenu(false);
@@ -38,12 +38,12 @@ export default function ChatsList() {
     }, []);
 
     const handleReadCount = async (chatId, userId) => {
-
+    // This function handles the read count
         try {
             const response = await axios.post(
                 `${import.meta.env.VITE_API_URL}/chats/message-read`,
                 { chatId: chatId, userId: userId },
-                { withCredentials: true }
+                { withCredentials: true } // sending HTTP_Only Cookies to the server (Can't be accessed with client JS)
             );
             if (response.status === 200) {
                 setChats(prev => prev.map(chat => {
