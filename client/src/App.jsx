@@ -20,6 +20,8 @@ import { NetworkProvider } from "./hooks/NetworkContext";
 // Pages
 import SelectChat from "./components/SelectChat";
 import ChatPage from "./components/ChatPage";
+import ProfilePage from "./components/ProfilePage";
+import ChatsList from "./components/ChatsList";
 
 function App() {
   return (
@@ -43,8 +45,19 @@ function App() {
   );
 }
 
+import { useEffect, useState } from "react";
+
 const MainApp = () => {
   const { user, loading } = useAuth();
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   if (loading) return <div className="loading">Loading...</div>;
 
@@ -72,10 +85,11 @@ const MainApp = () => {
         path="/chats"
         element={user ? <ChatLayout /> : <Navigate to="/" replace />}
       >
-        {/* Default chat list when no chat is selected */}
-        <Route index element={<SelectChat />} />
-        {/* Chat with specific user */}
+        {/* 🔁 Mobile: show ChatsList | Desktop: show SelectChat */}
+        <Route index element={isMobile ? <ChatsList /> : <SelectChat />} />
         <Route path=":chatId" element={<ChatPage />} />
+        <Route path="profile" element={<ProfilePage edit={true} />} />
+        <Route path="profile/:id" element={<ProfilePage />} />
       </Route>
 
       {/* Fallback */}

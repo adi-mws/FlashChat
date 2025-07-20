@@ -100,7 +100,7 @@ export const getUserById = async (req, res) => {
 export const updateUserProfile = async (req, res) => {
   try {
     const userId = req.params.id;
-    const { name, about, pfp } = req.body;
+    const { name, about, pfp, showLastMessageInList } = req.body;
 
     const user = await User.findById(userId);
     if (!user) {
@@ -111,6 +111,10 @@ export const updateUserProfile = async (req, res) => {
     if (typeof name === 'string') user.name = name.trim();
     if (typeof about === 'string') user.about = about.trim();
     if (typeof pfp === 'string') user.pfp = pfp;
+
+    if (typeof showLastMessageInList === 'boolean') {
+      user.showLastMessageInList = showLastMessageInList;
+    }
 
     user.updatedAt = Date.now();
     await user.save();

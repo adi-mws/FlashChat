@@ -31,6 +31,7 @@ export default function ChatsList() {
         logout();
         navigate("/login");
     };
+    
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -67,7 +68,9 @@ export default function ChatsList() {
         setSelectedChat(chat);
         handleReadCount(chat._id, user.id);
         emitSeenMessages(chat._id);
+
         navigate(`/chats/${chat._id}`);
+
     };
 
     useEffect(() => {
@@ -183,7 +186,7 @@ export default function ChatsList() {
                         </div>
                         <div className={`fixed left-0 ${sliderMenu ? 'bottom-0' : 'bottom-[-400px]'} transition-all duration-500 mt-2 w-48 bg-white dark:bg-zinc-800 shadow-lg rounded-md z-10`}>
                             <ul className="py-2">
-                                <li className="flex items-center px-4 gap-5 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-600 cursor-pointer transition">
+                                <li onClick={() => navigate('/chats/profile')} className="flex items-center px-4 gap-5 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-600 cursor-pointer transition">
                                     <i className="fas fa-user"></i> <span> Profile</span>
                                 </li>
                                 <li
