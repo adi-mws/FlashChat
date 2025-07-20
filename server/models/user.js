@@ -1,62 +1,42 @@
-import mongoose from "mongoose";
-
 const userSchema = new mongoose.Schema({
-    username: {
-        type: String,
-        required: true,
-        unique: true,
-    },
-    name: {
-        type: String,
-        required: true,
-    },
-    email: {
-        type: String,
-        required: true,
-    },
+    username: { type: String, required: true, unique: true },
+    name: { type: String, required: true },
+    email: { type: String, required: true },
     password: {
-        type: String,
-        required: function () {
-            return this.type === 'normal';
-        }
+      type: String,
+      required: function () {
+        return this.type === 'normal';
+      }
     },
     googleId: {
-        type: String,
-        required: function () {
-            return this.type === 'google';
-        }
+      type: String,
+      required: function () {
+        return this.type === 'google';
+      }
     },
     pfp: {
-        type: String,
-        default: 'uploads/pfps/default-pfp.jpeg'
+      type: String,
+      default: 'uploads/pfps/default-pfp.jpeg'
     },
     type: {
-        type: String,
-        enum: ['normal', 'google'],
-        required: true
+      type: String,
+      enum: ['normal', 'google'],
+      required: true
     },
     lastOnline: {
-        type: Date,
-        default: Date.now
+      type: Date,
+      default: Date.now
     },
-
     showLastMessageInList: {
-        type: Boolean, 
-        default: true,
-        required: false
+      type: Boolean,
+      default: true,
+      required: false
     },
-    
-
-    createdAt: {
-        type: Date,
-        default: Date.now
+    about: {
+      type: String,
+      default: ""
     },
-    updatedAt: {
-        type: Date,
-        default: Date.now
-    },
-});
-
-const User = mongoose.model('User', userSchema);
-
-export default User;
+    createdAt: { type: Date, default: Date.now },
+    updatedAt: { type: Date, default: Date.now },
+  });
+  

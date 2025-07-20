@@ -63,3 +63,64 @@ export const updateLastOnline = async (id, lastOnline) => {
     console.error("Error while updating Last Online Time: ", error);
   }
 }
+
+``
+
+// Helper function to format user data safely
+const formatUser = (user) => ({
+  _id: user._id,
+  username: user.username,
+  name: user.name,
+  email: user.email,
+  about: user.about,
+  pfp: user.pfp,
+  lastOnline: user.lastOnline,
+  showLastMessageInList: user.showLastMessageInList,
+  createdAt: user.createdAt,
+});
+
+export const getUserById = async (req, res) => {
+  try {
+    const userId = req.params.id;
+
+    const user = await User.findById(userId).select('-password -googleId -type -__v -updatedAt');
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    res.status(200).json({ user: formatUser(user) });
+  } catch (error) {
+    console.error("Error in getUserById:", error);
+    res.status(500).json({ message: 'Failed to fetch user', error: error.message });
+  }
+};
+
+
+export const updateUserProfile = async (req, res) => {
+  try {
+    const userId = req.params.id;
+    const { name, about, pfp } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Apply only allowed updates
+    if (typeof name === 'string') user.name = name.trim();
+    if (typeof about === 'string') user.about = about.trim();
+    if (typeof pfp === 'string') user.pfp = pfp;
+
+    user.updatedAt = Date.now();
+    await user.save();
+
+    res.status(200).json({
+      message: 'Profile updated successfully',
+      user: formatUser(user),
+    });
+  } catch (error) {
+    console.error("Error in updateUserProfile:", error);
+    res.status(500).json({ message: 'Failed to update profile', error: error.message });
+  }
+};
