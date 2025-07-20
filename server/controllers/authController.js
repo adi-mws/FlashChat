@@ -12,7 +12,7 @@ const __dirname = path.dirname(__filename);
 
 // Register user
 export const registerUser = async (req, res) => {
-    const { username, name, email, password } = req.body;
+    const { email, password, role } = req.body;
     try {
         const userExists = await User.findOne({ email });
         if (userExists) {
@@ -20,14 +20,14 @@ export const registerUser = async (req, res) => {
         }
 
         // Create user with hashed password
-        const user = await User.create({ username: username, name: name, email: email, password: hashSync(password, 10), type: 'normal' });
+        const user = await User.create({ email: email, password: hashSync(password, 10), role: role, authType: 'normal' });
 
 
 
-        // Respond to the client with a success message and token
+        // Respond to the client with a succesgs message and token
         res.status(201).json({
             message: "User registered successfully",
-            user: { id: user._id, email: user.email, name: user.name }
+            user: { id: user._id, email: user.email, role: role, }
 
         });
 
@@ -37,6 +37,57 @@ export const registerUser = async (req, res) => {
     }
 };
 
+export const loginUser = async (req, res) => {
+    const { username, password } = req.body;
+
+    try {
+        // Find user by username
+        const user = await User.findOne({ username: username, type: 'normal' });
+
+        if (!user) {
+            return res.status(401).json({ message: 'Invalid Credentials' });
+        }
+
+        // Check if the password matches
+        const isPasswordMatch = await bcrypt.compare(password, user.password);
+
+        if (!isPasswordMatch) {
+            return res.status(401).json({ message: 'Invalid Credentials' });
+        }
+
+        // Generate JWT token
+        const token = jwt.sign(
+            { id: user._id, email: user.email },  // Payload
+            process.env.JWT_SECRET,                   // Secret Key
+            { expiresIn: '7d' }                       // Expiration Time
+        );
+
+        // Set token in HTTP-only cookie
+        res.cookie('token', token, {
+            httpOnly: true,       // Prevent client-side access
+            secure: process.env.NODE_ENV === 'production',  // Secure in production
+            sameSite: 'Strict',   // Prevent CSRF attacks
+            maxAge: 7 * 24 * 60 * 60 * 1000  // 7 days expiration
+        });
+
+        // Send response with user details
+        res.status(200).json({
+            message: "User logged in successfully!",
+            user: {
+                id: user._id,
+                name: user.name,
+                username: user.username,
+                email: user.email,
+                pfp: user.pfp ? `${process.env.BASE_URL}/${user.pfp}` : null
+            },
+            token // Also send the token in response
+        });
+
+    } catch (error) {
+        console.error('Error during login:', error);
+        res.status(500).json({ message: 'Error logging in user' });
+    }
+};
 
 
 
@@ -164,57 +215,6 @@ export const isUsernameExists = async (req, res) => {
     }
 }
 
-export const loginUser = async (req, res) => {
-    const { username, password } = req.body;
-
-    try {
-        // Find user by username
-        const user = await User.findOne({ username: username, type: 'normal' });
-
-        if (!user) {
-            return res.status(401).json({ message: 'Invalid Credentials' });
-        }
-
-        // Check if the password matches
-        const isPasswordMatch = await bcrypt.compare(password, user.password);
-
-        if (!isPasswordMatch) {
-            return res.status(401).json({ message: 'Invalid Credentials' });
-        }
-
-        // Generate JWT token
-        const token = jwt.sign(
-            { id: user._id, email: user.email },  // Payload
-            process.env.JWT_SECRET,                   // Secret Key
-            { expiresIn: '7d' }                       // Expiration Time
-        );
-
-        // Set token in HTTP-only cookie
-        res.cookie('token', token, {
-            httpOnly: true,       // Prevent client-side access
-            secure: process.env.NODE_ENV === 'production',  // Secure in production
-            sameSite: 'Strict',   // Prevent CSRF attacks
-            maxAge: 7 * 24 * 60 * 60 * 1000  // 7 days expiration
-        });
-
-        // Send response with user details
-        res.status(200).json({
-            message: "User logged in successfully!",
-            user: {
-                id: user._id,
-                name: user.name,
-                username: user.username,
-                email: user.email,
-                pfp: user.pfp ? `${process.env.BASE_URL}/${user.pfp}` : null
-            },
-            token // Also send the token in response
-        });
-
-    } catch (error) {
-        console.error('Error during login:', error);
-        res.status(500).json({ message: 'Error logging in user' });
-    }
-};
 
 
 
@@ -259,7 +259,7 @@ export const verifyUserDetails = async (req, res) => {
 
         let user, token;
         token = googleToken ? googleToken : normalToken;
-
+        
 
         if (token) {
             jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
@@ -272,7 +272,7 @@ export const verifyUserDetails = async (req, res) => {
                     return res.status(404).json({ message: 'User not found' });
                 }
                 else {
-                    return res.status(200).json({ id: user._id, email: user.email, username: user.username, pfp:`${process.env.BASE_URL}/${user.pfp}`, name: user.name })
+                    return res.status(200).json({ id: user._id, email: user.email, username: user.username, pfp: `${process.env.BASE_URL}/${user.pfp}`, name: user.name })
                 }
             });
         }

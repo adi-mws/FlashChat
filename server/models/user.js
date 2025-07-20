@@ -39,6 +39,14 @@ const userSchema = new mongoose.Schema({
         type: Date,
         default: Date.now
     },
+
+    showLastMessageInList: {
+        type: Boolean, 
+        default: true,
+        required: false
+    },
+    
+
     createdAt: {
         type: Date,
         default: Date.now

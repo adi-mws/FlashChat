@@ -29,7 +29,7 @@ export const NotificationProvider = ({ children }) => {
     return (
         <NotificationContext.Provider value={{ showNotification }}>
             {children}
-            <div className="notification-table-container">
+            <div className="notification-table-container z-[2000]">
                 <table className="notification-table">
                     <tbody>
                         {notifications.map((notification) => (
