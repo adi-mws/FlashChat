@@ -14,22 +14,29 @@ export default function ChatPage() {
     const { isOnline } = useNetwork();
     const { showNotification } = useNotification();
     const { chatId } = useParams();
-    const { chats, setSelectedChat, selectedChat, sendMessage, onlineUsers, emitSeenMessages, joinChat, socket } = useChat();
+    const {
+        chats,
+        setSelectedChat,
+        selectedChat,
+        sendMessage,
+        onlineUsers,
+        emitSeenMessages,
+        joinChat,
+        socket,
+    } = useChat();
     const { user } = useAuth();
 
     const [message, setMessage] = useState("");
     const [loadingMessages, setLoadingMessages] = useState(false);
     const [localMessages, setLocalMessages] = useState([]);
+    const [sendingMessages, setSendingMessages] = useState([]);
 
     const messagesEndRef = useRef(null);
 
     const scrollToBottom = () => {
-        if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
-        }
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     };
 
-    // Set selected chat & join room
     useEffect(() => {
         if (!chatId || chats.length === 0) return;
 
@@ -40,7 +47,6 @@ export default function ChatPage() {
         }
     }, [chatId, chats, setSelectedChat, joinChat]);
 
-    // Load messages on chat open
     useEffect(() => {
         const fetchMessages = async () => {
             if (!chatId) return;
@@ -50,7 +56,6 @@ export default function ChatPage() {
                 const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/chats/get-messages/${chatId}`, {
                     withCredentials: true,
                 });
-
                 setLocalMessages(data.messages || []);
                 emitSeenMessages(chatId, data.messages);
             } catch (err) {
@@ -64,15 +69,24 @@ export default function ChatPage() {
         fetchMessages();
     }, [chatId]);
 
-    // Listen for live socket messages
     useEffect(() => {
-        socket.on('sendMessage', )
-    }, [chatId, listenToMessages, emitSeenMessages]);
+        const handleIncomingMessage = (newMessage) => {
+            if (newMessage.chat === chatId) {
+                setLocalMessages((prev) => [...prev, newMessage]);
+                emitSeenMessages(chatId, [newMessage]);
 
-    // Scroll when messages update
+                // Remove from temporary list if it was a sent message
+                setSendingMessages((prev) => prev.filter((m) => m.content !== newMessage.content));
+            }
+        };
+
+        socket?.on("newMessage", handleIncomingMessage);
+        return () => socket?.off("newMessage", handleIncomingMessage);
+    }, [socket, chatId]);
+
     useEffect(() => {
         scrollToBottom();
-    }, [localMessages]);
+    }, [localMessages, sendingMessages]);
 
     const onSubmit = () => {
         if (!isOnline) {
@@ -81,7 +95,17 @@ export default function ChatPage() {
         }
 
         if (message.trim().length > 0 && selectedChat) {
-            sendMessage(chatId, message, getReceiverId());
+            const receiverId = getReceiverId();
+            const tempMessage = {
+                chat: chatId,
+                content: message,
+                sender: { _id: user.id },
+                createdAt: new Date().toISOString(),
+                isSending: true,
+            };
+
+            setSendingMessages((prev) => [...prev, tempMessage]);
+            sendMessage(chatId, message, receiverId);
             setMessage("");
         }
     };
@@ -94,6 +118,8 @@ export default function ChatPage() {
     const chat = chats.find((c) => c._id === chatId);
     if (!chat) return <NoChatsFound />;
     if (!selectedChat) return <SelectChat />;
+
+    const allMessages = [...localMessages, ...sendingMessages];
 
     return (
         <div className="chat-box grid grid-rows-[70px_calc(100%-130px)_60px] items-center h-screen w-full">
@@ -132,13 +158,13 @@ export default function ChatPage() {
                             ))}
                         </div>
                     ) : (
-                        localMessages.map((msg, i) => (
+                        allMessages.map((msg, i) => (
                             <div key={i} className="message group p-1 flex">
                                 <span
                                     className={`p-3 rounded-xl text-sm block max-w-[60%] w-auto ${msg.sender._id === user.id
                                             ? "ml-auto bg-primary-2 text-white dark:bg-primary-2"
                                             : "bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white"
-                                        }`}
+                                        } ${msg.isSending ? "opacity-60" : ""}`}
                                 >
                                     {msg.content}
                                     <span className="text-xs ms-2 text-gray-500">

@@ -1,12 +1,12 @@
 import express from 'express';
-import connectDB from './lib/connectDb.js';
 import dotenv from 'dotenv';
 import http from 'http';
 import cors from 'cors';
-import { Server } from 'socket.io';
 import cookieParser from 'cookie-parser';
+import { Server } from 'socket.io';
 import path from 'path';
 
+import connectDB from './lib/connectDb.js';
 import authRoutes from './routes/authRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import userRoutes from './routes/userRoutes.js';
@@ -26,13 +26,12 @@ app.use(cors({
   origin: process.env.CLIENT_URL,
   credentials: true,
 }));
-
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
-// ---- DATABASE ----
+// ---- DATABASE CONNECTION ----
 connectDB();
 
 // ---- ROUTES ----
@@ -44,18 +43,19 @@ app.use('/api/user', userRoutes);
 const io = new Server(server, {
   cors: {
     origin: process.env.CLIENT_URL,
-    methods: ["GET", "POST"],
+    methods: ['GET', 'POST'],
     credentials: true,
   },
 });
 
-// Authentication middleware for sockets
+// Auth middleware for sockets
 io.use(socketAuth);
 
-// Store active users
-const users = new Map();        // userId => socket.id
-const socketUserMap = new Map(); // socket.id => userId
+// Track users
+const users = new Map();        // userId => socketId
+const socketUserMap = new Map(); // socketId => userId
 
+// ---- SOCKET EVENTS ----
 io.on("connection", (socket) => {
   console.log("Socket connected:", socket.id);
 
@@ -71,15 +71,22 @@ io.on("connection", (socket) => {
   socket.on("joinChat", async ({ chatId }) => {
     try {
       socket.join(chatId);
+      console.log(`${socket.id} joined chat room ${chatId}`);
+
       const messages = await Message.find({ chat: chatId })
         .populate("sender", "name username pfp")
         .sort({ createdAt: 1 });
 
       socket.emit("chatMessages", messages);
-    } catch (err) {
-      console.error("joinChat error:", err);
+    } catch (error) {
+      console.error("joinChat error:", error);
       socket.emit("chatMessagesError", "Could not load messages.");
     }
+  });
+
+  socket.on("leaveChat", ({ chatId }) => {
+    socket.leave(chatId);
+    console.log(`${socket.id} left chat room ${chatId}`);
   });
 
   socket.on("sendMessage", async ({ chatId, message, receiverId }) => {
@@ -92,9 +99,10 @@ io.on("connection", (socket) => {
       });
 
       await Chat.findByIdAndUpdate(chatId, { latestMessage: newMessage._id });
+
       const populatedMsg = await newMessage.populate("sender", "_id name username pfp");
 
-      io.to(chatId).emit("newMessage", populatedMsg); // to all users in room
+      io.to(chatId).emit("newMessage", populatedMsg);
     } catch (error) {
       console.error("sendMessage error:", error);
     }
@@ -114,8 +122,8 @@ io.on("connection", (socket) => {
           receiverId: socket.user.id,
         });
       }
-    } catch (err) {
-      console.error("seenMessage error:", err);
+    } catch (error) {
+      console.error("seenMessage error:", error);
     }
   });
 
@@ -125,16 +133,27 @@ io.on("connection", (socket) => {
       users.delete(userId);
       socketUserMap.delete(socket.id);
       console.log(`User ${userId} disconnected`);
+
+      // Leave all rooms
+      for (const room of socket.rooms) {
+        if (room !== socket.id) {
+          socket.leave(room);
+        }
+      }
+
       io.emit("onlineUsers", [...users.keys()]);
     }
   });
 });
 
-// ---- SERVER START ----
-app.get('/', (_, res) => res.send("Server is running"));
+// ---- TEST ROUTE ----
+app.get('/', (_, res) => {
+  res.send("Server is up and running");
+});
 
+// ---- START SERVER ----
 server.listen(PORT, () => {
-  console.log(`✅ Server is running on port ${PORT}`);
+  console.log(`Server is running on http://localhost:${PORT}`);
 });
 
 export { io };
