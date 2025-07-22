@@ -20,21 +20,22 @@ export default function UserNameForm({ showForm, setShowForm, credentialResponse
   } = useForm();
 
   const [checkingUsername, setCheckingUsername] = useState(false);
-
+  const { setUser } = useAuth();
   const [usernameAvailable, setUsernameAvailable] = useState(null);
   const [username, setUsername] = useState("");
   const debouncedUsername = useDebounce(username, 500);
 
-  const { navigate } = useNavigate();
+  const navigate = useNavigate();
   const { showNotification } = useNotification();
   const onSubmit = async (data) => {
     try {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/google`, { token: credentialResponse.credential, username: data.username }, { withCredentials: true });
       if (response.status === 201) {
         // Actually 201 signs that the user is registered for the first time by Google Auth and also 
-        // logged in 
-        showNotification("success", "Login Successful!");
+        // logged in (
+        setUser(response.data.user)
         navigate('/chats')
+        showNotification("success", "Login Successful!");
       }
     } catch (error) {
       showNotification("error", "Something went wrong!");

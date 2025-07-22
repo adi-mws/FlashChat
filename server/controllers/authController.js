@@ -20,20 +20,14 @@ export const registerUser = async (req, res) => {
         if (userExists) {
             return res.status(400).json({ message: "User already exists" });
         }
-
-
         // Create user with hashed password
-        await User.create({ username: username, email: email, name: name,  password: hashSync(password, 10),  type: 'normal' });
-
-
-
-        // Respond to the client with a succesgs message and token
+        await User.create({ username: username, email: email, name: name, password: hashSync(password, 10), type: 'normal' });
+        // Respond to the client with a success message and token
         res.status(201).json({
             message: "User registered successfully",
         });
 
     } catch (error) {
-
         res.status(500).json({ message: 'Error registering User', error });
     }
 };
@@ -116,93 +110,116 @@ export const googleAuthPreCheck = async (req, res) => {
         return res.status(500).json({ message: 'Error in google auth pre-check' });
     }
 }
-
 export const googleAuth = async (req, res) => {
     const { token, username, available } = req.body;
-
+  
     try {
-        // Verify the Google token
-        const ticket = await client.verifyIdToken({
-            idToken: token,
-            audience: process.env.GOOGLE_CLIENT_ID
+      // 1. Verify Google ID token
+      const ticket = await client.verifyIdToken({
+        idToken: token,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+  
+      const { sub: googleId, email, name, picture } = ticket.getPayload();
+  
+      // --- CASE 1: Login Flow ---
+      if (available) {
+        const user = await User.findOne({ email, googleId, type: 'google' });
+        if (!user) {
+          return res.status(404).json({ message: 'User not found for Google login' });
+        }
+  
+        const jwtToken = jwt.sign(
+          { id: user._id, email, name: user.name, pfp: user.pfp },
+          process.env.JWT_SECRET,
+          { expiresIn: process.env.JWT_EXPIRES_IN }
+        );
+  
+        res.cookie('googleToken', jwtToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'Strict',
+          maxAge: 7 * 24 * 60 * 60 * 1000,
         });
-
-        const { sub, email, name, picture } = ticket.getPayload();  // Extract Google user data
-        if (available) { // if user already exists
-            const user = await User.findOne({ email: email, type: "google", googleId: sub }) // fetch the existing user
-            if (!user) {
-                return res.status(404).json({ message: "User not found in database! for Google Auth Login" })
-            }
-            const jwtToken = jwt.sign(
-                { id: user._id, email, name: user.name, pfp: user.pfp },
-                process.env.JWT_SECRET,
-                { expiresIn: process.env.JWT_EXPIRES_IN }
-            );
-
-            res.cookie('googleToken', jwtToken, {
-                httpOnly: true,       // Prevent client-side access
-                secure: process.env.NODE_ENV === 'production',  // Secure in production
-                sameSite: 'Strict',   // Prevent CSRF attacks
-                maxAge: 7 * 24 * 60 * 60 * 1000  // 7 days expiration
-            });
-
-            return res.status(200).json({
-                message: "Google Auth Login Successful!", user: {
-                    id: user._id,
-                    username: user.username,
-                    name: user.name,
-                    email: user.email,
-                    pfp: user.pfp,
-                    type: 'google'
-                }
-            })
+  
+        return res.status(200).json({
+          message: 'Google login successful',
+          user: {
+            id: user._id,
+            username: user.username,
+            name: user.name,
+            email: user.email,
+            pfp: user.pfp,
+            type: 'google',
+          },
+        });
+      }
+  
+      // --- CASE 2: Registration Flow ---
+      if (username && !available) {
+        // Step 1: Check for duplicate username
+        const existingUserByUsername = await User.findOne({ username });
+        if (existingUserByUsername) {
+          return res.status(409).json({ message: 'Username already taken' });
         }
-
-        // Registration of new user
-        if (username && !available) {
-            const newUser = await User.create({
-                googleId: sub,
-                username: username,
-                name: name,
-                email: email,
-                pfp: 'uploads/pfps/default-pfp.jpeg',
-                type: 'google'
-            })
-            await newUser.save();
-
-            const jwtToken = jwt.sign(
-                { id: newUser._id, email, name: newUser.name, pfp: newUser.pfp },
-                process.env.JWT_SECRET,
-                { expiresIn: process.env.JWT_EXPIRES_IN }
-            );
-
-            res.cookie('googleToken', jwtToken, {
-                httpOnly: true,       // Prevent client-side access
-                secure: process.env.NODE_ENV === 'production',  // Secure in production
-                sameSite: 'Strict',   // Prevent CSRF attacks
-                maxAge: 7 * 24 * 60 * 60 * 1000  // 7 days expiration
-            });
-            return res.status(201).json({
-                message: "Google Auth Successfull",
-                user: {
-                    id: newUser._id,             // Google ID
-                    username: newUser.username,
-                    name: newUser.name,        // Google Username
-                    email: newUser.email,                    // Google Email
-                    pfp: newUser.pfp,
-                    type: 'google'            // Google Profile Picture
-                }
-            });
+  
+        // Step 2: Check if the Google account already exists
+        const existingGoogleUser = await User.findOne({ email, googleId });
+        if (existingGoogleUser) {
+          return res.status(409).json({ message: 'Google account already registered' });
         }
-
-        return res.status(500).json({ message: 'None of the function (login or register) Google Auth triggered | Error can be with available and ' })
-
+  
+        // Step 3: Register new user
+        const newUser = await User.create({
+          googleId,
+          username,
+          name,
+          email,
+          pfp: picture,
+          type: 'google',
+        });
+  
+        const jwtToken = jwt.sign(
+          { id: newUser._id, email, name: newUser.name, pfp: newUser.pfp },
+          process.env.JWT_SECRET,
+          { expiresIn: process.env.JWT_EXPIRES_IN }
+        );
+  
+        res.cookie('googleToken', jwtToken, {
+          httpOnly: true,
+          secure: process.env.NODE_ENV === 'production',
+          sameSite: 'Strict',
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+        });
+  
+        return res.status(201).json({
+          message: 'Google registration successful',
+          user: {
+            id: newUser._id,
+            username: newUser.username,
+            name: newUser.name,
+            email: newUser.email,
+            pfp: newUser.pfp,
+            type: 'google',
+          },
+        });
+      }
+  
+      return res.status(400).json({
+        message: 'Invalid Google Auth flow: missing parameters or incorrect flags',
+      });
+  
     } catch (error) {
-        console.error('Error during Google Auth:', error);
-        res.status(500).json({ message: 'Error during Google Authentication' });
+      console.error('Google Auth Error:', error);
+  
+      if (error.code === 11000) {
+        return res.status(409).json({ message: 'Duplicate field error (username/email already exists)' });
+      }
+  
+      return res.status(500).json({ message: 'Error during Google Authentication' });
     }
-};
-
+  };
+  
 
 export const isUsernameExists = async (req, res) => {
     try {
@@ -272,7 +289,7 @@ export const verifyUserDetails = async (req, res) => {
                     return res.status(404).json({ message: 'User not found' });
                 }
                 else {
-                    return res.status(200).json({ id: user._id, email: user.email, username: user.username, showLastMessage: user.showLastMessageInList, pfp: `${process.env.BASE_URL}${user.pfp}`, name: user.name })
+                    return res.status(200).json({ id: user._id, email: user.email, username: user.username, showLastMessage: user.showLastMessageInList, pfp: user.pfp, name: user.name })
                 }
             });
         }

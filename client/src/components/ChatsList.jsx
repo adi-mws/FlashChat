@@ -7,7 +7,7 @@ import { useTheme } from '../hooks/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getImageUrl } from '../utils/imageUtils';
-import { UserRoundPlus } from 'lucide-react';
+import { LogOut, UserRoundPlus } from 'lucide-react';
 
 export default function ChatsList() {
     const {
@@ -27,8 +27,9 @@ export default function ChatsList() {
     const [sliderMenu, setSliderMenu] = useState(false);
     const dropdownRef = useRef(null);
     const sideBarRef = useRef(null);
+    const [searchTerm, setSearchTerm] = useState('');
     const navigate = useNavigate();
-
+    const [filteredChats, setFilteredChats] = useState([]);
     const handleLogout = () => {
         logout();
         navigate("/login");
@@ -132,19 +133,43 @@ export default function ChatsList() {
         };
     }, [socket, selectedChat, user.id]);
 
+    useEffect(() => {
+        const search = searchTerm.trim().toLowerCase();
+
+        const filtered = chats.filter(chat => {
+            const name = chat?.participant?.name?.toLowerCase() || "";
+            const username = chat?.participant?.username?.toLowerCase() || "";
+
+            return name.includes(search) || username.includes(search);
+        });
+
+        setFilteredChats(filtered);
+    }, [chats, searchTerm]);
     return (
         <div
             ref={sideBarRef}
-            className="chats-list dark:bg-zinc-900 h-full border-r-1 border-zinc-300 dark:border-zinc-900 flex flex-col justify-between"
+            className="chats-list dark:bg-zinc-900 h-full border-r border-zinc-300 dark:border-zinc-900 flex flex-col"
         >
+            {/* Header */}
             <ChatListHeader />
-            <div className="chat-list-container flex flex-col items-center h-full overflow-y-auto">
-                {!loading && Array.isArray(chats) &&
-                    chats.map((chat) => (
+
+            {/* Search bar */}
+            <input
+                type="text"
+                placeholder="Search chats..."
+                className="w-full py-3 px-5 text-sm my-2 border border-zinc-800 dark:text-zinc-300 outline-none"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+            />
+
+            {/* Chat list (scrollable section) */}
+            <div className="flex-1 overflow-y-auto min-h-0">
+                {!loading && Array.isArray(filteredChats) &&
+                    filteredChats.map((chat) => (
                         <div
                             key={chat._id}
                             onClick={() => handleChatClick(chat)}
-                            className="chat-list-item flex w-full cursor-pointer dark:hover:bg-zinc-950 items-center gap-5 py-4 px-5 border-b-1 dark:border-zinc-800 border-zinc-200"
+                            className="chat-list-item flex w-full cursor-pointer dark:hover:bg-zinc-950 items-center gap-5 py-4 px-5 border-b border-zinc-200 dark:border-zinc-800"
                         >
                             <div className="pfp-user-details flex justify-between w-full gap-5">
                                 <div className="flex items-center w-full gap-4">
@@ -170,16 +195,19 @@ export default function ChatsList() {
                                                         minute: "2-digit",
                                                     })}
                                             </p>
-
                                         </div>
-
-                                        {
-
-                                            user?.showLastMessage ?
-                                                <p className="last-message dark:text-zinc-400 text-sm max-w-50 truncate-text">{chat?.lastMessage?.sender?._id == user.id ? (<span className='dark:text-zinc-100'>You: </span>) : ''}{chat?.lastMessage?.content}</p>
-                                                :
-                                                <p className="user-username dark:text-zinc-400 font-bold max-w-50 zinc-200 text-xs">{chat.participant?.username}</p>
-                                        }
+                                        {user?.showLastMessage ? (
+                                            <p className="last-message dark:text-zinc-400 text-sm max-w-50 truncate-text">
+                                                {chat?.lastMessage?.sender?._id === user.id && (
+                                                    <span className="dark:text-zinc-100">You: </span>
+                                                )}
+                                                {chat?.lastMessage?.content}
+                                            </p>
+                                        ) : (
+                                            <p className="user-username dark:text-zinc-400 font-bold max-w-50 text-xs">
+                                                {chat.participant?.username}
+                                            </p>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="read-count-wrapper flex justify-end items-center">
@@ -194,7 +222,8 @@ export default function ChatsList() {
                     ))}
             </div>
 
-            <div className="chats-list-header bg-slate-100 dark:bg-zinc-900 border-t-1 border-zinc-800 flex flex-row items-center h-21 px-5 justify-between">
+            {/* Footer (Profile section) */}
+            <div className="chats-list-header bg-slate-100 dark:bg-zinc-900 border-t border-zinc-800 flex flex-row items-center h-21 px-5 justify-between">
                 {user && (
                     <div className="relative flex flex-row gap-2 items-center" ref={dropdownRef}>
                         <div
@@ -205,39 +234,32 @@ export default function ChatsList() {
                         </div>
                         <div className="chat-header-labels flex gap-1 flex-col">
                             <p className="chat-user-username dark:text-gray-400 text-sm">{user.username}</p>
-
                             <p className="chat-user-name text-green-500 flex gap-1 text-xs items-center">
                                 <span className="h-2 w-2 rounded-full bg-green-500 block" />Online
                             </p>
                         </div>
-                        <div className={`fixed left-0 ${sliderMenu ? 'bottom-0' : 'bottom-[-400px]'} transition-all duration-500 mt-2 w-48 bg-white dark:bg-zinc-800 shadow-lg rounded-md z-10`}>
+                        <div
+                            className={`fixed left-0 ${sliderMenu ? 'bottom-0' : 'bottom-[-400px]'} transition-all duration-500 mt-2 w-48 bg-white dark:bg-zinc-800 shadow-lg rounded-md z-10`}
+                        >
                             <ul className="py-2">
                                 <li onClick={() => navigate('/chats/profile')} className="flex items-center px-4 gap-5 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-600 cursor-pointer transition">
                                     <i className="fas fa-user"></i> <span> Profile</span>
                                 </li>
                                 <li
-                                    className="flex items-center px-4 gap-5 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-600 cursor-pointer transition"
-                                    onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-                                >
-                                    <i className={`fas fa-${theme === 'dark' ? 'sun' : 'moon'}`}></i> <span> Appearance</span>
-                                </li>
-                                <li className="flex items-center gap-4 px-4 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-600 cursor-pointer transition">
-                                    <i className="fas fa-cog"></i> <span> Settings</span>
-                                </li>
-                                <li
-                                    className="flex items-center gap-4 px-4 py-2 text-sm text-red-500 hover:bg-zinc-300 dark:hover:bg-zinc-600 cursor-pointer transition"
+                                    className="flex items-center gap-4 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600 cursor-pointer transition"
                                     onClick={handleLogout}
                                 >
-                                    <i className="fas fa-sign-out-alt"></i> Logout
+                                    <LogOut size={20} /> Logout
                                 </li>
                             </ul>
                         </div>
                     </div>
                 )}
                 <button className="dark:text-white text-sm me-5" onClick={() => setShowSearchUsers(true)}>
-                    <UserRoundPlus onClick={() => navigate('/chats/contacts')}/>
+                    <UserRoundPlus onClick={() => navigate('/chats/contacts')} />
                 </button>
             </div>
         </div>
     );
+
 }

@@ -11,9 +11,6 @@ export default function ChatListHeader() {
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
 
-
-
-
   return (
     <>
       <div className="ChatHeader flex bg-white z-100 w-full dark:bg-zinc-900 border-b-1 dark:border-zinc-800 border-zinc-100 text-sm shadow-sm px-2 h-[60px] justify-between flex-row items-center">
@@ -30,6 +27,7 @@ export default function ChatListHeader() {
           <button className="w-[40px] h-[40px] hidden dark:bg-gray-800 bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-700 transition duration-300 dark:text-white rounded-full"
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
             <i className={`fa-solid fa-${theme === "dark" ? "sun" : "moon"} text-md`}></i>
+            
           </button>
 
 

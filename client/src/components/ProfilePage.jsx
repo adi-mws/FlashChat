@@ -114,7 +114,7 @@ export default function ProfilePage({ edit = false }) {
 
     return (
         <div className="ProfilePage flex flex-col w-full h-screen overflow-y-auto dark:bg-zinc-950 relative">
-            <ArrowLeft onClick={() => navigate(-1)} className='absolute md:hidden top-5 left-5 z-[1000] dark:text-neutral-300' />
+            <ArrowLeft onClick={() => navigate(-1)} className='absolute cursor-pointer md:hidden top-5 left-5 z-[1000] dark:text-neutral-300' />
             <div className="grid lg:grid-cols-3 grid-cols-1 grid-row-2 lg:grid-row-1 dark:text-white scrollbar-corner-black text-zinc-700">
                 {/* Left Side Avatar */}
                 <div className="flex flex-col justify-center p-2 md:dark:bg-zinc-900 items-center gap-4">
@@ -219,7 +219,7 @@ export default function ProfilePage({ edit = false }) {
                             </label>
                         </div>
                     </div>
-                    <div className="friends dark:hover:bg-zinc-800 p-4 cursor-pointer">
+                    <div className="friends dark:hover:bg-zinc-800 p-4 cursor-pointer" onClick={() => navigate('/chats/contacts')}>
                         <div className='flex flex-col gap-1.5'>
                             <p className="fields dark:text-zinc-400 mb-1">Contacts</p>
                             <p className="text-xs text-zinc-500 dark:text-zinc-300">

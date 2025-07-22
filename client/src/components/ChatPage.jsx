@@ -34,6 +34,7 @@ export default function ChatPage() {
     const [localMessages, setLocalMessages] = useState([]);
     const [sendingMessages, setSendingMessages] = useState([]);
     const navigate = useNavigate();
+    const [showChatOptions, setShowChatOptions] = useState(false);
 
     const [showMessageOptions, setShowMessageOptions] = useState({ clientX: 0, clientY: 0, show: false, messageId: null });
 
@@ -83,6 +84,7 @@ export default function ChatPage() {
                 setLocalMessages((prev) => [...prev, newMessage]);
                 emitSeenMessages(chatId, [newMessage]);
                 setSendingMessages((prev) => prev.filter((m) => m.content !== newMessage.content));
+
             }
         };
 
@@ -169,9 +171,10 @@ export default function ChatPage() {
         socket.on("message-deleted", handleMessageDeleted);
 
         return () => {
-            socket.off("message-deleted", handleMessageDeleted); // ✅ cleanup on unmount
+            socket.off("message-deleted", handleMessageDeleted); // cleanup on unmount
         };
     }, []);
+
 
     const chat = chats.find((c) => c._id === chatId);
     if (!chat) return <NoChatsFound />;
@@ -204,27 +207,102 @@ export default function ChatPage() {
         const top = e.clientY;
         setShowMessageOptions({ clientX: left, clientY: top, show: true, messageId: id });
     };
+    const handleDeleteAllMessages = async () => {
+        if (confirm('Do you want to delete all the chats? This action will permanently delete all the messages of this chat.')) {
+            try {
+                const chat_id = selectedChat
+                const response = await axios.delete(`${import.meta.env.VITE_API_URL}/chats/messages/delete-all`, {
+                    data: { chatId: chat_id },
+                    withCredentials: true
+                });
+                if (response.status === 200) {
+                    console.log(response.data.message);
+                    setLocalMessages([])
+                    showNotification('success', 'All messages deleted successfully');
+                    setChats((prev) =>
+                        prev.map((item) =>
+                            item._id === chat_id
+                                ? { ...item, lastMessage: {} }
+                                : item
+                        )
+                    );
+                }
+                // Optionally, update UI state here
+            } catch (error) {
+                console.error("Error deleting messages:", error?.response?.data?.message || error.message);
+            }
+        }
+    };
+
+    const handleDeleteContact = async () => {
+        if (confirm('Do you want to delete this contact? This action will remove the user from your friend list and delete all the messages as well!')) {
+            try {
+                const chatId = selectedChat;
+                const response = await axios.delete(`${import.meta.env.VITE_API_URL}/chats/contacts`, {
+                    data: { chatId: chatId }, // replace with the actual ID
+                    withCredentials: true
+                });
+                if (response.status === 200) {
+                    setChats((prev) => prev.filter(chat => chat._id != chatId))
+                    setSelectedChat('');
+                    setLocalMessages([]);
+                    showNotification("info", "Contact deleted successfully")
+                    navigate('/chats');
+
+                }
+
+            } catch (error) {
+                console.error("Error deleting contact:", error.response?.data || error.message);
+            }
+        }
+    };
+
+
+    const ChatOptions = () => (
+        <div
+            className={`w-auto h-auto top-[72px] right-2 fixed dark:bg-zinc-800 flex-col p-5 min-w-50 gap-6 rounded-md ${showChatOptions ? "flex" : "hidden"} items-center`}
+
+        >
+            <button
+                onClick={() => handleDeleteAllMessages()}
+                className="w-full flex items-center gap-2 dark:text-zinc-300"
+            >
+                <Trash size={15} /> Clear Chat
+            </button>
+            <button className="w-full flex items-center gap-2 dark:text-zinc-300"
+                onClick={() => handleDeleteContact()}
+
+            >
+                <Trash size={15} /> Delete Contact
+            </button>
+        </div>
+    )
 
     return (
-        <div className="chat-box flex flex-col h-screen overflow-hidden w-full" onClick={() => setShowMessageOptions({ show: false })}>
-            <div className="h-[70px] flex items-center gap-5 px-4 sm:px-10 bg-gray-100 dark:bg-zinc-900">
-                <div className="flex gap-2 items-center">
-                    <ArrowLeft className="w-5 h-5 text-zinc-800 sm:hidden dark:text-white" onClick={() => {navigate(-1);  setSelectedChat(null)}} />
-                    <img
-                        onClick={() => navigate(`/chats/profile/${getReceiverId()}`)}
-                        src={getImageUrl(chat.participant.pfp)}
-                        alt="Profile"
-                        className="w-10 h-10 cursor-pointer rounded-full"
-                    />
+        <div className="chat-box flex flex-col h-screen overflow-hidden w-full" onClick={() => { setShowMessageOptions({ show: false }); setShowChatOptions(false); }}>
+            <div className="h-[70px] flex items-center px-4 sm:px-10 bg-gray-100 dark:bg-zinc-900">
+                <div className="flex gap-5 items-center w-full">
+                    <div className="flex gap-2 items-center">
+
+                        <ArrowLeft className="w-5 h-5 text-zinc-800 sm:hidden dark:text-white" onClick={() => { navigate(-1); setSelectedChat(null) }} />
+                        <img
+                            onClick={() => navigate(`/chats/profile/${getReceiverId()}`)}
+                            src={getImageUrl(chat.participant.pfp)}
+                            alt="Profile"
+                            className="w-10 h-10 cursor-pointer rounded-full"
+                        />
+
+                    </div>
+                    <div className="flex flex-col gap-1">
+                        <p className="text-sm dark:text-gray-400">{chat.participant.username}</p>
+                        {onlineUsers.includes(chat.participant._id) && (
+                            <p className="text-xs text-green-500 flex items-center gap-1">
+                                <span className="w-2 h-2 rounded-full bg-green-500 block"></span>Online
+                            </p>
+                        )}
+                    </div>
                 </div>
-                <div className="flex flex-col gap-1">
-                    <p className="text-sm dark:text-gray-400">{chat.participant.username}</p>
-                    {onlineUsers.includes(chat.participant._id) && (
-                        <p className="text-xs text-green-500 flex items-center gap-1">
-                            <span className="w-2 h-2 rounded-full bg-green-500 block"></span>Online
-                        </p>
-                    )}
-                </div>
+                <EllipsisVertical onClick={(e) => { e.stopPropagation(); setShowChatOptions(true) }} className="dark:text-zinc-300 cursor-pointer" />
             </div>
 
             <div className="flex-1 overflow-y-auto overflow-x-hidden dark:bg-zinc-950 scrollbar-thin scrollbar-thumb-zinc-700 py-2">
@@ -299,7 +377,10 @@ export default function ChatPage() {
                     <Send />
                 </button>
             </form>
+
+            {/* Two fixed menubars given to provide extra options in message or chat */}
             <MessageOptions />
+            <ChatOptions />
         </div>
     );
 }

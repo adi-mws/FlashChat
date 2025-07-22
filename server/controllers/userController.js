@@ -4,12 +4,14 @@ import Chat from "../models/chat.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import Message from "../models/message.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+
 export const searchUsers = async (req, res) => {
   const { username } = req.query;
-  console.log(username)
   const currentUserId = req.user.id;
 
   if (!username) {
@@ -17,22 +19,35 @@ export const searchUsers = async (req, res) => {
   }
 
   try {
+    const currentUser = await User.findById(currentUserId)
+      .select("contacts friendRequests sentRequests");
+
+    // Build a set of user IDs to exclude:
+    const excludedUserIds = new Set();
+
+    // Exclude self
+    excludedUserIds.add(currentUserId);
+
+    // Exclude contacts (already friends)
+    currentUser.contacts.forEach(id => excludedUserIds.add(id.toString()));
+
+    // Exclude received friend requests
+    currentUser.friendRequests.forEach(req => excludedUserIds.add(req.from.toString()));
+
+    // Exclude sent friend requests
+    currentUser.sentRequests.forEach(req => excludedUserIds.add(req.to.toString()));
+
+    // Perform search on users not in excluded list
     const users = await User.find({
-      _id: { $ne: currentUserId }, // exclude self
+      _id: { $nin: Array.from(excludedUserIds) },
       $or: [
         { username: { $regex: username, $options: "i" } },
         { name: { $regex: username, $options: "i" } }
       ]
     }).select("username name pfp _id");
 
-    const modifiedUsers = users.map(user => ({
-      _id: user._id,
-      username: user.username,
-      name: user.name,
-      pfp: user.pfp
-    }));
+    res.status(200).json({ users });
 
-    res.status(200).json({ users: modifiedUsers });
   } catch (error) {
     console.error("Error searching users:", error);
     res.status(500).json({ message: "Failed to search users" });
@@ -134,7 +149,7 @@ export const updateUserProfile = async (req, res) => {
 export const sendFriendRequest = async (req, res) => {
   const fromUserId = req.user.id;
   const { toUserId } = req.body;
-  console.log(toUserId)
+  // console.log(toUserId)
   if (fromUserId.toString() === toUserId)
     return res.status(400).json({ message: "Cannot send request to yourself" });
 
@@ -142,7 +157,7 @@ export const sendFriendRequest = async (req, res) => {
   const toUser = await User.findById(toUserId);
 
   if (!toUser) return res.status(404).json({ message: "User not found" });
-  console.log(req.originalUrl)
+  // console.log(req.originalUrl)
 
   // Check if already friends
   if (fromUser.contacts.includes(toUserId))
@@ -176,29 +191,79 @@ export const acceptFriendRequest = async (req, res) => {
   const toUserId = req.user.id;
   const { fromUserId } = req.body;
 
-  const toUser = await User.findById(toUserId);
-  const fromUser = await User.findById(fromUserId);
+  try {
+    const toUser = await User.findById(toUserId);
+    const fromUser = await User.findById(fromUserId);
 
-  if (!toUser || !fromUser)
-    return res.status(404).json({ message: "User not found" });
+    if (!toUser || !fromUser)
+      return res.status(404).json({ message: "User not found" });
 
-  // Add each other to contacts
-  if (!toUser.contacts.includes(fromUserId)) toUser.contacts.push(fromUserId);
-  if (!fromUser.contacts.includes(toUserId)) fromUser.contacts.push(toUserId);
+    // Add each other to contacts if not already
+    if (!toUser.contacts.includes(fromUserId)) toUser.contacts.push(fromUserId);
+    if (!fromUser.contacts.includes(toUserId)) fromUser.contacts.push(toUserId);
 
-  // Remove the requests
-  toUser.friendRequests = toUser.friendRequests.filter(r => r.from.toString() !== fromUserId);
-  fromUser.sentRequests = fromUser.sentRequests.filter(r => r.to.toString() !== toUserId);
+    // Remove the friend request
+    toUser.friendRequests = toUser.friendRequests.filter(r => r.from.toString() !== fromUserId);
+    fromUser.sentRequests = fromUser.sentRequests.filter(r => r.to.toString() !== toUserId);
 
-  await toUser.save();
-  await fromUser.save();
+    await toUser.save();
+    await fromUser.save();
 
-  // Optionally: Create a chat document
-  const Chat = mongoose.model("Chat");
-  const chat = new Chat({ participants: [toUserId, fromUserId] });
-  await chat.save();
+    // Find or create the chat
+    let chat = await Chat.findOne({
+      participants: { $all: [toUserId, fromUserId], $size: 2 },
+    });
 
-  res.status(200).json({ message: "Friend request accepted", chatId: chat._id });
+    if (!chat) {
+      chat = await Chat.create({
+        participants: [toUserId, fromUserId],
+        messages: [],
+      });
+    }
+
+    // Populate participants and lastMessage like in showAllChatsOfUser
+    await chat.populate([
+      {
+        path: 'participants',
+        select: 'username name pfp',
+      },
+      {
+        path: 'lastMessage',
+        select: 'content sender createdAt',
+        populate: {
+          path: 'sender',
+          select: 'name',
+        },
+      },
+    ]);
+
+    // Build the same format used in `showAllChatsOfUser`
+    const otherParticipant = chat.participants.find(
+      (u) => u._id.toString() !== toUserId
+    );
+
+    const unreadCount = await Message.countDocuments({
+      chat: chat._id,
+      sender: { $ne: toUserId },
+      readBy: { $ne: toUserId },
+    });
+
+    const formattedChat = {
+      _id: chat._id,
+      participant: otherParticipant,
+      lastMessage: chat.lastMessage || null,
+      unreadCount,
+      updatedAt: chat.updatedAt,
+    };
+
+    res.status(200).json({
+      message: "Friend request accepted",
+      chat: formattedChat,
+    });
+  } catch (err) {
+    console.error("Error accepting friend request:", err);
+    res.status(500).json({ message: "Server error", error: err.message });
+  }
 };
 
 
@@ -222,7 +287,7 @@ export const rejectFriendRequest = async (req, res) => {
 export const cancelSentRequest = async (req, res) => {
   const fromUserId = req.user.id;
   const { toUserId } = req.body;
-  console.log(fromUserId)
+  // console.log(fromUserId)
   try {
     const fromUser = await User.findById(fromUserId);
     const toUser = await User.findById(toUserId);
@@ -240,40 +305,7 @@ export const cancelSentRequest = async (req, res) => {
 };
 
 
-export const removeContact = async (req, res) => {
-  const userId = req.user.id;
-  const contactId = req.params.contactId;
 
-  try {
-    const user = await User.findById(userId);
-    const contact = await User.findById(contactId);
-
-    if (!contact) return res.status(404).json({ message: 'Contact not found' });
-
-    // Find the chat shared between the two users
-    const sharedChat = await Chat.findOne({
-      participants: { $all: [userId, contactId], $size: 2 }
-    });
-
-    // Delete all messages of the chat
-    if (sharedChat) {
-      await Message.deleteMany({ chat: sharedChat._id });
-      await Chat.findByIdAndDelete(sharedChat._id);
-    }
-
-    // Remove each other from contacts
-    user.contacts = user.contacts.filter(id => id.toString() !== contactId);
-    contact.contacts = contact.contacts.filter(id => id.toString() !== userId);
-
-    await user.save();
-    await contact.save();
-
-    res.status(200).json({ message: 'Contact and associated chat/messages removed' });
-  } catch (error) {
-    console.error('Error removing contact:', error);
-    res.status(500).json({ message: 'Server error while removing contact' });
-  }
-};
 
 
 
@@ -296,3 +328,6 @@ export const getSentRequests = async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch sent requests' });
   }
 };
+
+
+

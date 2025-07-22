@@ -28,6 +28,7 @@ export function NetworkStatusBar({ isOnline }) {
                 color: 'white',
                 textAlign: 'center',
                 padding: '6px 0',
+                display: 'none',
                 fontSize: '14px',
                 transition: 'transform 0.3s ease',
                 transform: showBar ? 'translateY(0)' : 'translateY(-100%)',

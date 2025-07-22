@@ -4,7 +4,7 @@ import User from "../models/user.js";
 import { json } from "express";
 import { io } from "../server.js";
 import Message from "../models/message.js";
-
+import mongoose from "mongoose";
 
 export const showAllChatsOfUser = async (req, res) => {
     try {
@@ -67,8 +67,6 @@ export const showAllChatsOfUser = async (req, res) => {
         });
     }
 };
-
-
 
 
 export const getMessages = async (req, res) => {
@@ -154,7 +152,7 @@ export const deleteMessage = async (req, res) => {
 
         await Message.findByIdAndDelete(id);
 
-      
+
         // console.log(io)
         io.to(message.chat.toString()).emit("message-deleted", {
             messageId: id,
@@ -165,4 +163,72 @@ export const deleteMessage = async (req, res) => {
     } catch (err) {
         res.status(500).json({ success: false, message: "Server error", error: err.message });
     }
+};
+
+export const deleteContact = async (req, res) => {
+    const currentUserId = req.user.id;
+    const { chatId } = req.body;
+  
+    if (!chatId) {
+      return res.status(400).json({ message: "Chat ID is required." });
+    }
+  
+    try {
+      // Step 1: Find the chat by ID
+      const chat = await Chat.findById(chatId);
+      if (!chat || chat.participants.length !== 2) {
+        return res.status(404).json({ message: "Chat not found or is not a 1-on-1 chat." });
+      }
+  
+      // Step 2: Identify the contact's ID
+      const contactId = chat.participants.find(id => id.toString() !== currentUserId);
+      if (!contactId) {
+        return res.status(400).json({ message: "Invalid chat participants." });
+      }
+  
+      // Step 3: Remove each other from contacts
+      const currentUser = await User.findById(currentUserId);
+      const contactUser = await User.findById(contactId);
+  
+      if (!currentUser || !contactUser) {
+        return res.status(404).json({ message: "User not found." });
+      }
+  
+      currentUser.contacts = currentUser.contacts.filter(
+        id => id.toString() !== contactId.toString()
+      );
+      contactUser.contacts = contactUser.contacts.filter(
+        id => id.toString() !== currentUserId.toString()
+      );
+  
+      await currentUser.save();
+      await contactUser.save();
+  
+      // Step 4: Delete all messages from the chat
+      await Message.deleteMany({ chat: chatId });
+  
+      // Step 5: Delete the chat itself
+      await Chat.findByIdAndDelete(chatId);
+  
+      res.status(200).json({ message: "Contact and associated chat/messages deleted successfully." });
+    } catch (error) {
+      console.error("Error deleting contact:", error);
+      res.status(500).json({ message: "Something went wrong while deleting contact." });
+    }
+  };
+
+export const deleteAllMessages = async (req, res) => {
+  const { chatId } = req.body;
+
+  if (!chatId) {
+    return res.status(400).json({ message: "chatId is required." });
+  }
+
+  try {
+    const deleted = await Message.deleteMany({ chat: chatId });
+    res.status(200).json({ message: "All messages deleted.", count: deleted.deletedCount });
+  } catch (error) {
+    console.error("Error deleting messages:", error);
+    res.status(500).json({ message: "Failed to delete messages." });
+  }
 };

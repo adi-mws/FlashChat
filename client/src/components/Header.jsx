@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/AuthContext";
 import { useNotification } from "../hooks/NotificationContext";
 import { useTheme } from "../hooks/ThemeContext";
+import { LogOut, Settings, User } from "lucide-react";
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -45,17 +46,14 @@ export default function Header() {
 
         {/* Navigation Links */}
         <nav className={`nav-links ${menuOpen ? "open" : ""} flex flex-row gap-4`}>
-          <button className="w-[40px] h-[40px] hidden 2xs:block sm:me-5 md:me-10 dark:bg-gray-800 bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-700 transition duration-300 dark:text-white rounded-full" 
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-            <i className={`fa-solid fa-${theme === "dark" ? "sun" : "moon"} text-md`}></i>
-          </button>
+         
                         
           {user ? (
             <>
               {/* Profile Section */}
               <div className="relative" ref={dropdownRef}>
                 <div 
-                  className="profile flex gap-3 items-center py-1 px-7 bg-gray-100 dark:bg-gray-800 rounded-md cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-500 transition"
+                  className="profile flex gap-3 items-center py-1 px-7 bg-zinc-100 dark:bg-zinc-800 rounded-md cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-500 transition"
                   onClick={() => setDropdownOpen(!dropdownOpen)}
                 >
                   <img src={user?.pfp} className="pfp w-8 h-8 rounded-full" alt="Profile" />
@@ -65,16 +63,14 @@ export default function Header() {
 
                 {/* Dropdown Menu */}
                 {dropdownOpen && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 shadow-lg rounded-md z-10">
+                  <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 shadow-lg rounded-md z-10">
                     <ul className="py-2">
-                      <li className="flex items-center px-4 gap-5 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition">
-                        <i className="fas fa-user"></i> <span> Profile</span>
+                      <li className="flex items-center px-4 gap-5 py-3 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer transition" onClick={() => navigate('/chats/profile')}>
+                        <User size={20}/> <span> Profile</span>
                       </li>
-                      <li className="flex items-center gap-4 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition">
-                        <i className="fas fa-cog"></i> <span> Settings</span>
-                      </li>
-                      <li className="flex items-center gap-4 px-4 py-2 text-sm text-red-500 hover:bg-red-100 dark:hover:bg-red-600 cursor-pointer transition" onClick={handleLogout}>
-                        <i className="fas fa-sign-out-alt"></i> Logout
+                     
+                      <li className="flex items-center gap-4 px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer transition" onClick={handleLogout}>
+                        <LogOut size={20}/> Logout
                       </li>
                     </ul>
                   </div>

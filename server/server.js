@@ -14,6 +14,7 @@ import userRoutes from './routes/userRoutes.js';
 import Chat from './models/chat.js';
 import Message from './models/message.js';
 import socketAuth from './middlewares/socketAuth.js';
+import User from './models/user.js';
 
 dotenv.config();
 
@@ -108,7 +109,7 @@ io.on("connection", (socket) => {
     }
   });
 
-  
+
 
   socket.on("seenMessage", async ({ messageId, chatId, senderId }) => {
     try {
@@ -132,10 +133,14 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     const userId = socketUserMap.get(socket.id);
     if (userId) {
+
       users.delete(userId);
       socketUserMap.delete(socket.id);
       console.log(`User ${userId} disconnected`);
-
+      const updateOnlineStatus = async () => {
+        await User.findByIdAndUpdate(userId, { lastOnline: Date.now() })
+      }
+      updateOnlineStatus();
       // Leave all rooms
       for (const room of socket.rooms) {
         if (room !== socket.id) {

@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus } from 'lucide-react';
+import { ArrowLeft, Plus } from 'lucide-react';
 import { getImageUrl } from '../utils/imageUtils';
 import { useNotification } from '../hooks/NotificationContext';
 import { useMemo } from 'react';
-
+import { useNavigate } from 'react-router-dom';
+import { useChat } from '../hooks/ChatsContext';
 export default function ContactsPage() {
   const [selectedTab, setSelectedTab] = useState('received');
   const [searchQuery, setSearchQuery] = useState('');
@@ -14,11 +15,13 @@ export default function ContactsPage() {
   const [message, setMessage] = useState('');
   const [sentTo, setSentTo] = useState([]);
   const { showNotification } = useNotification();
-
+  const navigate = useNavigate();
+  const { setChats } = useChat();
 
   const fetchIncoming = async () => {
     try {
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/user/friends/requests`, { withCredentials: true });
+      // console.log(res.data)
       setIncomingRequests(res.data.requests);
     } catch (err) {
       setMessage('Failed to load friend requests.');
@@ -28,6 +31,8 @@ export default function ContactsPage() {
   const fetchSent = async () => {
     try {
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/user/friends/sent`, { withCredentials: true });
+      // console.log(res.data)
+
       setSentRequests(res.data.sentRequests);
     } catch (err) {
       setMessage('Failed to load sent requests.');
@@ -76,18 +81,26 @@ export default function ContactsPage() {
   };
 
 
-  const acceptRequest = async (userId) => {
+  const acceptRequest = async (fromUserId) => {
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/user/friends/accept`, { userId }, { withCredentials: true });
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/user/friends/accept`, { fromUserId }, { withCredentials: true });
+      if (response.status === 200) {
+        showNotification('success', 'Friend request accepted')
+        setChats(prev => [...prev, response.data.chat])
+        setIncomingRequests(prev => prev.filter(item => item.from._id != fromUserId))
+      }
     } catch (err) {
-
+      console.log(err)
       setMessage('Error accepting request.');
     }
   };
 
-  const rejectRequest = async (userId) => {
+  const rejectRequest = async (fromUserId) => {
     try {
-      await axios.post(`${import.meta.env.VITE_API_URL}/user/friends/reject`, { userId }, { withCredentials: true });
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/user/friends/reject`, { fromUserId }, { withCredentials: true });
+      if (response.status === 200) {
+        showNotification('info', 'Friend request ignored')
+      }
     } catch (err) {
       setMessage('Error rejecting request.');
     }
@@ -107,9 +120,9 @@ export default function ContactsPage() {
 
   const filteredData = (dataList) => {
     if (!searchQuery.trim()) return dataList;
-  
+
     const lowered = searchQuery.toLowerCase();
-  
+
     return dataList.filter(
       (user) =>
         (user.name?.toLowerCase() || '').startsWith(lowered) ||
@@ -118,7 +131,7 @@ export default function ContactsPage() {
   };
 
   const renderContent = () => {
-    console.log(sentRequests)
+    // console.log(sentRequests)
     const data =
       selectedTab === 'received'
         ? filteredData(incomingRequests)
@@ -160,44 +173,47 @@ export default function ContactsPage() {
 
     return (
       <div className="p-4 rounded-xl shadow-md bg-white dark:bg-zinc-900 w-full">
-        {data.map((user) => (
-          <div
-            key={user._id}
-            className="flex justify-between items-center border-b border-zinc-300 dark:border-zinc-700 py-2"
-          >
-            <div>
-              <p className="font-medium dark:text-white">{user.name}</p>
-              <p className="text-sm text-gray-500">@{user.username}</p>
-            </div>
-            <div className="flex gap-2">
+        {data.map((u) => {
+          const user = selectedTab === 'received' ? u.from : u;
+          return (
+            <div
+              key={user._id}
+              className="flex justify-between items-center border-b border-zinc-300 dark:border-zinc-700 py-2"
+            >
+              <div>
+                <p className="font-medium dark:text-white">{user.name}</p>
+                <p className="text-sm text-gray-500">@{user.username}</p>
+              </div>
+              <div className="flex gap-2">
 
-              {selectedTab === 'received' && (
-                <>
+                {selectedTab === 'received' && (
+                  <>
+                    <button
+                      onClick={() => acceptRequest(user._id)}
+                      className="text-green-600 hover:text-green-800"
+                    >
+                      Accept
+                    </button>
+                    <button
+                      onClick={() => rejectRequest(user._id)}
+                      className="text-red-500 hover:text-red-700"
+                    >
+                      Reject
+                    </button>
+                  </>
+                )}
+                {selectedTab === 'sent' && (
                   <button
-                    onClick={() => acceptRequest(user._id)}
-                    className="text-green-600 hover:text-green-800"
-                  >
-                    Accept
-                  </button>
-                  <button
-                    onClick={() => rejectRequest(user._id)}
+                    onClick={() => cancelSentRequest(user._id)}
                     className="text-red-500 hover:text-red-700"
                   >
-                    Reject
+                    Cancel
                   </button>
-                </>
-              )}
-              {selectedTab === 'sent' && (
-                <button
-                  onClick={() => cancelSentRequest(user._id)}
-                  className="text-red-500 hover:text-red-700"
-                >
-                  Cancel
-                </button>
-              )}
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
         {data.length === 0 && <p className="text-sm dark:text-zinc-300">No results found.</p>}
       </div>
     );
@@ -205,7 +221,10 @@ export default function ContactsPage() {
 
   return (
     <div className="flex flex-col w-full dark:bg-zinc-900 min-h-screen overflow-hidden gap-4 px-4 py-6">
-      <p className="text-xl font-medium dark:text-white">Contacts</p>
+      <div className="flex items-center gap-2">
+        <ArrowLeft onClick={() => navigate('/chats')} className='dark:text-zinc-300 cursor-pointer' />
+        <p className="text-lg sm:text-xl font-medium dark:text-white">Contacts</p>
+      </div>
 
       <div className="flex gap-6 border-b border-zinc-300 dark:border-zinc-700 pb-2">
         {['received', 'sent', 'new'].map((tab) => (
