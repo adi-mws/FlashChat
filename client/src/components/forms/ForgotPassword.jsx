@@ -36,14 +36,14 @@ export default function ForgotPassword() {
     <div className="gap-10 w-full flex flex-col items-center justify-center p-5 dark:bg-black">
       <div className="flex align-items flex-col justify-center text-center gap-2">
         <h2 className="dark:text-white text-2xl font-bold">Forgot Password?</h2>
-        <p className="dark:text-gray-300 text-gray-600 text-sm">Enter your email to receive a reset link.</p>
+        <p className="dark:text-zinc-300 text-zinc-600 text-sm">Enter your email to receive a reset link.</p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="gap-5 text-sm flex flex-col bg-gray-50 2xs:p-10 p-5 rounded-lg dark:bg-gray-900">
+      <form onSubmit={handleSubmit(onSubmit)} className="gap-5 text-sm flex flex-col bg-zinc-50 2xs:p-10 p-5 rounded-lg dark:bg-zinc-900">
         <div className="form-group flex gap-2 flex-col">
           <label className="dark:text-white">Email</label>
           <input
-            className="py-3 focus:outline-1 xs:w-70 w-60 dark:bg-gray-950 outline-primary rounded-md bg-gray-100 px-5 dark:text-white"
+            className="py-3 focus:outline-1 xs:w-70 w-60 dark:bg-zinc-950 outline-primary rounded-md bg-zinc-100 px-5 dark:text-white"
             type="email"
             placeholder="Enter Email"
             {...register("email", { required: "Email is required" })}

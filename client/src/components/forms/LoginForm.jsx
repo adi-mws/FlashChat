@@ -93,19 +93,19 @@ export default function LoginForm() {
     <div className="gap-10 w-full flex flex-col items-center justify-center p-5 dark:bg-black">
       <div className="flex align-items flex-col justify-center text-center gap-2">
         <h2 className="dark:text-white text-2xl font-bold">Welcome Back!</h2>
-        <p className="dark:text-gray-300 text-gray-600 text-sm">
+        <p className="dark:text-zinc-300 text-zinc-600 text-sm">
           Login and start chatting with your dear ones!
         </p>
       </div>
 
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className="gap-5 text-sm flex flex-col bg-gray-50 p-7 rounded-lg dark:bg-gray-900"
+        className="gap-5 text-sm flex flex-col bg-zinc-50 p-7 rounded-lg dark:bg-zinc-900"
       >
         <div className="form-group flex gap-2  flex-col">
           <label className="dark:text-white">Username</label>
           <input
-            className="py-3 focus:outline-1 w-60 xs:w-70 dark:bg-gray-950 outline-primary rounded-md bg-gray-100 px-5 dark:text-white"
+            className="py-3 focus:outline-1 w-60 xs:w-70 dark:bg-zinc-950 outline-primary rounded-md bg-zinc-100 px-5 dark:text-white"
             type="text"
             placeholder="Enter Username"
             {...register("username", {
@@ -124,7 +124,7 @@ export default function LoginForm() {
         <div className="form-group flex gap-2 flex-col">
           <label className="dark:text-white">Password</label>
           <input
-            className="py-3 w-60 xs:w-70 focus:outline-1 outline-primary rounded-md bg-gray-100 px-5 dark:text-white dark:bg-gray-950"
+            className="py-3 w-60 xs:w-70 focus:outline-1 outline-primary rounded-md bg-zinc-100 px-5 dark:text-white dark:bg-zinc-950"
             placeholder="Enter Password"
             type="password"
             {...register("password", { required: "Password is required" })}

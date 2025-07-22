@@ -68,19 +68,19 @@ export default function RegistrationForm() {
     <div className="gap-10 w-full flex flex-col items-center justify-center p-5 dark:bg-black">
       <div className="flex flex-col justify-center text-center gap-2">
         <h2 className="dark:text-white text-2xl font-bold">Create an Account</h2>
-        <p className="dark:text-gray-300 text-gray-600 text-sm">
+        <p className="dark:text-zinc-300 text-zinc-600 text-sm">
           Sign up and start exploring new features!
         </p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="gap-5 text-sm flex flex-col bg-gray-50 2xs:p-10 p-5 rounded-lg dark:bg-gray-900">
+      <form onSubmit={handleSubmit(onSubmit)} className="gap-5 text-sm flex flex-col bg-zinc-50 2xs:p-10 p-5 rounded-lg dark:bg-zinc-900">
 
         {/* Username Field */}
         <div className="form-group flex gap-2 flex-col relative">
           <label className="dark:text-white">Username</label>
           <div className="relative w-60 xs:w-80">
             <input
-              className="py-3 w-full focus:outline-1 dark:bg-gray-950 outline-primary rounded-md bg-gray-100 px-5 dark:text-white pr-10"
+              className="py-3 w-full focus:outline-1 dark:bg-zinc-950 outline-primary rounded-md bg-zinc-100 px-5 dark:text-white pr-10"
               type="text"
               placeholder="Enter Username"
               {...register("username", {
@@ -111,7 +111,7 @@ export default function RegistrationForm() {
         <div className="form-group flex gap-2 flex-col">
           <label className="dark:text-white">Full Name</label>
           <input
-            className="py-3 w-60 xs:w-80 focus:outline-1 dark:bg-gray-950 outline-primary rounded-md bg-gray-100 px-5 dark:text-white"
+            className="py-3 w-60 xs:w-80 focus:outline-1 dark:bg-zinc-950 outline-primary rounded-md bg-zinc-100 px-5 dark:text-white"
             type="text"
             placeholder="Enter Full Name"
             {...register("name", { required: "Full name is required" })}
@@ -123,7 +123,7 @@ export default function RegistrationForm() {
         <div className="form-group flex gap-2 flex-col">
           <label className="dark:text-white">Email</label>
           <input
-            className="py-3 focus:outline-1 dark:bg-gray-950 outline-primary rounded-md bg-gray-100 px-5 dark:text-white"
+            className="py-3 focus:outline-1 dark:bg-zinc-950 outline-primary rounded-md bg-zinc-100 px-5 dark:text-white"
             type="email"
             placeholder="Enter Email"
             {...register("email", { required: "Email is required" })}
@@ -135,7 +135,7 @@ export default function RegistrationForm() {
         <div className="form-group flex gap-2 flex-col">
           <label className="dark:text-white">Password</label>
           <input
-            className="py-3 focus:outline-1 outline-primary rounded-md bg-gray-100 px-5 dark:text-white dark:bg-gray-950"
+            className="py-3 focus:outline-1 outline-primary rounded-md bg-zinc-100 px-5 dark:text-white dark:bg-zinc-950"
             type="password"
             placeholder="Enter Password"
             {...register("password", {
@@ -150,7 +150,7 @@ export default function RegistrationForm() {
         <div className="form-group flex gap-2 flex-col">
           <label className="dark:text-white">Confirm Password</label>
           <input
-            className="py-3 focus:outline-1 outline-primary rounded-md bg-gray-100 px-5 dark:text-white dark:bg-gray-950"
+            className="py-3 focus:outline-1 outline-primary rounded-md bg-zinc-100 px-5 dark:text-white dark:bg-zinc-950"
             type="password"
             placeholder="Confirm Password"
             {...register("confirmPassword", {

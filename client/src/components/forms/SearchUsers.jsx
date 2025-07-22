@@ -82,7 +82,7 @@ export default function SearchUsers({ showSearchUsers, setShowSearchUsers, creat
                                 {users.map((user) => (
                                     <li
                                         key={user?.id}
-                                        className="p-3 hover:bg-gray-100 border-b-1 border-zinc-300 dark:border-zinc-800 dark:hover:bg-zinc-900 transition cursor-pointer flex gap-5"
+                                        className="p-3 hover:bg-zinc-100 border-b-1 border-zinc-300 dark:border-zinc-800 dark:hover:bg-zinc-900 transition cursor-pointer flex gap-5"
                                     >
                                         <img src={user?.pfp} alt="profile_pic" className='text-sm w-10 h-10 rounded-full' />
                                         <div className="flex flex-col flex-1/3">
@@ -96,7 +96,7 @@ export default function SearchUsers({ showSearchUsers, setShowSearchUsers, creat
                             </ul>
                         ) : (
                             !loading && search && (
-                                <div className="p-3 text-gray-500">No matching users found</div>
+                                <div className="p-3 text-zinc-500">No matching users found</div>
                             )
                         )}
                     </div>

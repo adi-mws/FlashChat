@@ -20,7 +20,7 @@ export default function UserNameForm({ showForm, setShowForm, credentialResponse
   } = useForm();
 
   const [checkingUsername, setCheckingUsername] = useState(false);
-  const { setUser } = useAuth();
+  const {setUser}  = useAuth();
   const [usernameAvailable, setUsernameAvailable] = useState(null);
   const [username, setUsername] = useState("");
   const debouncedUsername = useDebounce(username, 500);
@@ -82,7 +82,7 @@ export default function UserNameForm({ showForm, setShowForm, credentialResponse
     <div className={`flex-col items-center w-full h-[calc(100%-60px)] fixed ${showForm ? 'flex' : 'hidden'} bg-white dark:bg-black z-100`}>
       <form
         onSubmit={handleSubmit(onSubmit)}
-        className={`UserNameForm w-[90%] rounded-lg max-w-200 h-auto p-4 dark:bg-gray-800 flex top-[${showForm ? '60px' : '-500px'}] flex-col gap-5 fixed transition-all items-center duration-300`}
+        className={`UserNameForm w-[90%] rounded-lg max-w-200 h-auto p-4 dark:bg-zinc-800 flex top-[${showForm ? '60px' : '-500px'}] flex-col gap-5 fixed transition-all items-center duration-300`}
       >
         <h2 className='text-xl dark:text-white'>Enter Your Username</h2>
 
@@ -95,7 +95,7 @@ export default function UserNameForm({ showForm, setShowForm, credentialResponse
         <div className="form-field lg:justify-center flex flex-col justify-start gap-2 w-full lg:flex-row relative">
           <div className="relative w-full lg:w-100">
             <input
-              className="py-3 focus:outline-1 w-full dark:bg-gray-950 outline-primary rounded-md bg-gray-100 px-5 dark:text-white pr-10"
+              className="py-3 focus:outline-1 w-full dark:bg-zinc-950 outline-primary rounded-md bg-zinc-100 px-5 dark:text-white pr-10"
               type="text"
               placeholder="Enter Username"
               value={username}

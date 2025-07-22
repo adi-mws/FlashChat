@@ -40,8 +40,7 @@ export default function Header() {
           <div className="menu-icon dark:text-white sm-inline-block md:hidden" onClick={() => setMenuOpen(!menuOpen)}>
             <i className="fa-solid fa-bars"></i>
           </div>
-          <Link to="/" className="logo text-lg dark:text-white flex dark:hidden gap-2 items-center"><img className="h-10 w-10 rounded-full text-xs" src='/imgs/logo.png' alt='logo'/>FlashChat</Link>
-          <Link to="/" className="logo text-lg dark:text-white dark:flex gap-2 hidden  items-center"><img className="h-10 w-10 rounded-full text-xs" src='/imgs/logo-dark.png' alt='logo'/>FlashChat</Link>
+          <Link to="/" className="logo text-lg dark:text-white flex gap-2 items-center"><img className="h-10 w-10 rounded-full text-xs" src='/imgs/logo.png' alt='logo'/>FlashChat</Link>
         </div>
 
         {/* Navigation Links */}

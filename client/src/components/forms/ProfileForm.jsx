@@ -96,7 +96,7 @@ const ProfileForm = () => {
 
           <div className="space-y-3">
             <div>
-              <label className="block text-sm text-gray-700">Name</label>
+              <label className="block text-sm text-zinc-700">Name</label>
               <input
                 type="text"
                 value={user.name}
@@ -104,13 +104,13 @@ const ProfileForm = () => {
                 onClick={() => handleFieldClick('name')}
                 onChange={(e) => handleChange('name', e.target.value)}
                 className={`w-full p-2 rounded-md border ${
-                  editable.name ? 'border-blue-500' : 'border-gray-300'
+                  editable.name ? 'border-blue-500' : 'border-zinc-300'
                 } focus:outline-none`}
               />
             </div>
 
             <div>
-              <label className="block text-sm text-gray-700">Email</label>
+              <label className="block text-sm text-zinc-700">Email</label>
               <input
                 type="email"
                 value={user.email}
@@ -118,7 +118,7 @@ const ProfileForm = () => {
                 onClick={() => handleFieldClick('email')}
                 onChange={(e) => handleChange('email', e.target.value)}
                 className={`w-full p-2 rounded-md border ${
-                  editable.email ? 'border-blue-500' : 'border-gray-300'
+                  editable.email ? 'border-blue-500' : 'border-zinc-300'
                 } focus:outline-none`}
               />
             </div>
