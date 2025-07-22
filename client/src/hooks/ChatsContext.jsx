@@ -33,6 +33,7 @@ export const ChatProvider = ({ children }) => {
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/chats/get-all/${user.id}`, {
         withCredentials: true,
       });
+      console.log(res.data.chats)
       setChats(res.data.chats);
     } catch (err) {
       console.error("Failed to fetch chats:", err);

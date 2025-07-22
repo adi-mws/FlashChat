@@ -6,6 +6,7 @@ import { useAuth } from '../hooks/AuthContext';
 import { useTheme } from '../hooks/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { getImageUrl } from '../utils/imageUtils';
 
 export default function ChatsList() {
     const {
@@ -31,7 +32,7 @@ export default function ChatsList() {
         logout();
         navigate("/login");
     };
-    
+
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -84,7 +85,7 @@ export default function ChatsList() {
             setChats(prev => {
                 const updated = prev.map(chat =>
                     chat._id === chatId
-                        ? { ...chat, latestMessage: newMessage }
+                        ? { ...chat, lastMessage: newMessage }
                         : chat
                 );
 
@@ -119,6 +120,10 @@ export default function ChatsList() {
             });
         };
 
+        // console.log(chats)
+
+        console.log(user)
+
         socket.on('newMessage', handleNewMessage);
 
         return () => {
@@ -141,10 +146,10 @@ export default function ChatsList() {
                             className="chat-list-item flex w-full cursor-pointer dark:hover:bg-zinc-950 items-center gap-5 py-4 px-5 border-b-1 dark:border-zinc-800 border-zinc-200"
                         >
                             <div className="pfp-user-details flex justify-between w-full gap-5">
-                                <div className="flex items-center gap-4">
+                                <div className="flex items-center w-full gap-4">
                                     <div className="pfp-wrapper relative">
                                         <img
-                                            src={`${import.meta.env.VITE_BACKEND_URL}/${chat.participant?.pfp}`}
+                                            src={getImageUrl(chat.participant?.pfp)}
                                             className="w-10 h-10 rounded-full"
                                             alt=""
                                         />
@@ -152,9 +157,28 @@ export default function ChatsList() {
                                             <span className="w-3 h-3 rounded-full bg-green-700 absolute bottom-0 right-1" />
                                         )}
                                     </div>
-                                    <div className="user-details flex flex-col gap-1">
-                                        <p className="user-name dark:text-white text-sm">{chat.participant?.name}</p>
-                                        <p className="user-username dark:text-zinc-400 font-bold zinc-200 text-xs">{chat.participant?.username}</p>
+                                    <div className="user-details flex flex-1 w-full flex-col gap-1">
+                                        <div className="name-and-time flex w-full items-center justify-between">
+                                            <p className="user-name truncate-text max-w-30 dark:text-white text-sm">
+                                                {chat.participant?.name}
+                                            </p>
+                                            <p className="time text-xs dark:text-zinc-300">
+                                                {chat?.lastMessage?.createdAt &&
+                                                    new Date(chat.lastMessage.createdAt).toLocaleTimeString("en-GB", {
+                                                        hour: "2-digit",
+                                                        minute: "2-digit",
+                                                    })}
+                                            </p>
+
+                                        </div>
+
+                                        {
+
+                                            user?.showLastMessage ?
+                                                <p className="last-message dark:text-zinc-400 text-sm max-w-50 truncate-text">{chat?.lastMessage?.sender?._id == user.id ? (<span className='dark:text-zinc-100'>You: </span>) : ''}{chat?.lastMessage?.content}</p>
+                                                :
+                                                <p className="user-username dark:text-zinc-400 font-bold max-w-50 zinc-200 text-xs">{chat.participant?.username}</p>
+                                        }
                                     </div>
                                 </div>
                                 <div className="read-count-wrapper flex justify-end items-center">
@@ -176,10 +200,11 @@ export default function ChatsList() {
                             className="profile flex gap-3 items-center rounded-full bg-zinc-200 p-1 dark:bg-zinc-800 cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"
                             onClick={() => setSliderMenu(!sliderMenu)}
                         >
-                            <img src={user?.pfp} className="pfp w-12 h-12 rounded-full" alt="Profile" />
+                            <img src={getImageUrl(user?.pfp)} className="pfp w-12 h-12 rounded-full" alt="Profile" />
                         </div>
                         <div className="chat-header-labels flex gap-1 flex-col">
                             <p className="chat-user-username dark:text-gray-400 text-sm">{user.username}</p>
+
                             <p className="chat-user-name text-green-500 flex gap-1 text-xs items-center">
                                 <span className="h-2 w-2 rounded-full bg-green-500 block" />Online
                             </p>

@@ -272,7 +272,7 @@ export const verifyUserDetails = async (req, res) => {
                     return res.status(404).json({ message: 'User not found' });
                 }
                 else {
-                    return res.status(200).json({ id: user._id, email: user.email, username: user.username, pfp: `${process.env.BASE_URL}/${user.pfp}`, name: user.name })
+                    return res.status(200).json({ id: user._id, email: user.email, username: user.username, showLastMessage: user.showLastMessageInList,  pfp: `${process.env.BASE_URL}${user.pfp}`, name: user.name })
                 }
             });
         }

@@ -98,7 +98,7 @@ io.on("connection", (socket) => {
         readBy: [socket.user.id],
       });
 
-      await Chat.findByIdAndUpdate(chatId, { latestMessage: newMessage._id });
+      await Chat.findByIdAndUpdate(chatId, { lastMessage: newMessage._id });
 
       const populatedMsg = await newMessage.populate("sender", "_id name username pfp");
 
@@ -107,6 +107,8 @@ io.on("connection", (socket) => {
       console.error("sendMessage error:", error);
     }
   });
+
+  
 
   socket.on("seenMessage", async ({ messageId, chatId, senderId }) => {
     try {

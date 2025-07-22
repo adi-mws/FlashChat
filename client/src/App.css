@@ -38,6 +38,11 @@
     --head-font: 'K2', serif;
 }
 
+.truncate-text {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis !important;
+  }
 
 button {
     cursor: pointer;

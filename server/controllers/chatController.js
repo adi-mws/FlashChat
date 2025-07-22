@@ -2,6 +2,7 @@
 import Chat from "../models/chat.js";
 import User from "../models/user.js";
 import { json } from "express";
+import { io } from "../server.js";
 import Message from "../models/message.js";
 
 
@@ -9,46 +10,43 @@ export const showAllChatsOfUser = async (req, res) => {
     try {
         const { id } = req.params;
 
-        // Find only 1-on-1 chats involving this user
+        // Find only 1-on-1 chats for this user (exactly 2 participants)
         const chats = await Chat.find({
-            participants: id,
-            $where: 'this.participants.length === 2'
+            participants: { $in: [id] },
+            $expr: { $eq: [{ $size: "$participants" }, 2] }
         })
             .populate({
-                path: 'participants',
-                select: 'username name pfp'
+                path: "participants",
+                select: "username name pfp"
             })
             .populate({
-                path: 'lastMessage',
-                select: 'content sender createdAt',
+                path: "lastMessage",
+                select: "content sender createdAt",
                 populate: {
-                    path: 'sender',
-                    select: 'name'
+                    path: "sender",
+                    select: "name"
                 }
             })
             .sort({ updatedAt: -1 })
             .lean();
 
-        const chatsWithUnreadCounts = await Promise.all(
-            chats.map(async chat => {
-                // Filter out the current user from participants
-                const otherParticipant = chat.participants.find(p => p._id.toString() !== id);
+        // Add unread count and filter other participant
+        const result = await Promise.all(
+            chats.map(async (chat) => {
+                const otherParticipant = chat.participants.find(
+                    (user) => user._id.toString() !== id
+                );
 
                 const unreadCount = await Message.countDocuments({
                     chat: chat._id,
-                    readBy: { $ne: id },
-                    sender: { $ne: id }
+                    sender: { $ne: id }, // Sent by other
+                    readBy: { $ne: id }  // Not read by this user
                 });
 
                 return {
                     _id: chat._id,
-                    participant: otherParticipant, // Only the other user
-                    lastMessage: chat.lastMessage ? {
-                        _id: chat.lastMessage._id,
-                        content: chat.lastMessage.content,
-                        sender: chat.lastMessage.sender,
-                        createdAt: chat.lastMessage.createdAt
-                    } : null,
+                    participant: otherParticipant,
+                    lastMessage: chat.lastMessage || null,
                     unreadCount,
                     updatedAt: chat.updatedAt
                 };
@@ -58,190 +56,18 @@ export const showAllChatsOfUser = async (req, res) => {
         res.status(200).json({
             success: true,
             message: "Chats retrieved successfully",
-            chats: chatsWithUnreadCounts
+            chats: result
         });
     } catch (error) {
         console.error("Error fetching chats:", error);
         res.status(500).json({
             success: false,
-            message: "Error fetching chats",
+            message: "Something went wrong while fetching chats",
             error: error.message
         });
     }
 };
 
-
-export const deleteChat = async (req, res) => {
-    try {
-        const { _id } = req.body;
-
-        // Find the chat by ID
-        const chat = await Chat.findById(_id);
-        if (!chat) {
-            return res.status(404).json({ message: "Chat does not exist" });
-        }
-
-        // Delete the chat
-        await Chat.findByIdAndDelete(_id);
-
-        res.status(200).json({ message: "Chat deleted successfully" });
-    } catch (error) {
-        res.status(500).json({ message: "Error deleting chat", error });
-    }
-};
-
-
-
-export const sendMessage = async (req, res) => {
-    try {
-        const { senderId, message, receiverId } = req.body;
-        const io = req.app.get('io');
-        const users = req.app.get('users');
-        // Validate input
-        if (senderId === receiverId) console.log(true, "Receiver and sender are same");
-        else console.log("Sender : ", senderId, " reciver : ", receiverId);
-        if (!senderId || !receiverId || !message) {
-            return res.status(400).json({
-                success: false,
-                message: "Missing required fields (senderId, receiverId, or message)"
-            });
-        }
-        // 1. Find existing chat between sender and receiver
-        let chat = await Chat.findOne({
-            participants: { $all: [senderId, receiverId], $size: 2 }
-        });
-        let isChatExisted = true;
-        // 2. If no chat found, create a new one
-        if (!chat) {
-            isChatExisted = false;
-            chat = await Chat.create({
-                participants: [senderId, receiverId],
-                createdAt: new Date(),
-                updatedAt: new Date(),
-                lastMessage: null
-            });
-        }
-
-        // 3. Create a new message
-        const newMessage = await Message.create({
-            chat: chat._id,
-            content: message,
-            sender: senderId,
-            createdAt: new Date(),
-            readBy: [senderId]
-        });
-
-        // 4. Update the chat with the last message
-        chat.lastMessage = newMessage._id;
-        chat.updatedAt = new Date();
-        await chat.save();
-
-        // 5. Populate the sender info in the saved message
-        const savedMessage = await Message.findById(newMessage._id)
-            .populate('sender', 'name pfp username');
-
-        // 6. Prepare response object
-        const messageData = {
-            chat: chat._id,
-            _id: savedMessage._id,
-            content: savedMessage.content,
-            sender: {
-                _id: savedMessage.sender._id,
-                name: savedMessage.sender.name,
-                username: savedMessage.sender.username,
-                pfp: savedMessage.sender.pfp,
-            },
-            createdAt: savedMessage.createdAt,
-            readBy: savedMessage.readBy // for receiver
-        };
-        // console.log('here is the receiever of message' , receiverId)
-
-        // 7. Emit real-time message to receiver if online
-
-        if (users.has(receiverId)) {
-            console.log(isChatExisted);
-            if (!isChatExisted) {
-
-                const sender = await User.findById(senderId);
-                const participant = {
-                    name: sender.name,
-                    username: sender.username,
-                    pfp: `${process.env.BASE_URL}/${sender.pfp}`,
-                    _id: sender._id
-                }
-                io.to(users.get(receiverId)).emit("receiveMessage", {
-                    messageData,
-                    participant,
-                    receiverId: receiverId,
-                    chat: chat._id,
-                    unreadCount: await Message.countDocuments({
-                        chat: chat._id,
-                        readBy: { $ne: receiverId },
-                        sender: { $ne: receiverId }
-                    })
-                });
-
-            } else {
-                io.to(users.get(receiverId)).emit("receiveMessage", {
-                    ...messageData,
-                    unreadCount: await Message.countDocuments({
-                        chat: chat._id,
-                        readBy: { $ne: receiverId },
-                        sender: { $ne: receiverId }
-                    })
-                });
-            }
-        }
-
-        if (users.has(senderId)) {
-            if (!isChatExisted) {
-                const receiver = await User.findById(receiverId);
-                const participant = {
-                    name: receiver.name,
-                    username: receiver.username,
-                    pfp: `${process.env.BASE_URL}/${receiver.pfp}`,
-                    _id: receiver._id
-                }
-                io.to(users.get(senderId)).emit("receiveMessage", {
-                    messageData,
-                    participant,
-                    chat: chat._id,
-                    unreadCount: await Message.countDocuments({
-                        chat: chat._id,
-                        readBy: { $ne: receiverId },
-                        sender: { $ne: receiverId }
-                    })
-                });
-
-            } else {
-
-                io.to(users.get(senderId)).emit("receiveMessage", {
-                    ...messageData,
-                    unreadCount: await Message.countDocuments({
-                        chat: chat._id,
-                        readBy: { $ne: receiverId },
-                        sender: { $ne: receiverId }
-                    })
-                });
-            }
-        }
-
-        // 8. Send response
-        res.status(200).json({
-            success: true,
-            message: "Message sent successfully",
-            data: messageData
-        });
-
-    } catch (error) {
-        console.error("Error in sendMessage:", error);
-        res.status(500).json({
-            success: false,
-            message: "Failed to send message",
-            error: error.message
-        });
-    }
-};
 
 
 
@@ -307,3 +133,36 @@ export const readMessage = async (req, res) => {
     }
 
 }
+
+
+export const deleteMessage = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const message = await Message.findById(id);
+
+        if (!message) {
+            return res.status(404).json({ success: false, message: "Message not found" });
+        }
+
+        // Optional: Check if the user is the sender
+        if (message.sender.toString() !== req.user.id) {
+            return res.status(403).json({ success: false, message: "You can only delete your own messages" });
+        }
+
+
+
+        await Message.findByIdAndDelete(id);
+
+      
+        // console.log(io)
+        io.to(message.chat.toString()).emit("message-deleted", {
+            messageId: id,
+            chatId: message.chat.toString(),
+        });
+
+        res.status(200).json({ success: true, message: "Message deleted successfully" });
+    } catch (err) {
+        res.status(500).json({ success: false, message: "Server error", error: err.message });
+    }
+};

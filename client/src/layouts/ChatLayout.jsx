@@ -8,8 +8,8 @@ export default function ChatLayout() {
     const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
 
     const location = useLocation();
-    const isChatOpen = location.pathname.includes("/chats/") && !location.pathname.includes("/chats/profile");
-
+    const isChatOpen = location.pathname.includes("/chats/") || location.pathname.includes("/chats/profile");
+    console.log(isChatOpen)
     // Responsive check
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 640);
@@ -80,7 +80,7 @@ export default function ChatLayout() {
 
             {/* Main Chat Area */}
             <div
-                className="chat-content overflow-hidden flex h-screen justify-center items-center"
+                className="chat-content overflow-hidden flex justify-center items-center"
                 style={{ width: `calc(100% - ${sidebarWidth}px)` }}
             >
                 <Outlet />

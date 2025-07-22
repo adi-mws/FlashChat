@@ -1,6 +1,13 @@
 import User from "../models/user.js";
 import Chat from "../models/chat.js";
 
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 
 export const getUserWithUsername = async (req, res) => {
   const { username } = req.query;
@@ -17,7 +24,6 @@ export const getUserWithUsername = async (req, res) => {
       $expr: { $eq: [{ $size: "$participants" }, 2] } // Only 2 participants
     }).select("participants");
 
-    // Step 2: Extract other participant IDs
     const excludedUserIds = new Set();
 
     oneToOneChats.forEach(chat => {
@@ -28,9 +34,7 @@ export const getUserWithUsername = async (req, res) => {
       });
     });
 
-    excludedUserIds.add(currentUserId); // <-- ✅ Exclude current user too
-
-    // Step 3: Fetch users with regex and exclude those in one-on-one chats
+    excludedUserIds.add(currentUserId);
     const users = await User.find({
       _id: { $nin: Array.from(excludedUserIds) },
       username: { $regex: `^${username}`, $options: "i" }
@@ -52,20 +56,6 @@ export const getUserWithUsername = async (req, res) => {
 };
 
 
-
-export const updateLastOnline = async (id, lastOnline) => {
-  try {
-    const user = await User.findByIdAndUpdate(id, {lastOnline: lastOnline});
-    if (user) {
-      
-    }
-  } catch (error) {
-    console.error("Error while updating Last Online Time: ", error);
-  }
-}
-
-``
-
 // Helper function to format user data safely
 const formatUser = (user) => ({
   _id: user._id,
@@ -77,13 +67,14 @@ const formatUser = (user) => ({
   lastOnline: user.lastOnline,
   showLastMessageInList: user.showLastMessageInList,
   createdAt: user.createdAt,
+  updatedAt: user.updatedAt
 });
 
 export const getUserById = async (req, res) => {
   try {
     const userId = req.params.id;
 
-    const user = await User.findById(userId).select('-password -googleId -type -__v -updatedAt');
+    const user = await User.findById(userId).select('-password -googleId -type -__v');
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -97,34 +88,60 @@ export const getUserById = async (req, res) => {
 };
 
 
+
+
 export const updateUserProfile = async (req, res) => {
   try {
     const userId = req.params.id;
-    const { name, about, pfp, showLastMessageInList } = req.body;
+    const { name, about, showLastMessageInList } = req.body;
 
     const user = await User.findById(userId);
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
-    // Apply only allowed updates
-    if (typeof name === 'string') user.name = name.trim();
-    if (typeof about === 'string') user.about = about.trim();
-    if (typeof pfp === 'string') user.pfp = pfp;
+    // Update text fields
+    if (typeof name === "string") user.name = name.trim();
+    if (typeof about === "string") user.about = about.trim();
+    if (typeof showLastMessageInList !== "undefined") {
+      user.showLastMessageInList =
+        showLastMessageInList === "true" || showLastMessageInList === true;
+    }
 
-    if (typeof showLastMessageInList === 'boolean') {
-      user.showLastMessageInList = showLastMessageInList;
+    // Handle profile image upload
+    if (req.file) {
+      const oldPfpPath = user.pfp
+        ? path.join(__dirname, "..", "uploads", "pfps", path.basename(user.pfp))
+        : null;
+
+      user.pfp = `/uploads/pfps/${req.file.filename}`;
+
+      // Remove old profile image
+      if (oldPfpPath && fs.existsSync(oldPfpPath)) {
+        fs.unlinkSync(oldPfpPath);
+      }
     }
 
     user.updatedAt = Date.now();
     await user.save();
 
+    // Return only safe fields
     res.status(200).json({
-      message: 'Profile updated successfully',
-      user: formatUser(user),
+      message: "Profile updated successfully",
+      user: {
+        _id: user._id,
+        name: user.name,
+        about: user.about,
+        pfp: user.pfp,
+        showLastMessageInList: user.showLastMessageInList,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+        email: user.email, // only if it's okay to include
+      },
     });
   } catch (error) {
     console.error("Error in updateUserProfile:", error);
-    res.status(500).json({ message: 'Failed to update profile', error: error.message });
+    res.status(500).json({ message: "Failed to update profile", error: error.message });
   }
 };
+
