@@ -1,4 +1,5 @@
 import "./App.css";
+import { useEffect, useState } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import LoginForm from "./components/forms/LoginForm";
 import RegistrationForm from "./components/forms/RegistrationForm";
@@ -22,6 +23,7 @@ import SelectChat from "./components/SelectChat";
 import ChatPage from "./components/ChatPage";
 import ProfilePage from "./components/ProfilePage";
 import ChatsList from "./components/ChatsList";
+import ContactsPage from "./components/ContactsPage";
 
 function App() {
   return (
@@ -45,7 +47,7 @@ function App() {
   );
 }
 
-import { useEffect, useState } from "react";
+
 
 const MainApp = () => {
   const { user, loading } = useAuth();
@@ -90,6 +92,7 @@ const MainApp = () => {
         <Route path=":chatId" element={<ChatPage />} />
         <Route path="profile" element={<ProfilePage edit={true} />} />
         <Route path="profile/:id" element={<ProfilePage />} />
+        <Route path="contacts" element={<ContactsPage />} />
       </Route>
 
       {/* Fallback */}

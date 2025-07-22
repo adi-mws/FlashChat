@@ -7,6 +7,7 @@ import { useTheme } from '../hooks/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getImageUrl } from '../utils/imageUtils';
+import { UserRoundPlus } from 'lucide-react';
 
 export default function ChatsList() {
     const {
@@ -234,7 +235,7 @@ export default function ChatsList() {
                     </div>
                 )}
                 <button className="dark:text-white text-sm me-5" onClick={() => setShowSearchUsers(true)}>
-                    <i className="fa-solid fa-user-plus"></i>
+                    <UserRoundPlus onClick={() => navigate('/chats/contacts')}/>
                 </button>
             </div>
         </div>

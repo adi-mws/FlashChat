@@ -115,10 +115,10 @@ export default function ProfilePage({ edit = false }) {
     return (
         <div className="ProfilePage flex flex-col w-full h-screen overflow-y-auto dark:bg-zinc-950 relative">
             <ArrowLeft onClick={() => navigate(-1)} className='absolute md:hidden top-5 left-5 z-[1000] dark:text-neutral-300' />
-            <div className="grid lg:grid-cols-3 grid-cols-1 p-4 grid-row-2 lg:grid-row-1 dark:text-white scrollbar-corner-black text-zinc-700">
+            <div className="grid lg:grid-cols-3 grid-cols-1 grid-row-2 lg:grid-row-1 dark:text-white scrollbar-corner-black text-zinc-700">
                 {/* Left Side Avatar */}
                 <div className="flex flex-col justify-center p-2 md:dark:bg-zinc-900 items-center gap-4">
-                    <div className="relative">
+                    <div className="flex flex-col items-center gap-2">
                         <img
                             src={imagePreview || getImageUrl(profile.pfp)}
                             alt="profile"
@@ -141,7 +141,7 @@ export default function ProfilePage({ edit = false }) {
                                 />
                                 <label
                                     htmlFor="pfpInput"
-                                    className="absolute bottom-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded cursor-pointer"
+                                    className=" dark:text-zinc-300 text-sm hover:underline px-2 py-1 rounded cursor-pointer"
                                 >
                                     Change
                                 </label>

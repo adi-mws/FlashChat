@@ -12,23 +12,24 @@ const __dirname = path.dirname(__filename);
 
 // Register user
 export const registerUser = async (req, res) => {
-    const { email, password, role } = req.body;
+
+    const { email, password, username, name } = req.body;
+    console.log(email, password, username, name)
     try {
-        const userExists = await User.findOne({ email });
+        const userExists = await User.findOne({ type: 'normal', username: username });
         if (userExists) {
             return res.status(400).json({ message: "User already exists" });
         }
 
+
         // Create user with hashed password
-        const user = await User.create({ email: email, password: hashSync(password, 10), role: role, authType: 'normal' });
+        await User.create({ username: username, email: email, name: name,  password: hashSync(password, 10),  type: 'normal' });
 
 
 
         // Respond to the client with a succesgs message and token
         res.status(201).json({
             message: "User registered successfully",
-            user: { id: user._id, email: user.email, role: role, }
-
         });
 
     } catch (error) {
@@ -247,7 +248,6 @@ export const generateToken = (id, name, email) => {
     return jwt.sign({ id, name, email }, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
 };
 
-
 export const verifyUserDetails = async (req, res) => {
     const normalToken = req.cookies?.token;  // Check for JWT token in cookie 
     const googleToken = req.cookies?.googleToken;  // Check for Google token
@@ -259,7 +259,7 @@ export const verifyUserDetails = async (req, res) => {
 
         let user, token;
         token = googleToken ? googleToken : normalToken;
-        
+
 
         if (token) {
             jwt.verify(token, process.env.JWT_SECRET, async (err, decoded) => {
@@ -272,7 +272,7 @@ export const verifyUserDetails = async (req, res) => {
                     return res.status(404).json({ message: 'User not found' });
                 }
                 else {
-                    return res.status(200).json({ id: user._id, email: user.email, username: user.username, showLastMessage: user.showLastMessageInList,  pfp: `${process.env.BASE_URL}${user.pfp}`, name: user.name })
+                    return res.status(200).json({ id: user._id, email: user.email, username: user.username, showLastMessage: user.showLastMessageInList, pfp: `${process.env.BASE_URL}${user.pfp}`, name: user.name })
                 }
             });
         }

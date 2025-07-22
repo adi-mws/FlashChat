@@ -36,11 +36,31 @@ const userSchema = new mongoose.Schema({
   },
   about: {
     type: String,
-    default: ""
+    default: "FlashChat User", 
+    required: false,
   },
-  createdAt: { type: Date, default: Date.now },
-  updatedAt: { type: Date, default: Date.now },
-});
+  contacts: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: false,
+    }
+  ],
+  friendRequests: [
+    {
+      from: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // who sent
+      createdAt: { type: Date, default: Date.now }, 
+    }
+  ],
 
-const User = mongoose.model('User', userSchema); 
+  sentRequests: [
+    {
+      to: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      createdAt: { type: Date, default: Date.now }, 
+    }
+  ],
+  
+}, {timestamps: true});
+
+const User = mongoose.model('User', userSchema);
 export default User; 
