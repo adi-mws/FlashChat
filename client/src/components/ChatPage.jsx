@@ -109,7 +109,7 @@ export default function ChatPage() {
                 content: message,
                 sender: { _id: user.id },
                 createdAt: new Date().toISOString(),
-                isSending: true,
+                isSending: false,
             };
 
             setSendingMessages((prev) => [...prev, tempMessage]);
@@ -331,7 +331,7 @@ export default function ChatPage() {
                                     <EllipsisVertical onClick={(e) => { e.stopPropagation(); handleShowMessageOptions(e, 'sender', msg._id); }} size={20} className={`cursor-pointer dark:text-zinc-300 ${isSender ? "group-hover:opacity-100" : 'hidden'} opacity-0`} />
 
                                     <div
-                                        className={`relative rounded-2xl px-4 py-2 max-w-[100%] text-sm whitespace-pre-wrap break-all ${isSender ? "bg-primary-2 text-white dark:bg-primary-2" : "bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white"} ${msg.isSending ? "opacity-60" : ""} flex ${isShort ? "items-end gap-2" : "flex-col"}`}
+                                        className={`relative rounded-2xl px-4 py-2 max-w-[100%] text-sm whitespace-pre-wrap break-word ${isSender ? "bg-primary-2 text-white dark:bg-primary-2" : "bg-zinc-200 dark:bg-zinc-800 text-black dark:text-white"} ${msg.isSending ? "opacity-60" : ""} flex ${isShort ? "items-end gap-2" : "flex-col"}`}
                                     >
                                         <span>{msg.content}</span>
                                         <span className={`text-[10px] text-gray-400 ${isShort ? "" : "mt-1 self-end"}`}>

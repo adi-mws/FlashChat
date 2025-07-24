@@ -4,6 +4,7 @@ import { useAuth } from "../hooks/AuthContext";
 import { useNotification } from "../hooks/NotificationContext";
 import { useTheme } from "../hooks/ThemeContext";
 import { LogOut, Settings, User } from "lucide-react";
+import { getImageUrl } from "../utils/imageUtils";
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -52,10 +53,10 @@ export default function Header() {
               {/* Profile Section */}
               <div className="relative" ref={dropdownRef}>
                 <div 
-                  className="profile flex gap-3 items-center py-1 px-7 bg-zinc-100 dark:bg-zinc-800 rounded-md cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-500 transition"
+                  className="profile flex gap-3 items-center py-1 px-7 bg-zinc-100 dark:bg-zinc-900 rounded-md cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 transition"
                   onClick={() => setDropdownOpen(!dropdownOpen)}
                 >
-                  <img src={user?.pfp} className="pfp w-8 h-8 rounded-full" alt="Profile" />
+                  <img src={getImageUrl(user?.pfp)} className="pfp w-8 h-8 rounded-full" alt="Profile" />
                   <p className="name dark:text-white">{user?.name}</p>
                   <img className={`${dropdownOpen ? "rotate-180" : ""} transition duration-300`} src="/imgs/dropdown-icon.png" alt="dropdown-icon"></img>
                 </div>

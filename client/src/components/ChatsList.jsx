@@ -176,7 +176,7 @@ export default function ChatsList() {
                                     <div className="pfp-wrapper relative">
                                         <img
                                             src={getImageUrl(chat.participant?.pfp)}
-                                            className="w-10 h-10 rounded-full"
+                                            className="min-w-10 min-h-10 h-10 w-10 rounded-full"
                                             alt=""
                                         />
                                         {onlineUsers.includes(chat.participant?._id) && (
