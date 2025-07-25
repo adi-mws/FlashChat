@@ -305,7 +305,7 @@ export default function ChatPage() {
                 <EllipsisVertical onClick={(e) => { e.stopPropagation(); setShowChatOptions(true) }} className="dark:text-zinc-300 cursor-pointer" />
             </div>
 
-            <div className="flex-1 overflow-y-auto overflow-x-hidden dark:bg-zinc-950 scrollbar-thin scrollbar-thumb-zinc-700 py-2">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden dark:bg-zinc-950 scrollbar-thin scrollbar-track-zinc-900 scrollbar-thumb-zinc-700 py-2">
                 {loadingMessages ? (
                     <div className="space-y-3">
                         {[...Array(6)].map((_, i) => (
@@ -327,7 +327,7 @@ export default function ChatPage() {
                                 key={i}
                                 className={`w-full flex px-4 items-center h-auto py-1 ${isSender ? "justify-end" : "justify-start"}`}
                             >
-                                <div className={`relative flex sm:max-w-[70%] ${isSender ? "justify-end" : "justify-start"} items-center gap-2 group`}>
+                                <div className={`relative flex  max-w-[80%] sm:max-w-[70%] ${isSender ? "justify-end" : "justify-start"} items-center gap-2 group`}>
                                     <EllipsisVertical onClick={(e) => { e.stopPropagation(); handleShowMessageOptions(e, 'sender', msg._id); }} size={20} className={`cursor-pointer dark:text-zinc-300 ${isSender ? "group-hover:opacity-100" : 'hidden'} opacity-0`} />
 
                                     <div

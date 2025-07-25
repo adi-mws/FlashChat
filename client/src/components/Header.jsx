@@ -38,9 +38,6 @@ export default function Header() {
       <div className="header-relative h-[60px] w-full"></div>
       <header className="header fixed top-0 left-0 bg-white z-100 dark:bg-black text-sm shadow-sm flex px-5 sm:px-10 h-[60px] w-full justify-between flex-row items-center">
         <div className="flex items-center flex-row gap-5">
-          <div className="menu-icon dark:text-white sm-inline-block md:hidden" onClick={() => setMenuOpen(!menuOpen)}>
-            <i className="fa-solid fa-bars"></i>
-          </div>
           <Link to="/" className="logo text-lg dark:text-white flex gap-2 items-center"><img className="h-10 w-10 rounded-full text-xs" src='/imgs/logo.png' alt='logo'/>FlashChat</Link>
         </div>
 
@@ -57,7 +54,7 @@ export default function Header() {
                   onClick={() => setDropdownOpen(!dropdownOpen)}
                 >
                   <img src={getImageUrl(user?.pfp)} className="pfp w-8 h-8 rounded-full" alt="Profile" />
-                  <p className="name dark:text-white">{user?.name}</p>
+                  <p className="name hidden sm:block dark:text-white">{user?.name}</p>
                   <img className={`${dropdownOpen ? "rotate-180" : ""} transition duration-300`} src="/imgs/dropdown-icon.png" alt="dropdown-icon"></img>
                 </div>
 

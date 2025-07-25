@@ -230,7 +230,7 @@ export default function ChatsList() {
                             className="profile flex gap-3 items-center rounded-full bg-zinc-200 p-1 dark:bg-zinc-800 cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"
                             onClick={() => setSliderMenu(!sliderMenu)}
                         >
-                            <img src={getImageUrl(user?.pfp)} className="pfp w-12 h-12 rounded-full" alt="Profile" />
+                            <img src={getImageUrl(user?.pfp)} className="pfp w-12 h-12 bg-fill rounded-full" alt="Profile" />
                         </div>
                         <div className="chat-header-labels flex gap-1 flex-col">
                             <p className="chat-user-username dark:text-gray-400 text-sm">{user.username}</p>

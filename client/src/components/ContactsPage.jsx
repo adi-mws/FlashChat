@@ -100,6 +100,7 @@ export default function ContactsPage() {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/user/friends/reject`, { fromUserId }, { withCredentials: true });
       if (response.status === 200) {
         showNotification('info', 'Friend request ignored')
+        setIncomingRequests(prev => prev.filter(item => item.from._id != fromUserId))
       }
     } catch (err) {
       setMessage('Error rejecting request.');
@@ -142,7 +143,7 @@ export default function ContactsPage() {
     if (selectedTab === 'new') {
       return (
         <div className="rounded-xl shadow-md bg-white dark:bg-zinc-900 w-full">
-          <p className="text-md font-semibold mb-3 mt-2 dark:text-white">You can search users by username and send friend request to them to add to your contacts</p>
+          <p className="text-sm sm:text-md font-semibold mb-3 mt-2 dark:text-white">You can search users by username and send friend request to them to add to your contacts</p>
           {newUserResult ? newUserResult.map(u => (
             <div className="bg-zinc-100 mt-2 dark:bg-zinc-800 flex justify-between items-center p-2 px-5 rounded-lg" key={u._id}>
               <div className="flex gap-4 items-center">
@@ -155,12 +156,12 @@ export default function ContactsPage() {
               <button
                 onClick={() => sendFriendRequest(u._id)}
                 disabled={sentTo.includes(u._id)} // disable if already sent
-                className={`flex gap-2 items-center justify-center px-6 py-3 rounded 
+                className={`flex gap-2 items-center text-sm  justify-center sm:px-6 px-3 py-3 rounded 
     ${sentTo.includes(u._id)
                     ? 'bg-green-600 text-white cursor-default'
                     : 'bg-zinc-600 text-white hover:bg-zinc-700'}`}
               >
-                {sentTo.includes(u._id) ? 'Request Sent' : <><Plus size={20} /> Add Friend</>}
+                {sentTo.includes(u._id) ? 'Request Sent' : <><Plus size={20} /> <span className='hidden sm:hidden'>Add Friend</span></>}
               </button>
 
             </div>
@@ -184,7 +185,7 @@ export default function ContactsPage() {
                 <p className="font-medium dark:text-white">{user.name}</p>
                 <p className="text-sm text-gray-500">@{user.username}</p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-5">
 
                 {selectedTab === 'received' && (
                   <>
