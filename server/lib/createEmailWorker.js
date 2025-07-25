@@ -13,7 +13,7 @@ export const sendEmailInWorker = (emailData) => {
 
   worker.on('message', (result) => {
     if (result.success) {
-      console.log('Email sent successfully by worker thread');
+      // console.log('Email sent successfully by worker thread');
     } else {
       console.error('Worker failed to send email:', result.error);
     }

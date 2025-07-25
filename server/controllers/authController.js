@@ -4,8 +4,9 @@ import jwt from 'jsonwebtoken';
 import { fileURLToPath } from 'url';
 import { OAuth2Client } from 'google-auth-library';
 import path from 'path';
-import transporter from '../lib/nodeMailer.js';
 import { sendEmailInWorker } from '../lib/createEmailWorker.js';
+import crypto from 'crypto';
+
 // Get the current directory dynamically
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -35,14 +36,27 @@ export const registerUser = async (req, res) => {
       to: email,
       subject: 'Welcome to FlashChat 🎉',
       html: `
-        <h2>Hi ${name},</h2>
-        <p>Thank you for registering on <strong>FlashChat</strong>!</p>
-        <p>Start chatting now and connect with your friends!</p>
-        <br>
-        <p>Cheers,<br>The FlashChat Team</p>
-      `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; background: #f9f9f9; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
+        <h2 style="color: #333;">Hi ${name},</h2>
+        <p style="font-size: 15px; color: #555;">
+          Thank you for registering on <strong style="color: #007bff;">FlashChat</strong>!
+        </p>
+        <p style="font-size: 15px; color: #555;">
+          Start chatting now and connect with your friends!
+        </p>
+        
+        <div style="text-align: center; margin-top: 30px; margin-bottom: 30px;">
+          <a href="${process.env.CLIENT_URL}/login" target="_blank" 
+             style="display: inline-block; padding: 12px 25px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; font-weight: bold;">
+            Start Chatting
+          </a>
+        </div>
+    
+        <p style="font-size: 14px; color: #888;">Cheers,</p>
+        <p style="font-size: 14px; color: #888;"><strong>The FlashChat Team</strong></p>
+      </div>
+    `
     });
-
     res.status(201).json({
       message: "User registered successfully",
     });
@@ -323,3 +337,87 @@ export const verifyUserDetails = async (req, res) => {
 
 
 
+export const forgotPassword = async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const user = await User.findOne({ email, type: 'normal' });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpires = Date.now() + 1000 * 60 * 15; // 15 min expiry
+
+    await user.save();
+
+    const resetLink = `${process.env.CLIENT_URL}/reset-password/${token}`;
+
+    sendEmailInWorker({
+      to: user.email,
+      subject: 'Password Reset - FlashChat',
+      html: `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: auto; padding: 20px; background-color: #f9f9f9; border-radius: 8px;">
+        <h2 style="color: #007bff;">Hi ${user.name},</h2>
+        
+        <p>You recently requested to reset your password for your FlashChat account. Click the button below to proceed:</p>
+        
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${resetLink}" target="_blank"
+             style="display: inline-block; padding: 12px 24px; background-color: #007bff; color: #ffffff; text-decoration: none; border-radius: 5px; font-weight: bold;">
+            Reset Password
+          </a>
+        </div>
+        
+        <p style="font-size: 14px; color: #666;">This link will expire in 15 minutes. If you didn’t request this, you can safely ignore this email.</p>
+    
+        <p style="margin-top: 30px;">Stay secure,</p>
+        <p><strong>– The FlashChat Team</strong></p>
+      </div>
+    `
+    });
+
+    res.status(200).json({ message: 'Password reset link sent to your email.' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error while processing request.' });
+  }
+};
+
+
+export const resetPassword = async (req, res) => {
+  const { token, newPassword } = req.body;
+
+  if (!token || !newPassword) {
+    return res.status(400).json({ message: 'Token and new password are required.' });
+  }
+
+  try {
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpires: { $gt: Date.now() },
+      type: 'normal'
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: 'Invalid or expired token.' });
+    }
+
+    user.password = hashSync(newPassword, 10);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+
+    await user.save();
+
+    res.status(200).json({ message: 'Password reset successful. You can now log in.' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Something went wrong during password reset.' });
+  }
+};

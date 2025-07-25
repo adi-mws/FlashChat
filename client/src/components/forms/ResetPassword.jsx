@@ -8,24 +8,28 @@ export default function ResetPassword() {
   const { showNotification } = useNotification();
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   const {
     register,
     handleSubmit,
     watch,
     formState: { errors, isSubmitting },
   } = useForm({
-    mode: "onChange"
-});
+    mode: "onChange",
+  });
 
-  // Extract token from query params (e.g., /reset-password?token=xyz)
-  const token = new URLSearchParams(location.search).get("token");
+  const { token } = useParams();
 
   const onSubmit = async (data) => {
+    if (!token) {
+      showNotification("error", "Invalid or missing reset token.");
+      return;
+    }
+
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/user/reset-password`, {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/reset-password`, {
         token,
-        password: data.password
+        newPassword: data.password
       });
 
       if (response.status === 200) {
@@ -41,13 +45,16 @@ export default function ResetPassword() {
   };
 
   return (
-    <div className="gap-10 w-full flex flex-col items-center justify-center p-5 dark:bg-black">
-      <div className="flex align-items flex-col justify-center text-center gap-2">
+    <div className="gap-10 w-full flex flex-col items-center p-5 dark:bg-black min-h-screen">
+      <div className="flex flex-col mt-10 justify-center text-center gap-2">
         <h2 className="dark:text-white text-2xl font-bold">Reset Password</h2>
         <p className="dark:text-zinc-300 text-zinc-600 text-sm">Enter your new password.</p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="gap-5 text-sm flex flex-col bg-zinc-50 2xs:p-10 p-5 rounded-lg dark:bg-zinc-900">
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="gap-5 text-sm flex flex-col bg-zinc-50 2xs:p-10 p-5 rounded-lg dark:bg-zinc-900"
+      >
         <div className="form-group flex gap-2 flex-col">
           <label className="dark:text-white">New Password</label>
           <input
@@ -68,12 +75,13 @@ export default function ResetPassword() {
         <div className="form-group flex gap-2 flex-col">
           <label className="dark:text-white">Confirm Password</label>
           <input
-            className="py-3 focus:outline-1 dark:bg-zinc-950 outline-primary rounded-md bg-zinc-100 px-5 dark:text-white"
+            className="py-3 focus:outline-1 dark:bg-zinc-950 outline-primary rounded-md w-60 sm:w-80 bg-zinc-100 px-5 dark:text-white"
             type="password"
             placeholder="Confirm New Password"
             {...register("confirmPassword", {
               required: "Confirm password is required",
-              validate: (value) => value === watch("password") || "Passwords do not match"
+              validate: (value) =>
+                value === watch("password") || "Passwords do not match"
             })}
           />
           {errors.confirmPassword && (
@@ -81,17 +89,24 @@ export default function ResetPassword() {
           )}
         </div>
 
-        <button type="submit" className="py-2 rounded-md bg-primary-1 hover:bg-primary transition duration-300 text-white">
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="py-2 rounded-md bg-primary-1 hover:bg-primary transition duration-300 text-white flex items-center justify-center disabled:opacity-50"
+        >
           Reset Password
+          {isSubmitting && (
+            <span className="animate-spin border-2 ms-2 block border-white rounded-full w-3 h-3 border-t-transparent"></span>
+          )}
         </button>
 
         <div className="flex justify-center gap-5">
           <button
             onClick={() => navigate("/login")}
             type="button"
-            className="text-sm flex justify-center items-center text-primary hover:underline transition duration-300"
+            className="text-sm text-primary hover:underline transition duration-300"
           >
-            Back to Login { isSubmitting ? <span className="animate-spin border-2 ms-2 block border-white rounded-full w-3 h-3 border-t-transparent"></span> : <></>}
+            Back to Login
           </button>
         </div>
       </form>

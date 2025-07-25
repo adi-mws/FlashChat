@@ -11,12 +11,13 @@ const transporter = nodemailer.createTransport({
     }
 });
 
+
 // Optional: verify connection config on startup
 transporter.verify((error, success) => {
     if (error) {
         console.error('Nodemailer config error:', error);
     } else {
-        console.log('Nodemailer is ready to send emails');
+        // console.log('Nodemailer is ready to send emails');
     }
 });
 

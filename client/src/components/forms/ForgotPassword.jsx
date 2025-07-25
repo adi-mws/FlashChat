@@ -18,7 +18,7 @@ export default function ForgotPassword() {
 
   const onSubmit = async (data) => {
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/user/forgot-password`, data);
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/forgot-password`, data);
       
       if (response.status === 200) {
         showNotification("success", "Password reset link sent to your email.");
