@@ -2,14 +2,14 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 
-// 💡 Ensure the folder exists or create it
+// Ensure the folder exists or create it
 const ensureFolderExists = (folderPath) => {
     if (!fs.existsSync(folderPath)) {
         fs.mkdirSync(folderPath, { recursive: true });
     }
 };
 
-// 🔥 Multer storage configuration for dynamic folders
+// Multer storage configuration for dynamic folders
 const getStorage = (folder) => multer.diskStorage({
     destination: (req, file, cb) => {
         const uploadPath = path.join(process.cwd(), 'uploads', folder);
@@ -17,12 +17,12 @@ const getStorage = (folder) => multer.diskStorage({
         cb(null, uploadPath);
     },
     filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
         cb(null, `${file.fieldname}-${uniqueSuffix}${path.extname(file.originalname)}`);
     }
 });
 
-// 🔥 File filter for image validation
+// File filter for image validation
 const fileFilter = (req, file, cb) => {
     const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/jpg', 'image/gif'];
     if (allowedMimeTypes.includes(file.mimetype)) {
@@ -39,11 +39,9 @@ export const uploadPfp = multer({
     limits: { fileSize: 10 * 1024 * 1024 } // 10MB max file size
 }).single('pfp');
 
-
-
-
+// Middleware for uploading a single media file to `/uploads/media`
 export const uploadMedia = multer({
-    storage: getStorage('media'),       // Uploads to /uploads/media
+    storage: getStorage('media'),
     fileFilter,
     limits: { fileSize: 10 * 1024 * 1024 }
 }).single('media');
