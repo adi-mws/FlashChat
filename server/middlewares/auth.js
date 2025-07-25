@@ -1,12 +1,10 @@
 import jwt from 'jsonwebtoken';
-import { logoutUser } from '../controllers/authController.js';
 
 // Middleware to authenticate using cookies
 const authenticateJWT = (req, res, next) => {
     const token = req.cookies?.token;  // Extract the token from HTTP cookie
     const googleToken = req.cookies?.googleToken
     if (!token && !googleToken) {
-        logoutUser();
         return res.status(401).json({ message: 'Access denied, no token provided' });
     }
     let verificationToken = token ? token : googleToken 
