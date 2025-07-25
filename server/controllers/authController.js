@@ -172,7 +172,7 @@ export const googleAuth = async (req, res) => {
       res.cookie('googleToken', jwtToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'Strict',
+        sameSite: 'None',
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
@@ -222,7 +222,7 @@ export const googleAuth = async (req, res) => {
       res.cookie('googleToken', jwtToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'Strict',
+        sameSite: 'None',
         maxAge: 7 * 24 * 60 * 60 * 1000,
       });
 
@@ -276,13 +276,13 @@ export const logoutUser = async (req, res) => {
   try {
     res.clearCookie('googleToken', {
       httpOnly: true,
-      sameSite: 'Lax',
+      sameSite: 'None',
       secure: process.env.NODE_ENV === 'production',
     });
 
     res.clearCookie('token', {
       httpOnly: true,
-      sameSite: 'Lax',
+      sameSite: 'None',
       secure: process.env.NODE_ENV === 'production',
     });
 
