@@ -159,14 +159,6 @@ export default function ProfilePage({ edit = false }) {
                         label="Email"
                         field="email"
                         editable={false}
-                        specialButton={edit && (
-                            <button
-                                onClick={() => alert('Handle email change in next step')}
-                                className="text-xs px-2 py-1 rounded bg-neutral-600 text-white hover:bg-neutral-700"
-                            >
-                                Change
-                            </button>
-                        )}
                     />
                 </div>
             </div>
