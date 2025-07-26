@@ -130,24 +130,34 @@ export default function ContactsPage() {
 
   // When the sender will send the request the person will recieve (Here the person is reciever)
   socket.on("incomingFriendRequest", (user) => {
-    setIncomingRequests(prev => ([...prev, user]));
+    console.log("Socket => Received Incoming Request from ", user)
+    setIncomingRequests(prev => {
+      if (prev.some(u => u._id === user._id)) return prev;
+      return [...prev, user];
+    });
     showNotification("info", `New friend request from ${user.username}`);
-  })
+  });
 
   // The receiver Accepted the request and the new chat is created for the sender
   socket.on("friendRequestAccepted", (data) => {
+    console.log("Socket = accepted request",data )
+
     showNotification("success", `${data.username}(${data.name}) has accepted your friend request`);
     setChats(prev => [...prev, data.chat])
   })
 
   // The receiver cancelled the request (Here the person is sender)
   socket.on("friendRequestRejected", (data) => {
+    console.log("Socket = rejeted request",data )
+
     setSentRequests(prev => prev.filter(item => item._id != data._id));
   })
 
   // The sender cancelled the request (Here the person is reciever)
   // Now removing the request from Incomings
   socket.on("friendRequestCancelled", (data) => {
+    console.log("Socket = cancel sent request",data )
+
     setIncomingRequests(prev => prev.filter(item => item._id != data._id));
   })
 
@@ -295,7 +305,7 @@ export default function ContactsPage() {
         className="px-4 py-2 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-500"
       />
 
-      <div className="flex-1 overflow-y-auto max-h-[70vh]">
+      <div className="flex-1 scrollbar-thin scrollbar-track-zinc-900 scrollbar-thumb-zinc-700 overflow-y-auto max-h-[70vh]">
         {renderContent()}
       </div>
     </div >

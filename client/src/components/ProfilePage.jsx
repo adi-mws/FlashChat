@@ -113,7 +113,7 @@ export default function ProfilePage({ edit = false }) {
     );
 
     return (
-        <div className="ProfilePage flex flex-col w-full h-screen overflow-y-auto dark:bg-zinc-950 relative">
+        <div className="ProfilePage flex flex-col w-full h-screen overflow-y-auto scrollbar-thin scrollbar-track-zinc-900 scrollbar-thumb-zinc-700 dark:bg-zinc-950 relative">
             <ArrowLeft onClick={() => navigate(-1)} className='absolute cursor-pointer md:hidden top-5 left-5 z-[1000] dark:text-neutral-300' />
             <div className="grid lg:grid-cols-3 grid-cols-1 grid-row-2 lg:grid-row-1 dark:text-white scrollbar-corner-black text-zinc-700">
                 {/* Left Side Avatar */}
@@ -152,7 +152,7 @@ export default function ProfilePage({ edit = false }) {
 
 
                 {/* Right Side Fields */}
-                <div className="col-span-2 flex flex-col border-b-1 md:border-none border-neutral-700 py-2 md:p-5 md:dark:bg-zinc-900 gap-5">
+                <div className="col-span-2 p-5 flex flex-col border-b-1 md:border-none border-neutral-700 py-2 md:p-5 md:dark:bg-zinc-900 gap-5">
                     <FieldRow label="Name" field="name" editable={edit} />
                     <FieldRow label="Username" field="username" editable={false} />
                     <FieldRow
