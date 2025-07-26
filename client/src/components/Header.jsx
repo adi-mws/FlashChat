@@ -38,7 +38,7 @@ export default function Header() {
       <div className="header-relative h-[60px] w-full"></div>
       <header className="header fixed top-0 left-0 bg-white z-100 dark:bg-black text-sm shadow-sm flex px-5 sm:px-10 h-[60px] w-full justify-between flex-row items-center">
         <div className="flex items-center flex-row gap-5">
-          <Link to="/" className="logo text-lg dark:text-white flex gap-2 items-center"><img className="h-10 w-10 rounded-full text-xs" src='/imgs/logo.png' alt='logo'/>FlashChat <span className="bg-zinc-800 text-sm font-secondary text-white px-2 py-0.5 rounded-md ml-2">v2.1</span>
+          <Link to="/" className="logo text-lg dark:text-white flex gap-2 items-center"><img className="h-10 w-10 rounded-full text-xs" src='/imgs/logo.png' alt='logo'/>FlashChat <span className="bg-zinc-800 sm:block hidden text-sm font-secondary text-white px-2 py-0.5 rounded-md ml-2">v2.1</span>
 </Link>
         </div>
 
