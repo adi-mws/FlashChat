@@ -163,4 +163,4 @@ server.listen(PORT, () => {
   console.log(`Server is running on ${PORT}`);
 });
 
-export { io };
+export { io, socketUserMap, users };

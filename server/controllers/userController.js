@@ -5,6 +5,8 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import Message from "../models/message.js";
+import { io } from "../server.js";
+import { users } from "../server.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -174,7 +176,15 @@ export const sendFriendRequest = async (req, res) => {
   await fromUser.save();
   await toUser.save();
 
+  io.to(users[toUserId._id]).emit("incomingFriendRequest", {
+    _id: fromUser._id,
+    name: fromUser.name,
+    username: fromUser.username,
+    pfp: fromUser.pfp
+  })
+
   res.status(200).json({ message: "Friend request sent" });
+
 };
 
 
@@ -256,6 +266,12 @@ export const acceptFriendRequest = async (req, res) => {
       updatedAt: chat.updatedAt,
     };
 
+    io.to(users[fromUserId._id]).emit("friendRequestAccepted", {
+      _id: toUser._id,
+      name: toUser.name,
+      username: toUser.username,
+      chat: formattedChat,
+    })
     res.status(200).json({
       message: "Friend request accepted",
       chat: formattedChat,
@@ -280,6 +296,12 @@ export const rejectFriendRequest = async (req, res) => {
   await toUser.save();
   await fromUser.save();
 
+  io.to(users[fromUserId._id]).emit("friendRequestRejected", {
+    _id: toUser._id,
+    name: toUser.name,
+    username: toUser.username,
+  })
+
   res.status(200).json({ message: "Friend request rejected" });
 };
 
@@ -298,9 +320,15 @@ export const cancelSentRequest = async (req, res) => {
     await fromUser.save();
     await toUser.save();
 
+    io.to(users[toUser._id]).emit("friendRequestCancelled", {
+      _id: fromUser._id,
+      name: fromUser.name,
+      username: fromUser.username,
+    })
+
     res.status(200).json({ message: "Friend request cancelled" });
   } catch (error) {
-    res.status(500).json({message: 'Something wrong in canceling sent request', error: error})
+    res.status(500).json({ message: 'Something wrong in canceling sent request', error: error })
   }
 };
 

@@ -5,7 +5,7 @@ import { getImageUrl } from '../utils/imageUtils';
 import { useNotification } from '../hooks/NotificationContext';
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useChat } from '../hooks/ChatsContext';
+import { socket, useChat } from '../hooks/ChatsContext';
 export default function ContactsPage() {
   const [selectedTab, setSelectedTab] = useState('received');
   const [searchQuery, setSearchQuery] = useState('');
@@ -17,6 +17,8 @@ export default function ContactsPage() {
   const { showNotification } = useNotification();
   const navigate = useNavigate();
   const { setChats } = useChat();
+  const [hasNewFriendRequests, setHasNewFriendRequests] = useState(false);
+
 
   const fetchIncoming = async () => {
     try {
@@ -27,6 +29,11 @@ export default function ContactsPage() {
       setMessage('Failed to load friend requests.');
     }
   };
+
+  useEffect(() => {
+    if (incomingRequests.length > 0) setHasNewFriendRequests(true);
+    else setHasNewFriendRequests(false);
+  }, [incomingRequests])
 
   const fetchSent = async () => {
     try {
@@ -119,6 +126,34 @@ export default function ContactsPage() {
     }
   };
 
+  // Live friend events logic with socket listening
+
+  // When the sender will send the request the person will recieve (Here the person is reciever)
+  socket.on("incomingFriendRequest", (user) => {
+    setIncomingRequests(prev => ([...prev, user]));
+    showNotification("info", `New friend request from ${user.username}`);
+  })
+
+  // The receiver Accepted the request and the new chat is created for the sender
+  socket.on("friendRequestAccepted", (data) => {
+    showNotification("success", `${data.username}(${data.name}) has accepted your friend request`);
+    setChats(prev => [...prev, data.chat])
+  })
+
+  // The receiver cancelled the request (Here the person is sender)
+  socket.on("friendRequestRejected", (data) => {
+    setSentRequests(prev => prev.filter(item => item._id != data._id));
+  })
+
+  // The sender cancelled the request (Here the person is reciever)
+  // Now removing the request from Incomings
+  socket.on("friendRequestCancelled", (data) => {
+    setIncomingRequests(prev => prev.filter(item => item._id != data._id));
+  })
+
+
+
+
   const filteredData = (dataList) => {
     if (!searchQuery.trim()) return dataList;
 
@@ -130,6 +165,7 @@ export default function ContactsPage() {
         (user.username?.toLowerCase() || '').startsWith(lowered)
     );
   };
+
 
   const renderContent = () => {
     // console.log(sentRequests)
@@ -232,7 +268,7 @@ export default function ContactsPage() {
           <button
             key={tab}
             onClick={() => setSelectedTab(tab)}
-            className={`pb-1 text-base font-medium capitalize transition-all duration-200 
+            className={`pb-1 text-base relative font-medium capitalize transition-all duration-200 
               ${selectedTab === tab
                 ? 'border-b-2 border-zinc-800 dark:border-white text-zinc-800 dark:text-white'
                 : 'text-zinc-500 dark:text-zinc-400'
@@ -243,6 +279,10 @@ export default function ContactsPage() {
               : tab === 'sent'
                 ? 'Sent'
                 : 'Add New'}
+            {tab === 'received' && hasNewFriendRequests ?
+              <span className='bg-red-500 w-2 h-2 block absolute -top-0.5 -right-1 rounded-full'></span> : null}
+
+
           </button>
         ))}
       </div>
@@ -258,6 +298,6 @@ export default function ContactsPage() {
       <div className="flex-1 overflow-y-auto max-h-[70vh]">
         {renderContent()}
       </div>
-    </div>
+    </div >
   );
 }

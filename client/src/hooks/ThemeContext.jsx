@@ -6,12 +6,10 @@ const ThemeContext = createContext();
 export const ThemeProvider = ({ children }) => {
     
     const [theme, setTheme] = useState('light');  
-    const getCurrentTheme = () => {
-        return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-    };
+   
 
     useEffect(() => {
-        setTheme(getCurrentTheme());
+        setTheme('dark');
     }, [])
     useEffect(() => {
         const root = window.document.documentElement; 
