@@ -9,7 +9,7 @@ export default function Landing() {
     <div className='Landing w-full flex items-center flex-col'>
       <div className='hero-section-content min-h-screen items-center flex w-full flex-col gap-8 md:p-10 xl:p-17 sm:p-8 p-2 sm:mt-0 mt-30'>
         <p className="hero-section-title text-3xl w-full font-bold bg-gradient-to-b text-white lg:text-8xl md:text-5xl xs:text-4xl text-center">Talk One-on-One. Fast, Secure, Limitless</p>
-        <p className="hero-section-description text-gray-800 sn:w-[70%] w-[100%] dark:text-gray-300 text-center">FlashChat is a simple application which connects two users on a chat for real time communication. Simply search the user with the registered email and start chatting.</p>
+        <p className="hero-section-description text-gray-800 sm:w-[70%] w-[100%] dark:text-gray-300 text-center">FlashChat is a simple application which connects two users on a chat for real time communication. Simply search the user with the registered email and start chatting.</p>
         <div className="flex gap-5 flex-col items-center md:flex-row">
           <button className="rounded-md font-bold bg-primary-1 text-white hover:scale-105 transition sm:text-md md:w-auto w-[80dvw] duration-300 text-sm py-4 lg:px-15 px-8" onClick={() => { navigate(user ? '/chats' : '/login') }}>Start Chatting</button>
           <button onClick={() => { navigate('/about') }} className="rounded-md text-sm sm:text-md text-zinc-400 font-bold bg-gray-1000 md:w-auto w-[80dvw] hover:scale-105 transition duration-300 py-4 lg:px-10 px-8 border-1 border-zinc-400 hover:bg-orange-1000">About Application</button>
@@ -118,7 +118,7 @@ export default function Landing() {
           {/* Copyright */}
           <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center text-xs text-zinc-500 dark:text-zinc-500">
             <p>&copy; {new Date().getFullYear()} FlashChat. All rights reserved.</p>
-            <p>Developed with ❤️ by <span className="text-white dark:text-white font-semibold">Aditya Raj</span></p>
+            <p>Developed by <span className="text-white dark:text-white font-semibold">Aditya Raj</span></p>
           </div>
         </footer>
 
