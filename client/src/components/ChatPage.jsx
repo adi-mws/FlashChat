@@ -216,7 +216,7 @@ export default function ChatPage() {
                     withCredentials: true
                 });
                 if (response.status === 200) {
-                    console.log(response.data.message);
+                    // console.log(response.data.message);
                     setLocalMessages([])
                     showNotification('success', 'All messages deleted successfully');
                     setChats((prev) =>

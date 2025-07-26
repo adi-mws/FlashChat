@@ -11,7 +11,7 @@ const authenticateSocket = (socket, next) => {
     socket.user = decoded; // Attached the user to the socket
     next();
   } catch (err) {
-    console.log("Socket auth error:", err.message);
+    // console.log("Socket auth error:", err.message);
     next(new Error("Authentication error"));
   }
 };

@@ -124,7 +124,7 @@ export default function ChatsList() {
 
         // console.log(chats)
 
-        console.log(user)
+        // console.log(user)
 
         socket.on('newMessage', handleNewMessage);
 

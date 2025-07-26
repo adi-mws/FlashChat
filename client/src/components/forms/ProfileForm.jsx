@@ -57,7 +57,7 @@ const ProfileForm = () => {
         },
       });
 
-      console.log('User updated:', response.data);
+      // console.log('User updated:', response.data);
       setIsEdited(false);
       setEditable({ name: false, email: false });
     } catch (error) {

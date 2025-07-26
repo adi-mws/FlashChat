@@ -56,7 +56,7 @@ export default function ContactsPage() {
       if (selectedTab === 'new' && searchQuery.trim()) {
         try {
           const res = await axios.get(`${import.meta.env.VITE_API_URL}/user/get-users?username=${searchQuery}`, { withCredentials: true });
-          console.log(res.data)
+          // console.log(res.data)
           setNewUserResult(res.data.users);
           setMessage('');
         } catch (err) {
@@ -82,7 +82,7 @@ export default function ContactsPage() {
         setNewUserResult((prev) => prev.filter(item => item._id != toUserId));
       }
     } catch (err) {
-      console.log(err)
+      // console.log(err)
       setMessage('Error sending request.');
     }
   };
@@ -97,7 +97,7 @@ export default function ContactsPage() {
         setIncomingRequests(prev => prev.filter(item => item.from._id != fromUserId))
       }
     } catch (err) {
-      console.log(err)
+      // console.log(err)
       setMessage('Error accepting request.');
     }
   };
@@ -130,7 +130,7 @@ export default function ContactsPage() {
 
   // When the sender will send the request the person will recieve (Here the person is reciever)
   socket.on("incomingFriendRequest", (user) => {
-    console.log("Socket => Received Incoming Request from ", user)
+    // console.log("Socket => Received Incoming Request from ", user)
     setIncomingRequests(prev => {
       if (prev.some(u => u._id === user._id)) return prev;
       return [...prev, user];
@@ -140,7 +140,7 @@ export default function ContactsPage() {
 
   // The receiver Accepted the request and the new chat is created for the sender
   socket.on("friendRequestAccepted", (data) => {
-    console.log("Socket = accepted request",data )
+    // console.log("Socket = accepted request",data )
 
     showNotification("success", `${data.username}(${data.name}) has accepted your friend request`);
     setChats(prev => [...prev, data.chat])
@@ -148,7 +148,7 @@ export default function ContactsPage() {
 
   // The receiver cancelled the request (Here the person is sender)
   socket.on("friendRequestRejected", (data) => {
-    console.log("Socket = rejeted request",data )
+    // console.log("Socket = rejeted request",data )
 
     setSentRequests(prev => prev.filter(item => item._id != data._id));
   })
@@ -156,7 +156,7 @@ export default function ContactsPage() {
   // The sender cancelled the request (Here the person is reciever)
   // Now removing the request from Incomings
   socket.on("friendRequestCancelled", (data) => {
-    console.log("Socket = cancel sent request",data )
+    // console.log("Socket = cancel sent request",data )
 
     setIncomingRequests(prev => prev.filter(item => item._id != data._id));
   })

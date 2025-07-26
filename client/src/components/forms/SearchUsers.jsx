@@ -37,7 +37,7 @@ export default function SearchUsers({ showSearchUsers, setShowSearchUsers, creat
                 );
 
                 setUsers(response.data.users);
-                console.log(response.data.users);
+                // console.log(response.data.users);
             } catch (error) {
                 console.error('Error fetching users:', error);
             } finally {

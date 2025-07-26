@@ -301,6 +301,7 @@ export const rejectFriendRequest = async (req, res) => {
     name: toUser.name,
     username: toUser.username,
   })
+  
 
   res.status(200).json({ message: "Friend request rejected" });
 };

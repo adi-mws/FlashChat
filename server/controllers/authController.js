@@ -14,7 +14,7 @@ const __dirname = path.dirname(__filename);
 
 export const registerUser = async (req, res) => {
   const { email, password, username, name } = req.body;
-  console.log(email, password, username, name);
+  // console.log(email, password, username, name);
 
   try {
     const userExists = await User.findOne({ type: 'normal', username });
