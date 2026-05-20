@@ -333,11 +333,6 @@ export const cancelSentRequest = async (req, res) => {
   }
 };
 
-
-
-
-
-
 export const getSentRequests = async (req, res) => {
   try {
     const userId = req.user.id;

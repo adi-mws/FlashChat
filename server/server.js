@@ -22,7 +22,7 @@ const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 3000;
 
-// ---- MIDDLEWARES ----
+
 app.use(cors({
   origin: process.env.CLIENT_URL,
   credentials: true,
@@ -32,15 +32,15 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
-// ---- DATABASE CONNECTION ----
+
 connectDB();
 
-// ---- ROUTES ----
+
 app.use('/api/auth', authRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/user', userRoutes);
 
-// ---- SOCKET SETUP ----
+
 const io = new Server(server, {
   cors: {
     origin: process.env.CLIENT_URL,
@@ -49,14 +49,13 @@ const io = new Server(server, {
   },
 });
 
-// Auth middleware for sockets
+
 io.use(socketAuth);
 
 // Track users
-const users = new Map();        // userId => socketId
-const socketUserMap = new Map(); // socketId => userId
+const users = new Map();       
+const socketUserMap = new Map(); 
 
-// ---- SOCKET EVENTS ----
 io.on("connection", (socket) => {
   console.log("Socket connected:", socket.id);
 
@@ -141,7 +140,6 @@ io.on("connection", (socket) => {
         await User.findByIdAndUpdate(userId, { lastOnline: Date.now() })
       }
       updateOnlineStatus();
-      // Leave all rooms
       for (const room of socket.rooms) {
         if (room !== socket.id) {
           socket.leave(room);
@@ -153,12 +151,12 @@ io.on("connection", (socket) => {
   });
 });
 
-// ---- TEST ROUTE ----
+
 app.get('/', (_, res) => {
   res.send("Server is up and running");
 });
 
-// ---- START SERVER ----
+
 server.listen(PORT, () => {
   console.log(`Server is running on ${PORT}`);
 });

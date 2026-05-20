@@ -18,7 +18,7 @@ import ChatLayout from "./layouts/ChatLayout";
 import { PopUpProvider } from "./hooks/PopUpContext";
 import { NetworkProvider } from "./hooks/NetworkContext";
 
-// Pages
+// Pages and layouts
 import SelectChat from "./components/SelectChat";
 import ChatPage from "./components/ChatPage";
 import ProfilePage from "./components/ProfilePage";
@@ -87,7 +87,6 @@ const MainApp = () => {
         path="/chats"
         element={user ? <ChatLayout /> : <Navigate to="/" replace />}
       >
-        {/* 🔁 Mobile: show ChatsList | Desktop: show SelectChat */}
         <Route index element={isMobile ? <ChatsList /> : <SelectChat />} />
         <Route path=":chatId" element={<ChatPage />} />
         <Route path="profile" element={<ProfilePage edit={true} />} />

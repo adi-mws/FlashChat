@@ -34,7 +34,7 @@ export const registerUser = async (req, res) => {
     // Non-blocking email sending via Worker Thread
     sendEmailInWorker({
       to: email,
-      subject: 'Welcome to FlashChat 🎉',
+      subject: 'Welcome to FlashChat',
       html: `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; background: #f9f9f9; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05);">
         <h2 style="color: #333;">Hi ${name},</h2>
@@ -189,7 +189,6 @@ export const googleAuth = async (req, res) => {
       });
     }
 
-    // --- CASE 2: Registration Flow ---
     if (username && !available) {
       // Step 1: Check for duplicate username
       const existingUserByUsername = await User.findOne({ username });
