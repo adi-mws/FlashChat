@@ -7,12 +7,9 @@ export default function SelectChat() {
       <div className="relative mb-6">
         <div className="absolute inset-0 bg-indigo-500/10 dark:bg-indigo-500/5 blur-3xl rounded-full w-48 h-48 -translate-x-1/2 -translate-y-1/2 left-1/2 top-1/2" />
         
-        {/* Modern glowing icon container */}
-        <div className="relative flex items-center justify-center w-24 h-24 rounded-3xl bg-indigo-500 shadow-xl shadow-indigo-500/20 text-white animate-bounce-slow">
-          <Flame size={44} className="animate-pulse" />
-          <div className="absolute -bottom-1 -right-1 w-8 h-8 rounded-2xl bg-emerald-500 border-4 border-white dark:border-zinc-950 flex items-center justify-center text-white">
-            <MessageSquare size={12} fill="white" />
-          </div>
+        {/* Glowing Logo */}
+        <div className="relative flex items-center justify-center w-24 h-24 rounded-3xl bg-indigo-500 shadow-xl shadow-indigo-500/20 text-white">
+          <Flame size={44} fill="white" className="animate-pulse" />
         </div>
       </div>
 
@@ -24,16 +21,10 @@ export default function SelectChat() {
         Select a conversation from the sidebar or find a contact to start messaging instantly.
       </p>
 
-      {/* Decorative details */}
+      {/* Decorative details
       <div className="mt-12 flex items-center gap-6 text-xs text-slate-400 dark:text-zinc-600">
-        <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-indigo-500" /> End-to-end encrypted
-        </span>
-        <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-zinc-800" />
-        <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" /> Real-time active
-        </span>
-      </div>
+        
+      </div> */}
     </div>
   );
 }
