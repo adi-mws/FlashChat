@@ -144,7 +144,7 @@ export default function ContactsPage() {
           if (prev.some(c => c._id === response.data.chat._id)) return prev;
           return [...prev, response.data.chat];
         });
-        setIncomingRequests(prev => prev.filter(item => item.from?._id !== fromUserId));
+        setIncomingRequests(prev => prev.filter(item => item?._id !== fromUserId));
       }
     } catch (err) {
       console.error(err);
@@ -157,7 +157,7 @@ export default function ContactsPage() {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/user/friends/reject`, { fromUserId }, { withCredentials: true });
       if (response.status === 200) {
         showNotification("info", 'Friend request declined');
-        setIncomingRequests(prev => prev.filter(item => item.from?._id !== fromUserId));
+        setIncomingRequests(prev => prev.filter(item => item?._id !== fromUserId));
       }
     } catch (err) {
       console.error(err);
