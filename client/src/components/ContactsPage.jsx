@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { ArrowLeft, Plus } from 'lucide-react';
+import { ArrowLeft, Plus, UserCheck2, UserMinus2, Send, Search, Check, X, AlertCircle } from 'lucide-react';
 import { getImageUrl } from '../utils/imageUtils';
 import { useNotification } from '../hooks/NotificationContext';
-import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { socket, useChat } from '../hooks/ChatsContext';
+import { useChat } from '../hooks/ChatsContext';
+
 export default function ContactsPage() {
   const [selectedTab, setSelectedTab] = useState('received');
   const [searchQuery, setSearchQuery] = useState('');
@@ -13,56 +13,62 @@ export default function ContactsPage() {
   const [sentRequests, setSentRequests] = useState([]);
   const [newUserResult, setNewUserResult] = useState(null);
   const [message, setMessage] = useState('');
-  const [sentTo, setSentTo] = useState([]);
+  const [loading, setLoading] = useState(false);
   const { showNotification } = useNotification();
   const navigate = useNavigate();
-  const { setChats } = useChat();
-  const [hasNewFriendRequests, setHasNewFriendRequests] = useState(false);
-
+  const { setChats, socket } = useChat();
 
   const fetchIncoming = async () => {
     try {
+      setLoading(true);
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/user/friends/requests`, { withCredentials: true });
-      // console.log(res.data)
-      setIncomingRequests(res.data.requests);
+      setIncomingRequests(res.data.requests || []);
     } catch (err) {
-      setMessage('Failed to load friend requests.');
+      console.error(err);
+      showNotification('Failed to load friend requests.', 'error');
+    } finally {
+      setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (incomingRequests.length > 0) setHasNewFriendRequests(true);
-    else setHasNewFriendRequests(false);
-  }, [incomingRequests])
 
   const fetchSent = async () => {
     try {
+      setLoading(true);
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/user/friends/sent`, { withCredentials: true });
-      // console.log(res.data)
+      if (res.status === 200) {
+        setSentRequests(res.data.sentRequests || []);
 
-      setSentRequests(res.data.sentRequests);
+      }
+      else {
+        showNotification('Failed to load sent requests.', 'error');
+      }
     } catch (err) {
-      setMessage('Failed to load sent requests.');
+      console.error(err);
+      showNotification('Failed to load sent requests.', 'error');
+    } finally {
+      setLoading(false);
     }
   };
+
   useEffect(() => {
     if (selectedTab === 'received') fetchIncoming();
     if (selectedTab === 'sent') fetchSent();
   }, [selectedTab]);
 
-
   useEffect(() => {
     const searchNewUser = async () => {
       if (selectedTab === 'new' && searchQuery.trim()) {
         try {
+          setLoading(true);
           const res = await axios.get(`${import.meta.env.VITE_API_URL}/user/get-users?username=${searchQuery}`, { withCredentials: true });
-          // console.log(res.data)
-          setNewUserResult(res.data.users);
+          setNewUserResult(res.data.users || []);
           setMessage('');
         } catch (err) {
-          console.error(err)
-          setNewUserResult(null);
+          console.error(err);
+          setNewUserResult([]);
           setMessage('User not found.');
+        } finally {
+          setLoading(false);
         }
       } else {
         setNewUserResult(null);
@@ -70,35 +76,79 @@ export default function ContactsPage() {
       }
     };
 
-    const delay = setTimeout(searchNewUser, 300);
+    const delay = setTimeout(searchNewUser, 400);
     return () => clearTimeout(delay);
   }, [searchQuery, selectedTab]);
 
-  const sendFriendRequest = async (toUserId) => {
+  // Clean socket connection listeners using useEffect
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleIncomingFriendRequest = (data) => {
+      setIncomingRequests(prev => {
+        if (prev.some(req => req._id === data._id || req.from?._id === data.from?._id)) return prev;
+        return [data, ...prev];
+      });
+      showNotification("info", `New friend request from @${data.from.username}`);
+    };
+
+    const handleFriendRequestAccepted = (data) => {
+      showNotification("success", `${data.name || data.username} accepted your friend request`);
+      setChats(prev => {
+        if (prev.some(c => c._id === data.chat._id)) return prev;
+        return [data.chat, ...prev];
+      });
+      setSentRequests(prev => prev.filter(req => req.to?._id !== data._id));
+    };
+
+    const handleFriendRequestRejected = (data) => {
+      setSentRequests(prev => prev.filter(req => req.to?._id !== data._id));
+    };
+
+    const handleFriendRequestCancelled = (data) => {
+      setIncomingRequests(prev => prev.filter(req => req.from?._id !== data._id));
+    };
+
+    socket.on("incomingFriendRequest", handleIncomingFriendRequest);
+    socket.on("friendRequestAccepted", handleFriendRequestAccepted);
+    socket.on("friendRequestRejected", handleFriendRequestRejected);
+    socket.on("friendRequestCancelled", handleFriendRequestCancelled);
+
+    return () => {
+      socket.off("incomingFriendRequest", handleIncomingFriendRequest);
+      socket.off("friendRequestAccepted", handleFriendRequestAccepted);
+      socket.off("friendRequestRejected", handleFriendRequestRejected);
+      socket.off("friendRequestCancelled", handleFriendRequestCancelled);
+    };
+  }, [socket, setChats, showNotification]);
+
+  const sendRequest = async (toUserId) => {
     try {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/user/friends/request`, { toUserId }, { withCredentials: true });
       if (response.status === 200) {
-        showNotification('success', 'Friend Request Sent!')
-        setNewUserResult((prev) => prev.filter(item => item._id != toUserId));
+        showNotification("success", 'Friend request sent!');
+        setNewUserResult(prev => prev.filter(item => item._id !== toUserId));
       }
     } catch (err) {
-      // console.log(err)
-      setMessage('Error sending request.');
+      console.error(err);
+      showNotification(err.response?.data?.message || 'Error sending request.', 'error');
     }
   };
-
 
   const acceptRequest = async (fromUserId) => {
     try {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/user/friends/accept`, { fromUserId }, { withCredentials: true });
       if (response.status === 200) {
-        showNotification('success', 'Friend request accepted')
-        setChats(prev => [...prev, response.data.chat])
-        setIncomingRequests(prev => prev.filter(item => item.from._id != fromUserId))
+        showNotification("success", 'Friend request accepted!');
+        setChats(prev => {
+          if (prev.some(c => c._id === response.data.chat._id)) return prev;
+          return [...prev, response.data.chat];
+        });
+        setIncomingRequests(prev => prev.filter(item => item.from?._id !== fromUserId));
       }
     } catch (err) {
-      // console.log(err)
-      setMessage('Error accepting request.');
+      console.error(err);
+      showNotification('Error accepting request.', 'error');
     }
   };
 
@@ -106,11 +156,12 @@ export default function ContactsPage() {
     try {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/user/friends/reject`, { fromUserId }, { withCredentials: true });
       if (response.status === 200) {
-        showNotification('info', 'Friend request ignored')
-        setIncomingRequests(prev => prev.filter(item => item.from._id != fromUserId))
+        showNotification("info", 'Friend request declined');
+        setIncomingRequests(prev => prev.filter(item => item.from?._id !== fromUserId));
       }
     } catch (err) {
-      setMessage('Error rejecting request.');
+      console.error(err);
+      showNotification('Error declining request.', 'error');
     }
   };
 
@@ -118,196 +169,235 @@ export default function ContactsPage() {
     try {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/user/friends/cancel`, { toUserId }, { withCredentials: true });
       if (response.status === 200) {
-        showNotification('success', 'Cancelled sent friend request');
-        setSentRequests(prev => prev.filter(request => request._id != toUserId))
+        showNotification("info", 'Cancelled friend request');
+        setSentRequests(prev => prev.filter(request => request.to?._id !== toUserId));
       }
     } catch (err) {
-      setMessage('Error canceling request.');
+      console.error(err);
+      showNotification('Error cancelling request.', 'error');
     }
   };
 
-  // Live friend events logic with socket listening
-
-  // When the sender will send the request the person will recieve (Here the person is reciever)
-  socket.on("incomingFriendRequest", (user) => {
-    // console.log("Socket => Received Incoming Request from ", user)
-    setIncomingRequests(prev => {
-      if (prev.some(u => u._id === user._id)) return prev;
-      return [...prev, user];
-    });
-    showNotification("info", `New friend request from ${user.username}`);
-  });
-
-  // The receiver Accepted the request and the new chat is created for the sender
-  socket.on("friendRequestAccepted", (data) => {
-    // console.log("Socket = accepted request",data )
-
-    showNotification("success", `${data.username}(${data.name}) has accepted your friend request`);
-    setChats(prev => [...prev, data.chat])
-  })
-
-  // The receiver cancelled the request (Here the person is sender)
-  socket.on("friendRequestRejected", (data) => {
-    // console.log("Socket = rejeted request",data )
-
-    setSentRequests(prev => prev.filter(item => item._id != data._id));
-  })
-
-  // The sender cancelled the request (Here the person is reciever)
-  // Now removing the request from Incomings
-  socket.on("friendRequestCancelled", (data) => {
-    // console.log("Socket = cancel sent request",data )
-
-    setIncomingRequests(prev => prev.filter(item => item._id != data._id));
-  })
-
-
-
-
   const filteredData = (dataList) => {
     if (!searchQuery.trim()) return dataList;
-
-    const lowered = searchQuery.toLowerCase();
-
-    return dataList.filter(
-      (user) =>
-        (user.name?.toLowerCase() || '').startsWith(lowered) ||
-        (user.username?.toLowerCase() || '').startsWith(lowered)
-    );
+    const search = searchQuery.toLowerCase();
+    return dataList.filter(req => {
+      const targetUser = selectedTab === 'received' ? req.from : req.to;
+      return (
+        targetUser?.name?.toLowerCase().includes(search) ||
+        targetUser?.username?.toLowerCase().includes(search)
+      );
+    });
   };
 
-
   const renderContent = () => {
-    // console.log(sentRequests)
-    const data =
-      selectedTab === 'received'
-        ? filteredData(incomingRequests)
-        : selectedTab === 'sent'
-          ? filteredData(sentRequests)
-          : [];
+    const data = selectedTab === 'received'
+      ? filteredData(incomingRequests)
+      : selectedTab === 'sent'
+        ? filteredData(sentRequests)
+        : [];
 
     if (selectedTab === 'new') {
       return (
-        <div className="rounded-xl shadow-md bg-white dark:bg-zinc-900 w-full">
-          <p className="text-sm sm:text-md font-semibold mb-3 mt-2 dark:text-white">You can search users by username and send friend request to them to add to your contacts</p>
-          {newUserResult ? newUserResult.map(u => (
-            <div className="bg-zinc-100 mt-2 dark:bg-zinc-800 flex justify-between items-center p-2 px-5 rounded-lg" key={u._id}>
-              <div className="flex gap-4 items-center">
-                <img src={getImageUrl(u.pfp)} alt="pfp" className='text-xs w-20 h-20 rounded-full dark:text-zinc-400' />
-                <div className="flex flex-col gap-2">
-                  <p className="text-sm font-semibold dark:text-white">{u.name}</p>
-                  <p className="text-sm text-zinc-300">@{u.username}</p>
+        <div className="space-y-4">
+          <div className="p-4 bg-slate-100/60 dark:bg-zinc-800/40 rounded-xl border border-slate-200/40 dark:border-zinc-800/60">
+            <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed flex items-start gap-2">
+              <AlertCircle size={15} className="text-indigo-500 flex-shrink-0 mt-0.5" />
+              <span>Search for users by their username below. Once you send a request, they can accept it to establish a conversation.</span>
+            </p>
+          </div>
+
+          {loading && (
+            <div className="flex justify-center p-8">
+              <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          )}
+
+          {!loading && newUserResult && newUserResult.map(u => (
+            <div
+              key={u._id}
+              className="bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 flex items-center justify-between p-4 rounded-2xl shadow-sm animate-scale-in"
+            >
+              <div className="flex gap-3.5 items-center min-w-0">
+                <img
+                  src={getImageUrl(u.pfp)}
+                  alt={u.name}
+                  className="w-12 h-12 rounded-full object-cover border border-slate-100 dark:border-zinc-800"
+                />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-800 dark:text-zinc-100 truncate">{u.name}</p>
+                  <p className="text-xs text-indigo-500 font-medium">@{u.username}</p>
                 </div>
               </div>
               <button
-                onClick={() => sendFriendRequest(u._id)}
-                disabled={sentTo.includes(u._id)} // disable if already sent
-                className={`flex gap-2 items-center text-sm  justify-center sm:px-6 px-3 py-3 rounded 
-    ${sentTo.includes(u._id)
-                    ? 'bg-green-600 text-white cursor-default'
-                    : 'bg-zinc-600 text-white hover:bg-zinc-700'}`}
+                onClick={() => sendRequest(u._id)}
+                className="flex items-center gap-1.5 px-4 py-2 bg-indigo-500 hover:bg-indigo-600 active:scale-95 text-white font-medium text-xs rounded-xl shadow-sm transition flex-shrink-0 cursor-pointer"
               >
-                {sentTo.includes(u._id) ? 'Request Sent' : <><Plus size={20} /> <span className='hidden sm:hidden'>Add Friend</span></>}
+                <Plus size={14} /> Send Request
               </button>
-
             </div>
-          )) : (
-            message && <p className="mt-2 text-center text-sm text-red-500">{message}</p>
+          ))}
+
+          {!loading && newUserResult && newUserResult.length === 0 && (
+            <div className="text-center p-8 text-slate-400 dark:text-zinc-500">
+              No matching users found
+            </div>
+          )}
+
+          {message && !newUserResult && (
+            <div className="text-center text-sm text-red-500 font-medium mt-4">
+              {message}
+            </div>
           )}
         </div>
       );
     }
 
     return (
-      <div className="p-4 rounded-xl shadow-md bg-white dark:bg-zinc-900 w-full">
-        {data.map((u) => {
-          const user = selectedTab === 'received' ? u.from : u;
+      <div className="space-y-3">
+        {loading && (
+          <div className="flex justify-center p-8">
+            <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        )}
+        {/* {console.log(data)} */}
+        {!loading && data.map((req) => {
+          const targetUser = selectedTab === 'received' ? req : req;
+          // console.log(req.from, req.to)
+          if (!targetUser) return null;
+
           return (
             <div
-              key={user._id}
-              className="flex justify-between items-center border-b border-zinc-300 dark:border-zinc-700 py-2"
+              key={req._id}
+              className="bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 flex items-center justify-between p-4 rounded-2xl shadow-sm animate-scale-in"
             >
-              <div>
-                <p className="font-medium dark:text-white">{user.name}</p>
-                <p className="text-sm text-gray-500">@{user.username}</p>
+              <div className="flex gap-3.5 items-center min-w-0">
+                <img
+                  src={getImageUrl(targetUser.pfp)}
+                  alt={targetUser.name}
+                  className="w-12 h-12 rounded-full object-cover border border-slate-100 dark:border-zinc-800"
+                />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-slate-800 dark:text-zinc-100 truncate">{targetUser.name}</p>
+                  <p className="text-xs text-slate-400 dark:text-zinc-500">@{targetUser.username}</p>
+                </div>
               </div>
-              <div className="flex gap-5">
 
+              <div className="flex gap-2 flex-shrink-0">
                 {selectedTab === 'received' && (
                   <>
                     <button
-                      onClick={() => acceptRequest(user._id)}
-                      className="text-green-600 hover:text-green-800"
+                      onClick={() => acceptRequest(targetUser._id)}
+                      className="p-2 bg-emerald-50 hover:bg-emerald-100 dark:bg-emerald-950/20 dark:hover:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-xl transition cursor-pointer"
+                      title="Accept Request"
                     >
-                      Accept
+                      <Check size={16} />
                     </button>
                     <button
-                      onClick={() => rejectRequest(user._id)}
-                      className="text-red-500 hover:text-red-700"
+                      onClick={() => rejectRequest(targetUser._id)}
+                      className="p-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-xl transition cursor-pointer"
+                      title="Decline Request"
                     >
-                      Reject
+                      <X size={16} />
                     </button>
                   </>
                 )}
                 {selectedTab === 'sent' && (
                   <button
-                    onClick={() => cancelSentRequest(user._id)}
-                    className="text-red-500 hover:text-red-700"
+                    onClick={() => cancelSentRequest(targetUser._id)}
+                    className="flex items-center gap-1.5 px-4 py-2 bg-rose-50 dark:bg-rose-950/20 hover:bg-rose-100 dark:hover:bg-rose-900/30 text-rose-600 dark:text-rose-400 font-medium text-xs rounded-xl transition cursor-pointer border border-transparent hover:border-rose-200 dark:hover:border-rose-900"
                   >
-                    Cancel
+                    Cancel Request
                   </button>
                 )}
               </div>
             </div>
-          )
+          );
         })}
-        {data.length === 0 && <p className="text-sm dark:text-zinc-300">No results found.</p>}
+
+        {!loading && data.length === 0 && (
+          <div className="text-center p-12 text-slate-400 dark:text-zinc-500 border border-dashed border-slate-200 dark:border-zinc-800 rounded-2xl bg-white dark:bg-zinc-900/20">
+            {selectedTab === 'received' ? (
+              <div className="flex flex-col items-center gap-2">
+                <UserCheck2 size={28} className="text-slate-300 dark:text-zinc-700" />
+                <p className="text-xs">No pending friend requests</p>
+              </div>
+            ) : (
+              <div className="flex flex-col items-center gap-2">
+                <Send size={28} className="text-slate-300 dark:text-zinc-700" />
+                <p className="text-xs">No sent friend requests pending</p>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   };
 
+  const hasNewFriendRequests = incomingRequests.length > 0;
+
   return (
-    <div className="flex flex-col w-full dark:bg-zinc-900 min-h-screen overflow-hidden gap-4 px-4 py-6">
-      <div className="flex items-center gap-2">
-        <ArrowLeft onClick={() => navigate('/chats')} className='dark:text-zinc-300 cursor-pointer' />
-        <p className="text-lg sm:text-xl font-medium dark:text-white">Contacts</p>
+    <div className="w-full h-full flex flex-col bg-slate-50/50 dark:bg-zinc-950/40 overflow-y-auto animate-fade-in">
+
+      {/* Header */}
+      <div className="h-[64px] flex items-center px-4 sm:px-8 border-b border-slate-200/50 dark:border-zinc-900 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md sticky top-0 z-10 gap-3">
+        <button
+          onClick={() => navigate('/chats')}
+          className="p-2 rounded-xl text-slate-600 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-900 transition"
+          title="Back to Chats"
+        >
+          <ArrowLeft size={20} />
+        </button>
+        <h3 className="text-base font-bold text-slate-800 dark:text-zinc-100">
+          Contacts & Friends
+        </h3>
       </div>
 
-      <div className="flex gap-6 border-b border-zinc-300 dark:border-zinc-700 pb-2">
-        {['received', 'sent', 'new'].map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setSelectedTab(tab)}
-            className={`pb-1 text-base relative font-medium capitalize transition-all duration-200 
-              ${selectedTab === tab
-                ? 'border-b-2 border-zinc-800 dark:border-white text-zinc-800 dark:text-white'
-                : 'text-zinc-500 dark:text-zinc-400'
-              }`}
-          >
-            {tab === 'received'
-              ? 'Requests'
-              : tab === 'sent'
-                ? 'Sent'
-                : 'Add New'}
-            {tab === 'received' && hasNewFriendRequests ?
-              <span className='bg-red-500 w-2 h-2 block absolute -top-0.5 -right-1 rounded-full'></span> : null}
+      {/* Main Body */}
+      <div className="max-w-2xl w-full mx-auto p-4 sm:p-6 space-y-6">
 
+        {/* Navigation Tabs */}
+        <div className="flex bg-slate-100 dark:bg-zinc-900/60 p-1 rounded-2xl border border-slate-200/20 dark:border-zinc-800/40">
+          {[
+            { id: 'received', label: 'Requests' },
+            { id: 'sent', label: 'Sent Requests' },
+            { id: 'new', label: 'Add Contacts' }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => { setSelectedTab(tab.id); setSearchQuery(''); }}
+              className={`flex-1 py-2 px-3 text-xs font-semibold rounded-xl transition duration-150 relative cursor-pointer ${selectedTab === tab.id
+                ? 'bg-white dark:bg-zinc-800 text-indigo-600 dark:text-indigo-400 shadow-sm'
+                : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
+                }`}
+            >
+              {tab.label}
+              {tab.id === 'received' && hasNewFriendRequests && (
+                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-zinc-800 animate-ping"></span>
+              )}
+            </button>
+          ))}
+        </div>
 
-          </button>
-        ))}
+        {/* Search Bar Container */}
+        <div className="relative">
+          <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-slate-400 dark:text-zinc-500">
+            <Search size={16} />
+          </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder={selectedTab === 'new' ? "Type username to search..." : "Search requests..."}
+            className="w-full pl-11 pr-4 py-3 text-sm bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-100 rounded-2xl border border-slate-200/50 dark:border-zinc-800/80 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 shadow-sm transition duration-150 placeholder-slate-400 dark:placeholder-zinc-500"
+          />
+        </div>
+
+        {/* Contents List */}
+        <div className="min-h-0">
+          {renderContent()}
+        </div>
       </div>
-
-      <input
-        type="text"
-        value={searchQuery}
-        onChange={(e) => setSearchQuery(e.target.value)}
-        placeholder="Search..."
-        className="px-4 py-2 rounded-lg border dark:border-zinc-700 dark:bg-zinc-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-zinc-500"
-      />
-
-      <div className="flex-1 scrollbar-thin scrollbar-track-zinc-900 scrollbar-thumb-zinc-700 overflow-y-auto max-h-[70vh]">
-        {renderContent()}
-      </div>
-    </div >
+    </div>
   );
 }

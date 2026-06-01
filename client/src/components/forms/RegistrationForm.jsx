@@ -4,6 +4,7 @@ import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import { useNotification } from "../../hooks/NotificationContext";
 import useDebounce from "../../hooks/useDebounce";
+import { Flame, CheckCircle2, XCircle } from "lucide-react";
 
 export default function RegistrationForm() {
   const { showNotification } = useNotification();
@@ -35,7 +36,6 @@ export default function RegistrationForm() {
           `${import.meta.env.VITE_API_URL}/auth/check-username/${debouncedUsername}`
         );
         setUsernameAvailable(res.data.available);
-        
       } catch (err) {
         console.error("Username check error:", err);
         setUsernameAvailable(false);
@@ -65,119 +65,141 @@ export default function RegistrationForm() {
   };
 
   return (
-    <div className="gap-10 w-full flex flex-col items-center justify-center p-5 dark:bg-black">
-      <div className="flex flex-col justify-center text-center gap-2">
-        <h2 className="dark:text-white text-2xl font-bold">Create an Account</h2>
-        <p className="dark:text-zinc-300 text-zinc-600 text-sm">
-          Sign up and start exploring new features!
-        </p>
-      </div>
+    <div className="min-h-[85vh] w-full flex items-center justify-center p-6 bg-slate-50/50 dark:bg-zinc-950/40">
+      <div className="w-full max-w-md bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800 shadow-xl rounded-2xl p-8 space-y-6 animate-scale-in">
+        
+        {/* Branding & Header */}
+        <div className="flex flex-col items-center text-center space-y-2">
+          <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-indigo-500 text-white shadow-md shadow-indigo-500/20 mb-1">
+            <Flame size={24} fill="white" />
+          </div>
+          <h2 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-zinc-100">Create Account</h2>
+          <p className="text-sm text-slate-500 dark:text-zinc-400">
+            Sign up to start communicating in real-time
+          </p>
+        </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="gap-5 text-sm flex flex-col bg-zinc-50 2xs:p-10 p-5 rounded-lg dark:bg-zinc-900">
+        {/* Registration Form */}
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          
+          {/* Username Field */}
+          <div className="space-y-1.5 relative">
+            <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400">Username</label>
+            <div className="relative">
+              <input
+                className="w-full pl-4 pr-10 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800/80 bg-slate-50 dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-150 text-sm"
+                type="text"
+                placeholder="Enter username"
+                {...register("username", {
+                  required: "Username is required",
+                  pattern: {
+                    value: /^[a-z0-9_-]+$/,
+                    message: "Only lowercase letters, numbers, _ and - allowed"
+                  }
+                })}
+              />
+              <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center justify-center">
+                {checkingUsername ? (
+                  <div className="w-4 h-4 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+                ) : usernameAvailable === true ? (
+                  <CheckCircle2 size={18} className="text-emerald-500" />
+                ) : usernameAvailable === false ? (
+                  <XCircle size={18} className="text-red-500" />
+                ) : null}
+              </div>
+            </div>
+            {errors.username && (
+              <p className="text-red-500 text-xs mt-1 font-medium">{errors.username.message}</p>
+            )}
+          </div>
 
-        {/* Username Field */}
-        <div className="form-group flex gap-2 flex-col relative">
-          <label className="dark:text-white">Username</label>
-          <div className="relative w-60 xs:w-80">
+          {/* Full Name Field */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400">Full Name</label>
             <input
-              className="py-3 w-full focus:outline-1 dark:bg-zinc-950 outline-primary rounded-md bg-zinc-100 px-5 dark:text-white pr-10"
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800/80 bg-slate-50 dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-150 text-sm"
               type="text"
-              placeholder="Enter Username"
-              {...register("username", {
-                required: "Username is required",
-                pattern: {
-                  value: /^[a-z0-9_-]+$/,
-                  message: "Only lowercase letters, numbers, _ and - are allowed",
-                  
-                },
-                
-                
+              placeholder="Enter full name"
+              {...register("name", { required: "Full name is required" })}
+            />
+            {errors.name && (
+              <p className="text-red-500 text-xs mt-1 font-medium">{errors.name.message}</p>
+            )}
+          </div>
+
+          {/* Email Field */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400">Email Address</label>
+            <input
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800/80 bg-slate-50 dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-150 text-sm"
+              type="email"
+              placeholder="name@example.com"
+              {...register("email", { required: "Email is required" })}
+            />
+            {errors.email && (
+              <p className="text-red-500 text-xs mt-1 font-medium">{errors.email.message}</p>
+            )}
+          </div>
+
+          {/* Password Field */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400">Password</label>
+            <input
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800/80 bg-slate-50 dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-150 text-sm"
+              type="password"
+              placeholder="••••••••"
+              {...register("password", {
+                required: "Password is required",
+                minLength: { value: 6, message: "Password must be at least 6 characters" }
               })}
             />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              {checkingUsername ? (
-                <div className="w-4 h-4 border-2 border-primary-1 border-t-transparent rounded-full animate-spin"></div>
-              ) : usernameAvailable === true ? (
-                <span className="text-green-500 text-xl"><i className="fa-circle-check fas"></i></span>
-              ) : usernameAvailable === false ? (
-                <span className="text-red-500 text-xl"><i className="fa-circle-xmark fas"></i></span>
-              ) : null}
-            </div>
+            {errors.password && (
+              <p className="text-red-500 text-xs mt-1 font-medium">{errors.password.message}</p>
+            )}
           </div>
-          {errors.username && <p className="text-red-500 text-xs">{errors.username.message}</p>}
-        </div>
 
-        {/* Full Name Field */}
-        <div className="form-group flex gap-2 flex-col">
-          <label className="dark:text-white">Full Name</label>
-          <input
-            className="py-3 w-60 xs:w-80 focus:outline-1 dark:bg-zinc-950 outline-primary rounded-md bg-zinc-100 px-5 dark:text-white"
-            type="text"
-            placeholder="Enter Full Name"
-            {...register("name", { required: "Full name is required" })}
-          />
-          {errors.name && <p className="text-red-500 text-xs">{errors.name.message}</p>}
-        </div>
+          {/* Confirm Password Field */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400">Confirm Password</label>
+            <input
+              className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800/80 bg-slate-50 dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-150 text-sm"
+              type="password"
+              placeholder="••••••••"
+              {...register("confirmPassword", {
+                required: "Confirm password is required",
+                validate: (value) => value === watch("password") || "Passwords do not match"
+              })}
+            />
+            {errors.confirmPassword && (
+              <p className="text-red-500 text-xs mt-1 font-medium">{errors.confirmPassword.message}</p>
+            )}
+          </div>
 
-        {/* Email Field */}
-        <div className="form-group flex gap-2 flex-col">
-          <label className="dark:text-white">Email</label>
-          <input
-            className="py-3 focus:outline-1 dark:bg-zinc-950 outline-primary rounded-md bg-zinc-100 px-5 dark:text-white"
-            type="email"
-            placeholder="Enter Email"
-            {...register("email", { required: "Email is required" })}
-          />
-          {errors.email && <p className="text-red-500 text-xs">{errors.email.message}</p>}
-        </div>
+          {/* Submit Button */}
+          <button
+            type="submit"
+            disabled={checkingUsername || usernameAvailable === false || isSubmitting}
+            className="w-full mt-4 py-2.5 bg-indigo-500 hover:bg-indigo-600 active:scale-[0.98] text-white font-semibold rounded-xl shadow-md shadow-indigo-500/10 transition-all duration-150 flex items-center justify-center text-sm cursor-pointer disabled:opacity-50"
+          >
+            Register
+            {isSubmitting && (
+              <span className="animate-spin border-2 ms-2 block border-white rounded-full w-3.5 h-3.5 border-t-transparent"></span>
+            )}
+          </button>
+        </form>
 
-        {/* Password Field */}
-        <div className="form-group flex gap-2 flex-col">
-          <label className="dark:text-white">Password</label>
-          <input
-            className="py-3 focus:outline-1 outline-primary rounded-md bg-zinc-100 px-5 dark:text-white dark:bg-zinc-950"
-            type="password"
-            placeholder="Enter Password"
-            {...register("password", {
-              required: "Password is required",
-              minLength: { value: 6, message: "Password must be at least 6 characters" }
-            })}
-          />
-          {errors.password && <p className="text-red-500 text-xs">{errors.password.message}</p>}
-        </div>
+        {/* Redirect Link */}
+        <p className="text-center text-xs text-slate-500 dark:text-zinc-400 mt-4">
+          Already have an account?{" "}
+          <Link
+            to="/login"
+            className="text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 font-semibold transition"
+          >
+            Login
+          </Link>
+        </p>
 
-        {/* Confirm Password Field */}
-        <div className="form-group flex gap-2 flex-col">
-          <label className="dark:text-white">Confirm Password</label>
-          <input
-            className="py-3 focus:outline-1 outline-primary rounded-md bg-zinc-100 px-5 dark:text-white dark:bg-zinc-950"
-            type="password"
-            placeholder="Confirm Password"
-            {...register("confirmPassword", {
-              required: "Confirm password is required",
-              validate: (value) => value === watch("password") || "Passwords do not match"
-            })}
-          />
-          {errors.confirmPassword && <p className="text-red-500 text-xs">{errors.confirmPassword.message}</p>}
-        </div>
-
-        {/* Submit Button */}
-        <button
-          type="submit"
-          disabled={checkingUsername || usernameAvailable === false}
-          className="py-2 flex items-center justify-center rounded-md bg-primary-1 hover:bg-primary transition duration-300 text-white disabled:opacity-50"
-        >
-          Register
-          {isSubmitting && (
-            <span className="animate-spin border-2 ms-2 block border-white rounded-full w-3 h-3 border-t-transparent"></span>
-          )}
-        </button>
-
-        {/* Login Redirect */}
-        <Link to="/login" className="text-center dark:text-white hover:underline transition duration-300">
-          Already have an account? Login
-        </Link>
-      </form>
+      </div>
     </div>
   );
 }

@@ -21,17 +21,14 @@ export const AuthProvider = ({ children }) => {
 
       if (response.status === 200) {
         setUser(response.data);
-        setLoading(false);
         setError(null);
-      } else if (response.status === 403) {
+      } else {
         setUser(null);
-        logout();
       }
     } catch (err) {
-      // console.error('Error verifying user:', err);
-      // setError('Failed to authenticate user');
       setUser(null);
-      logout();
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -46,19 +43,16 @@ export const AuthProvider = ({ children }) => {
   // Logout function
   const logout = async () => {
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/logout`, {}, {
+      await axios.post(`${import.meta.env.VITE_API_URL}/auth/logout`, {}, {
         withCredentials: true,
       });
-      setUser(null);
-      setLoading(false);
     } catch (error) {
       console.error('Logout failed:', error);
+    } finally {
+      setUser(null);
+      setLoading(false);
     }
-
-
-    //  On component mount, verify the user from cookies
-
-  }
+  };
 
   return (
     <AuthContext.Provider value={{

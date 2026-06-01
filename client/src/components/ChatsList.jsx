@@ -7,7 +7,7 @@ import { useTheme } from '../hooks/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getImageUrl } from '../utils/imageUtils';
-import { LogOut, UserRoundPlus } from 'lucide-react';
+import { LogOut, UserRoundPlus, Search } from 'lucide-react';
 
 export default function ChatsList() {
     const {
@@ -23,18 +23,18 @@ export default function ChatsList() {
 
     const { setShowSearchUsers } = usePopUp();
     const { user, logout } = useAuth();
-    const { theme, setTheme } = useTheme();
+
     const [sliderMenu, setSliderMenu] = useState(false);
     const dropdownRef = useRef(null);
     const sideBarRef = useRef(null);
     const [searchTerm, setSearchTerm] = useState('');
     const navigate = useNavigate();
     const [filteredChats, setFilteredChats] = useState([]);
+
     const handleLogout = () => {
         logout();
         navigate("/login");
     };
-
 
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -71,9 +71,7 @@ export default function ChatsList() {
         setSelectedChat(chat);
         handleReadCount(chat._id, user.id);
         emitSeenMessages(chat._id);
-
         navigate(`/chats/${chat._id}`);
-
     };
 
     useEffect(() => {
@@ -81,8 +79,9 @@ export default function ChatsList() {
 
         const handleNewMessage = (newMessage) => {
             const chatId = newMessage.chat;
-            const isCurrentChat = selectedChat && selectedChat === chatId;
+            const isCurrentChat = selectedChat && (typeof selectedChat === 'string' ? selectedChat === chatId : selectedChat._id === chatId);
             const isMessageFromSelf = newMessage.sender._id === user.id;
+
             // Making this chat to appear on top if a message is sent or received
             setChats(prev => {
                 const updated = prev.map(chat =>
@@ -92,6 +91,7 @@ export default function ChatsList() {
                 );
 
                 const updatedChat = updated.find(chat => chat._id === chatId);
+                if (!updatedChat) return prev; // If not in active chats
                 const others = updated.filter(chat => chat._id !== chatId);
 
                 return [updatedChat, ...others];
@@ -101,8 +101,6 @@ export default function ChatsList() {
             setChats(prevChats => {
                 return prevChats.map(chat => {
                     if (chat._id === chatId) {
-
-
                         if (!isMessageFromSelf && !isCurrentChat) {
                             return {
                                 ...chat,
@@ -110,7 +108,6 @@ export default function ChatsList() {
                                 unreadCount: (chat.unreadCount || 0) + 1
                             };
                         } else {
-
                             return {
                                 ...chat,
                                 latestMessage: newMessage
@@ -122,12 +119,7 @@ export default function ChatsList() {
             });
         };
 
-        // console.log(chats)
-
-        // console.log(user)
-
         socket.on('newMessage', handleNewMessage);
-
         return () => {
             socket.off('newMessage', handleNewMessage);
         };
@@ -145,121 +137,151 @@ export default function ChatsList() {
 
         setFilteredChats(filtered);
     }, [chats, searchTerm]);
+
     return (
         <div
             ref={sideBarRef}
-            className="chats-list dark:bg-zinc-900 h-full border-r border-zinc-300 dark:border-zinc-900 flex flex-col"
+            className="chats-list bg-white dark:bg-zinc-950 h-full border-r border-slate-200/60 dark:border-zinc-900/80 flex flex-col"
         >
             {/* Header */}
             <ChatListHeader />
 
             {/* Search bar */}
-            <input
-                type="text"
-                placeholder="Search chats..."
-                className="w-full py-3 px-5 text-sm my-2 border border-zinc-800 dark:text-zinc-300 outline-none"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-            />
+            <div className="px-4 py-2.5 relative">
+                <div className="absolute inset-y-0 left-7 flex items-center pointer-events-none text-slate-400 dark:text-zinc-500">
+                    <Search size={16} />
+                </div>
+                <input
+                    type="text"
+                    placeholder="Search chats..."
+                    className="w-full pl-10 pr-4 py-2 text-sm bg-slate-100 hover:bg-slate-200/50 focus:bg-white dark:bg-zinc-900 dark:hover:bg-zinc-900/80 dark:focus:bg-zinc-900 dark:text-zinc-200 rounded-xl outline-none border border-transparent focus:border-indigo-500/30 dark:focus:border-indigo-500/20 transition-all duration-200 placeholder-slate-400 dark:placeholder-zinc-500"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
 
             {/* Chat list (scrollable section) */}
-            <div className="flex-1 overflow-y-auto min-h-0">
-                {!loading && Array.isArray(filteredChats) &&
-                    filteredChats.map((chat) => (
+            <div className="flex-1 overflow-y-auto min-h-0 py-1 space-y-1">
+                {loading && (
+                    <div className="flex flex-col gap-2 p-4">
+                        {[...Array(4)].map((_, i) => (
+                            <div key={i} className="flex items-center gap-3 animate-pulse">
+                                <div className="w-10 h-10 rounded-full bg-slate-200 dark:bg-zinc-800" />
+                                <div className="flex-1 space-y-2">
+                                    <div className="h-3 bg-slate-200 dark:bg-zinc-800 rounded w-1/3" />
+                                    <div className="h-2.5 bg-slate-200 dark:bg-zinc-800 rounded w-2/3" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {!loading && Array.isArray(filteredChats) && filteredChats.map((chat) => {
+                    const isSelected = selectedChat && (typeof selectedChat === 'string' ? selectedChat === chat._id : selectedChat._id === chat._id);
+                    const time = new Date(chat.lastMessage.createdAt).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                    })
+
+                    return (
                         <div
                             key={chat._id}
                             onClick={() => handleChatClick(chat)}
-                            className="chat-list-item flex w-full cursor-pointer dark:hover:bg-zinc-950 items-center gap-5 py-4 px-5 border-b border-zinc-200 dark:border-zinc-800"
+                            className={`chat-list-item flex items-center gap-3.5 px-1 py-2 cursor-pointer transition-all duration-200 ${isSelected
+                                ? "bg-indigo-50/70 dark:bg-indigo-950/20 shadow-sm"
+                                : "hover:bg-slate-100/50 dark:hover:bg-zinc-900/40"
+                                }`}
                         >
-                            <div className="pfp-user-details flex justify-between w-full gap-5">
-                                <div className="flex items-center w-full gap-4">
-                                    <div className="pfp-wrapper relative">
-                                        <img
-                                            src={getImageUrl(chat.participant?.pfp)}
-                                            className="min-w-10 min-h-10 h-10 w-10 rounded-full"
-                                            alt=""
-                                        />
-                                        {onlineUsers.includes(chat.participant?._id) && (
-                                            <span className="w-3 h-3 rounded-full bg-green-700 absolute bottom-0 right-1" />
-                                        )}
-                                    </div>
-                                    <div className="user-details flex flex-1 w-full flex-col gap-1">
-                                        <div className="name-and-time flex w-full items-center justify-between">
-                                            <p className="user-name truncate-text max-w-30 dark:text-white text-sm">
-                                                {chat.participant?.name}
-                                            </p>
-                                            <p className="time text-xs dark:text-zinc-300">
-                                                {chat?.lastMessage?.createdAt &&
-                                                    new Date(chat.lastMessage.createdAt).toLocaleTimeString("en-GB", {
-                                                        hour: "2-digit",
-                                                        minute: "2-digit",
-                                                    })}
-                                            </p>
-                                        </div>
-                                        {user?.showLastMessage ? (
-                                            <p className="last-message dark:text-zinc-400 text-sm max-w-50 truncate-text">
-                                                {chat?.lastMessage?.sender?._id === user.id && (
-                                                    <span className="dark:text-zinc-100">You: </span>
-                                                )}
-                                                {chat?.lastMessage?.content}
-                                            </p>
-                                        ) : (
-                                            <p className="user-username dark:text-zinc-400 font-bold max-w-50 text-xs">
-                                                {chat.participant?.username}
-                                            </p>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="read-count-wrapper flex justify-end items-center">
-                                    {chat.unreadCount > 0 && (
-                                        <span className="unread-count bg-red-600 rounded-full text-white w-5 h-5 justify-center items-center flex text-xs">
-                                            {chat.unreadCount}
-                                        </span>
-                                    )}
-                                </div>
+                            <div className="relative flex-shrink-0">
+                                <img
+                                    src={getImageUrl(chat.participant?.pfp)}
+                                    className="h-11 w-11 rounded-full object-cover border border-slate-100 dark:border-zinc-800"
+                                    alt={chat.participant?.name || "User"}
+                                />
+                                {onlineUsers.includes(chat.participant?._id) && (
+                                    <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-zinc-950 absolute bottom-0 right-0" />
+                                )}
                             </div>
+
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-baseline justify-between mb-0.5">
+                                    <h4 className={`text-xs truncate ${isSelected ? "text-indigo-600 dark:text-indigo-400" : "text-slate-800 dark:text-zinc-200"}`}>
+                                        {chat.participant?.name}
+                                    </h4>
+                                    <span className="text-2xs text-slate-400 dark:text-zinc-500 whitespace-nowrap">
+                                        {chat?.lastMessage?.createdAt && time}
+
+                                    </span>
+                                </div>
+
+                                {user?.showLastMessageInList ? (
+                                    <p className="text-xs text-slate-400 dark:text-zinc-400 truncate pr-4">
+                                        {chat?.lastMessage?.sender?._id === user.id && (
+                                            <span className="text-slate-500 dark:text-zinc-300 font-medium">You: </span>
+                                        )}
+                                        {chat?.lastMessage?.content}
+                                    </p>
+                                ) : (
+                                    <p className="text-xs text-slate-400 dark:text-zinc-500 font-medium truncate">
+                                        @{chat.participant?.username}
+                                    </p>
+                                )}
+                            </div>
+
+                            {chat.unreadCount > 0 && (
+                                <span className="flex-shrink-0 bg-indigo-600 text-white font-bold rounded-full min-w-5 h-5 px-1.5 flex justify-center items-center text-[10px] shadow-sm shadow-indigo-500/20">
+                                    {chat.unreadCount}
+                                </span>
+                            )}
                         </div>
-                    ))}
+                    );
+                })}
             </div>
 
             {/* Footer (Profile section) */}
-            <div className="chats-list-header bg-slate-100 dark:bg-zinc-900 border-t border-zinc-800 flex flex-row items-center h-21 px-5 justify-between">
+            <div className="bg-slate-50 dark:bg-zinc-950 border-t border-slate-200/60 dark:border-zinc-900/60 flex flex-row items-center h-20 px-4 justify-between">
                 {user && (
-                    <div className="relative flex flex-row gap-2 items-center" ref={dropdownRef}>
+                    <div className="relative flex flex-row gap-3 items-center" ref={dropdownRef}>
                         <div
-                            className="profile flex gap-3 items-center rounded-full bg-zinc-200 p-1 dark:bg-zinc-800 cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-700 transition"
+                            className="profile flex items-center justify-center rounded-full bg-slate-200 dark:bg-zinc-800 p-0.5 cursor-pointer hover:scale-105 transition-all duration-300 ring-2 ring-slate-200/20 dark:ring-zinc-700/30"
                             onClick={() => setSliderMenu(!sliderMenu)}
                         >
-                            <img src={getImageUrl(user?.pfp)} className="pfp w-12 h-12 bg-fill rounded-full" alt="Profile" />
+                            <img src={getImageUrl(user?.pfp)} className="w-10 h-10 object-cover rounded-full" alt="Profile" />
                         </div>
-                        <div className="chat-header-labels flex gap-1 flex-col">
-                            <p className="chat-user-username dark:text-gray-400 text-sm">{user.username}</p>
-                            <p className="chat-user-name text-green-500 flex gap-1 text-xs items-center">
-                                <span className="h-2 w-2 rounded-full bg-green-500 block" />Online
+                        <div className="flex flex-col min-w-0">
+                            <p className="font-semibold text-slate-800 dark:text-zinc-200 text-sm truncate max-w-28">{user.name || user.username}</p>
+                            <p className="text-emerald-500 flex gap-1 text-[11px] items-center font-medium">
+                                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />Online
                             </p>
                         </div>
                         <div
-                            className={`fixed left-0 ${sliderMenu ? 'bottom-0' : 'bottom-[-400px]'} transition-all duration-500 mt-2 w-48 bg-white dark:bg-zinc-800 shadow-lg rounded-md z-10`}
+                            className={`fixed left-4 ${sliderMenu ? 'bottom-22 opacity-100 scale-100' : 'bottom-[-100px] opacity-0 scale-95 pointer-events-none'} transition-all duration-300 w-48 bg-white dark:bg-zinc-900 shadow-xl border border-slate-100 dark:border-zinc-800/80 rounded-xl z-50`}
                         >
-                            <ul className="py-2">
-                                <li onClick={() => navigate('/chats/profile')} className="flex items-center px-4 gap-5 py-2 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-600 cursor-pointer transition">
-                                    <i className="fas fa-user"></i> <span> Profile</span>
+                            <ul className="py-1">
+                                <li onClick={() => { setSliderMenu(false); navigate('/chats/profile'); }} className="flex items-center px-4 gap-3 py-2.5 text-sm text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 cursor-pointer transition">
+                                    <i className="fa-solid fa-user text-slate-400 dark:text-zinc-500"></i> <span>Profile Settings</span>
                                 </li>
                                 <li
-                                    className="flex items-center gap-4 px-4 py-2 text-sm text-zinc-300 hover:bg-zinc-300 dark:hover:bg-zinc-600 cursor-pointer transition"
+                                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 cursor-pointer transition border-t border-slate-100 dark:border-zinc-800/80"
                                     onClick={handleLogout}
                                 >
-                                    <LogOut size={20} /> Logout
+                                    <LogOut size={15} /> Logout
                                 </li>
                             </ul>
                         </div>
                     </div>
                 )}
-                <button className="dark:text-white text-sm me-5" onClick={() => setShowSearchUsers(true)}>
-                    <UserRoundPlus onClick={() => navigate('/chats/contacts')} />
-                </button>
+
+                <div className="flex gap-2">
+                    <button
+                        className="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition cursor-pointer"
+                        onClick={() => navigate('/chats/contacts')}
+                        title="Add Contacts"
+                    >
+                        <UserRoundPlus size={17} />
+                    </button>
+                </div>
             </div>
         </div>
     );
-
 }

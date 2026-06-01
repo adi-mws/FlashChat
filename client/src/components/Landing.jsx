@@ -8,11 +8,25 @@ export default function Landing() {
   return (
     <div className='Landing w-full flex items-center flex-col'>
       <div className='hero-section-content min-h-screen items-center flex w-full flex-col gap-8 md:p-10 xl:p-17 sm:p-8 p-2 sm:mt-0 mt-30'>
-        <p className="hero-section-title text-3xl w-full font-bold bg-gradient-to-b text-white lg:text-8xl md:text-5xl xs:text-4xl text-center">Talk One-on-One. Fast, Secure, Limitless</p>
-        <p className="hero-section-description text-gray-800 sm:w-[70%] w-[100%] dark:text-gray-300 text-center">FlashChat is a simple application which connects two users on a chat for real time communication. Simply search the user with the registered email and start chatting.</p>
-        <div className="flex gap-5 flex-col items-center md:flex-row">
-          <button className="rounded-md font-bold bg-primary-1 text-white hover:scale-105 transition sm:text-md md:w-auto w-[80dvw] duration-300 text-sm py-4 lg:px-15 px-8" onClick={() => { navigate(user ? '/chats' : '/login') }}>Start Chatting</button>
-          <button onClick={() => { navigate('/about') }} className="rounded-md text-sm sm:text-md text-zinc-400 font-bold bg-gray-1000 md:w-auto w-[80dvw] hover:scale-105 transition duration-300 py-4 lg:px-10 px-8 border-1 border-zinc-400 hover:bg-orange-1000">About Application</button>
+        <h1 className="hero-section-title text-4xl w-full font-extrabold lg:text-7xl md:text-5xl xs:text-4xl text-center text-white tracking-tight">
+          Talk One-on-One. Fast, Secure, Limitless
+        </h1>
+        <p className="hero-section-description text-slate-600 sm:w-[70%] w-[100%] dark:text-zinc-400 text-center text-sm sm:text-base leading-relaxed">
+          FlashChat is a simple application which connects two users on a chat for real time communication. Simply search the user with the registered email and start chatting.
+        </p>
+        <div className="flex gap-4 flex-col items-center md:flex-row mt-2">
+          <button 
+            className="rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white hover:scale-[1.02] active:scale-95 transition sm:text-md md:w-auto w-[80vw] duration-200 text-sm py-3.5 lg:px-12 px-8 shadow-md shadow-indigo-500/10 cursor-pointer" 
+            onClick={() => { navigate(user ? '/chats' : '/login') }}
+          >
+            Start Chatting
+          </button>
+          <button 
+            onClick={() => { navigate('/about') }} 
+            className="rounded-xl text-sm sm:text-md text-slate-600 dark:text-zinc-300 font-bold bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 md:w-auto w-[80vw] hover:scale-[1.02] active:scale-95 hover:bg-slate-50 dark:hover:bg-zinc-800 transition duration-200 py-3.5 lg:px-10 px-8 shadow-sm cursor-pointer"
+          >
+            About Application
+          </button>
         </div>
       </div>
 

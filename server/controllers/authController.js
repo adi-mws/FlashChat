@@ -11,6 +11,19 @@ import crypto from 'crypto';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const isProduction = process.env.NODE_ENV === 'production';
+const getCookieOptions = (maxAge = null) => {
+  const options = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'None' : 'Lax',
+  };
+  if (maxAge !== null) {
+    options.maxAge = maxAge;
+  }
+  return options;
+};
+
 
 export const registerUser = async (req, res) => {
   const { email, password, username, name } = req.body;
@@ -92,12 +105,7 @@ export const loginUser = async (req, res) => {
     );
 
     // Set token in HTTP-only cookie
-    res.cookie('token', token, {
-      httpOnly: true,       // Prevent client-side access
-      secure: process.env.NODE_ENV === 'production',  // Secure in production
-      sameSite: 'None',   // Prevent CSRF attacks
-      maxAge: 7 * 24 * 60 * 60 * 1000  // 7 days expiration
-    });
+    res.cookie('token', token, getCookieOptions(7 * 24 * 60 * 60 * 1000));
 
     // Send response with user details
     res.status(200).json({
@@ -107,7 +115,8 @@ export const loginUser = async (req, res) => {
         name: user.name,
         username: user.username,
         email: user.email,
-        pfp: user.pfp
+        pfp: user.pfp,
+        showLastMessageInList: user.showLastMessageInList
       },
       token // Also send the token in response
     });
@@ -125,16 +134,14 @@ export const googleAuthPreCheck = async (req, res) => {
   const { token } = req.body;
 
   try {
-
     const ticket = await client.verifyIdToken({
       idToken: token,
       audience: process.env.GOOGLE_CLIENT_ID
     });
 
-
-    const { email, sub } = ticket.getPayload();
-    const user = await User.findOne({ email: email, type: 'google', googleId: sub });
-    // console.log("User detection Pre AUth: ", user);
+    const { email } = ticket.getPayload();
+    // Check if any user with this email exists (whether local or Google)
+    const user = await User.findOne({ email });
     if (!user) {
       return res.status(200).json({ available: false });
     } else {
@@ -144,6 +151,7 @@ export const googleAuthPreCheck = async (req, res) => {
     return res.status(500).json({ message: 'Error in google auth pre-check' });
   }
 }
+
 export const googleAuth = async (req, res) => {
   const { token, username, available } = req.body;
 
@@ -156,11 +164,24 @@ export const googleAuth = async (req, res) => {
 
     const { sub: googleId, email, name, picture } = ticket.getPayload();
 
-    // --- CASE 1: Login Flow ---
     if (available) {
-      const user = await User.findOne({ email, googleId, type: 'google' });
+      // Find user by email
+      const user = await User.findOne({ email });
       if (!user) {
-        return res.status(404).json({ message: 'User not found for Google login' });
+        return res.status(404).json({ message: 'User not found' });
+      }
+
+      let updated = false;
+      if (!user.googleId) {
+        user.googleId = googleId;
+        updated = true;
+      }
+      if (!user.pfp && picture) {
+        user.pfp = picture;
+        updated = true;
+      }
+      if (updated) {
+        await user.save();
       }
 
       const jwtToken = jwt.sign(
@@ -169,12 +190,7 @@ export const googleAuth = async (req, res) => {
         { expiresIn: process.env.JWT_EXPIRES_IN }
       );
 
-      res.cookie('googleToken', jwtToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'None',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
+      res.cookie('token', jwtToken, getCookieOptions(7 * 24 * 60 * 60 * 1000));
 
       return res.status(200).json({
         message: 'Google login successful',
@@ -184,7 +200,8 @@ export const googleAuth = async (req, res) => {
           name: user.name,
           email: user.email,
           pfp: user.pfp,
-          type: 'google',
+          type: user.googleId ? 'google' : 'normal',
+          showLastMessageInList: user.showLastMessageInList
         },
       });
     }
@@ -196,13 +213,41 @@ export const googleAuth = async (req, res) => {
         return res.status(409).json({ message: 'Username already taken' });
       }
 
-      // Step 2: Check if the Google account already exists
-      const existingGoogleUser = await User.findOne({ email, googleId });
-      if (existingGoogleUser) {
-        return res.status(409).json({ message: 'Google account already registered' });
+      // Step 2: Check if the Google account or email already exists
+      const existingUserByEmail = await User.findOne({ email });
+      if (existingUserByEmail) {
+        // If email already exists, link Google ID and log them in
+        let updated = false;
+        if (!existingUserByEmail.googleId) {
+          existingUserByEmail.googleId = googleId;
+          updated = true;
+        }
+        if (updated) {
+          await existingUserByEmail.save();
+        }
+
+        const jwtToken = jwt.sign(
+          { id: existingUserByEmail._id, email: existingUserByEmail.email, name: existingUserByEmail.name, pfp: existingUserByEmail.pfp },
+          process.env.JWT_SECRET,
+          { expiresIn: process.env.JWT_EXPIRES_IN }
+        );
+
+        res.cookie('token', jwtToken, getCookieOptions(7 * 24 * 60 * 60 * 1000));
+
+        return res.status(200).json({
+          message: 'Google account linked and logged in successfully',
+          user: {
+            id: existingUserByEmail._id,
+            username: existingUserByEmail.username,
+            name: existingUserByEmail.name,
+            email: existingUserByEmail.email,
+            pfp: existingUserByEmail.pfp,
+            type: 'google',
+            showLastMessageInList: existingUserByEmail.showLastMessageInList
+          },
+        });
       }
 
-      // Step 3: Register new user
       const newUser = await User.create({
         googleId,
         username,
@@ -218,12 +263,7 @@ export const googleAuth = async (req, res) => {
         { expiresIn: process.env.JWT_EXPIRES_IN }
       );
 
-      res.cookie('googleToken', jwtToken, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'None',
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
+      res.cookie('token', jwtToken, getCookieOptions(7 * 24 * 60 * 60 * 1000));
 
       return res.status(201).json({
         message: 'Google registration successful',
@@ -234,6 +274,7 @@ export const googleAuth = async (req, res) => {
           email: newUser.email,
           pfp: newUser.pfp,
           type: 'google',
+          showLastMessageInList: newUser.showLastMessageInList
         },
       });
     }
@@ -273,17 +314,9 @@ export const isUsernameExists = async (req, res) => {
 // Logout user
 export const logoutUser = async (req, res) => {
   try {
-    res.clearCookie('googleToken', {
-      httpOnly: true,
-      sameSite: 'None',
-      secure: process.env.NODE_ENV === 'production',
-    });
+    res.clearCookie('googleToken', getCookieOptions());
 
-    res.clearCookie('token', {
-      httpOnly: true,
-      sameSite: 'None',
-      secure: process.env.NODE_ENV === 'production',
-    });
+    res.clearCookie('token', getCookieOptions());
 
     return res.status(200).json({ message: 'Logged out successfully' });
   } catch (error) {
@@ -322,7 +355,7 @@ export const verifyUserDetails = async (req, res) => {
           return res.status(404).json({ message: 'User not found' });
         }
         else {
-          return res.status(200).json({ id: user._id, email: user.email, username: user.username, showLastMessage: user.showLastMessageInList, pfp: user.pfp, name: user.name })
+          return res.status(200).json({ id: user._id, email: user.email, username: user.username, showLastMessageInList: user.showLastMessageInList, pfp: user.pfp, name: user.name })
         }
       });
     }

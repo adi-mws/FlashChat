@@ -2,7 +2,7 @@
 import Chat from "../models/chat.js";
 import User from "../models/user.js";
 import { json } from "express";
-import { io } from "../server.js";
+import { io } from "../socket/index.js";
 import Message from "../models/message.js";
 import mongoose from "mongoose";
 
@@ -83,12 +83,25 @@ export const getMessages = async (req, res) => {
         const messages = await Message.find({ chat: _id })
             .populate('sender', 'name username pfp') // populate sender details
             .sort({ createdAt: 1 }) // you can change to -1 if you want latest first
+            .lean();
 
-        if (!messages || messages.length === 0) {
+        const formattedMessages = (messages || []).map(msg => {
+            if (!msg.sender) {
+                msg.sender = {
+                    _id: "deleted_user",
+                    name: "Deleted User",
+                    username: "deleted_user",
+                    pfp: ""
+                };
+            }
+            return msg;
+        });
+
+        if (formattedMessages.length === 0) {
             return res.status(200).json({ messages: [], message: "No messages in this chat!" });
         }
 
-        res.status(200).json({ messages, message: "Messages fetched successfully!" });
+        res.status(200).json({ messages: formattedMessages, message: "Messages fetched successfully!" });
     } catch (e) {
         console.error("Error fetching messages:", e);
         res.status(500).json({ message: 'Internal Server Error' });

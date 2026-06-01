@@ -1,38 +1,18 @@
-import React, { useState, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../hooks/AuthContext";
-import { useNotification } from "../hooks/NotificationContext";
-import { useTheme } from "../hooks/ThemeContext";
+import React from "react";
+import { Link } from "react-router-dom";
+import { Flame } from "lucide-react";
 
 export default function ChatListHeader() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const { user, logout } = useAuth();
-  const { showNotification } = useNotification();
-  const navigate = useNavigate();
-  const { theme, setTheme } = useTheme();
-
   return (
-    <>
-      <div className="ChatHeader flex bg-white z-100 w-full dark:bg-zinc-900 border-b-1 dark:border-zinc-800 border-zinc-100 text-sm shadow-sm px-2 h-[60px] justify-between flex-row items-center">
-        <div className="flex items-center flex-row gap-5">
-          {/* <div className="menu-icon dark:text-white sm-inline-block md:hidden" onClick={() => setMenuOpen(!menuOpen)}>
-            <i className="fa-solid fa-bars"></i>
-          </div> */}
-           <Link to="/" className="logo text-lg dark:text-white flex gap-2 items-center"><img className="h-10 w-10 rounded-full text-xs" src='/imgs/logo.png' alt='logo'/>FlashChat</Link>
-
+    <div className="ChatHeader flex bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md z-10 w-full border-b border-slate-200/50 dark:border-zinc-900 text-sm px-4 h-[64px] items-center justify-between">
+      <Link to="/chats" className="logo text-lg font-bold dark:text-white flex gap-2 items-center tracking-tight">
+        <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-indigo-500 text-white shadow-sm shadow-indigo-500/20">
+          <Flame size={18} fill="white" />
         </div>
-
-        {/* Navigation Links */}
-        <nav className={`nav-links ${menuOpen ? "open" : ""} flex flex-row gap-4`}>
-          <button className="w-[40px] h-[40px] hidden dark:bg-gray-800 bg-gray-50 hover:bg-gray-100 dark:hover:bg-gray-700 transition duration-300 dark:text-white rounded-full"
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}>
-            <i className={`fa-solid fa-${theme === "dark" ? "sun" : "moon"} text-md`}></i>
-            
-          </button>
-
-
-        </nav>
-      </div>
-    </>
+        <span className="text-slate-900 dark:text-white">
+          FlashChat
+        </span>
+      </Link>
+    </div>
   );
 }

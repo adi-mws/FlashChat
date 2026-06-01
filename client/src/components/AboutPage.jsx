@@ -30,26 +30,25 @@ export default function AboutPage() {
 
 
   }, []);
-
   return (
-    <div className="AboutPage w-full min-h-screen bg-zinc-950 py-10 px-4">
-      <h1 className="text-white text-2xl font-semibold mb-6 text-center">App Update History</h1>
+    <div className="AboutPage w-full min-h-screen bg-slate-50 dark:bg-zinc-950 py-12 px-4 transition-colors duration-200">
+      <h1 className="text-slate-800 dark:text-white text-2xl font-bold mb-8 text-center tracking-tight">App Update History</h1>
       <div className="update-container flex flex-col gap-6 max-w-3xl mx-auto">
         {updates.map((item, index) => (
           <div
             key={index}
-            className="update flex flex-col gap-3 rounded-lg shadow-sm p-6 dark:bg-zinc-900 border border-zinc-800"
+            className="update flex flex-col gap-4 rounded-2xl shadow-sm p-6 bg-white dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-800/80 hover:shadow-md transition duration-200"
           >
-            <div className="title-container flex flex-col md:flex-row justify-between items-center gap-2">
-              <p className="dark:text-white font-bold text-lg text-center md:text-left">{item.title}</p>
-              <div className="flex gap-3 items-center">
-                <span className="text-xs text-zinc-400">{item.date}</span>
-                <span className="bg-primary text-white text-sm font-medium rounded-md py-1 px-4">
+            <div className="title-container flex flex-col md:flex-row justify-between items-center gap-3">
+              <p className="text-slate-800 dark:text-white font-bold text-lg text-center md:text-left tracking-tight">{item.title}</p>
+              <div className="flex gap-3 items-center flex-shrink-0">
+                <span className="text-xs text-slate-400 dark:text-zinc-500 font-medium">{item.date}</span>
+                <span className="bg-indigo-500 text-white text-xs font-semibold rounded-lg py-1 px-3 shadow-sm">
                   Version {item.version}
                 </span>
               </div>
             </div>
-            <p className="text-sm dark:text-gray-300 text-gray-600">{item.description}</p>
+            <p className="text-sm text-slate-600 dark:text-zinc-400 leading-relaxed whitespace-pre-line">{item.description}</p>
           </div>
         ))}
       </div>

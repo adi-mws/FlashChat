@@ -4,23 +4,16 @@ const ThemeContext = createContext();
 
 
 export const ThemeProvider = ({ children }) => {
-    
-    const [theme, setTheme] = useState('light');  
-   
+    const [theme, setTheme] = useState('dark');  
 
-    useEffect(() => {
-        setTheme('dark');
-    }, [])
     useEffect(() => {
         const root = window.document.documentElement; 
-
-        root.classList.remove('dark', 'light');
-        root.classList.add(theme);
-
-    }, [theme]);
+        root.classList.remove('light');
+        root.classList.add('dark');
+    }, []);
 
     return (
-        <ThemeContext.Provider value={{ theme, setTheme }}>
+        <ThemeContext.Provider value={{ theme, setTheme: () => {} }}>
             {children}
         </ThemeContext.Provider>
     );

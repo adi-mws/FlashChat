@@ -3,18 +3,13 @@ import dotenv from 'dotenv';
 import http from 'http';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import { Server } from 'socket.io';
 import path from 'path';
 
 import connectDB from './lib/connectDb.js';
 import authRoutes from './routes/authRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import userRoutes from './routes/userRoutes.js';
-
-import Chat from './models/chat.js';
-import Message from './models/message.js';
-import socketAuth from './middlewares/socketAuth.js';
-import User from './models/user.js';
+import { initSocket } from './socket/index.js';
 
 dotenv.config();
 
@@ -41,115 +36,7 @@ app.use('/api/chats', chatRoutes);
 app.use('/api/user', userRoutes);
 
 
-const io = new Server(server, {
-  cors: {
-    origin: process.env.CLIENT_URL,
-    methods: ['GET', 'POST'],
-    credentials: true,
-  },
-});
-
-
-io.use(socketAuth);
-
-// Track users
-const users = new Map();       
-const socketUserMap = new Map(); 
-
-io.on("connection", (socket) => {
-  console.log("Socket connected:", socket.id);
-
-  socket.on("join", (userId) => {
-    if (!userId) return;
-    users.set(userId, socket.id);
-    socketUserMap.set(socket.id, userId);
-    console.log(`User ${userId} joined`);
-
-    io.emit("onlineUsers", [...users.keys()]);
-  });
-
-  socket.on("joinChat", async ({ chatId }) => {
-    try {
-      socket.join(chatId);
-      console.log(`${socket.id} joined chat room ${chatId}`);
-
-      const messages = await Message.find({ chat: chatId })
-        .populate("sender", "name username pfp")
-        .sort({ createdAt: 1 });
-
-      socket.emit("chatMessages", messages);
-    } catch (error) {
-      console.error("joinChat error:", error);
-      socket.emit("chatMessagesError", "Could not load messages.");
-    }
-  });
-
-  socket.on("leaveChat", ({ chatId }) => {
-    socket.leave(chatId);
-    console.log(`${socket.id} left chat room ${chatId}`);
-  });
-
-  socket.on("sendMessage", async ({ chatId, message, receiverId }) => {
-    try {
-      const newMessage = await Message.create({
-        chat: chatId,
-        sender: socket.user.id,
-        content: message,
-        readBy: [socket.user.id],
-      });
-
-      await Chat.findByIdAndUpdate(chatId, { lastMessage: newMessage._id });
-
-      const populatedMsg = await newMessage.populate("sender", "_id name username pfp");
-
-      io.to(chatId).emit("newMessage", populatedMsg);
-    } catch (error) {
-      console.error("sendMessage error:", error);
-    }
-  });
-
-
-
-  socket.on("seenMessage", async ({ messageId, chatId, senderId }) => {
-    try {
-      await Message.findByIdAndUpdate(messageId, {
-        $addToSet: { readBy: socket.user.id },
-      });
-
-      const senderSocket = users.get(senderId);
-      if (senderSocket) {
-        io.to(senderSocket).emit("receiverSeenMessage", {
-          chatId,
-          messageId,
-          receiverId: socket.user.id,
-        });
-      }
-    } catch (error) {
-      console.error("seenMessage error:", error);
-    }
-  });
-
-  socket.on("disconnect", () => {
-    const userId = socketUserMap.get(socket.id);
-    if (userId) {
-
-      users.delete(userId);
-      socketUserMap.delete(socket.id);
-      console.log(`User ${userId} disconnected`);
-      const updateOnlineStatus = async () => {
-        await User.findByIdAndUpdate(userId, { lastOnline: Date.now() })
-      }
-      updateOnlineStatus();
-      for (const room of socket.rooms) {
-        if (room !== socket.id) {
-          socket.leave(room);
-        }
-      }
-
-      io.emit("onlineUsers", [...users.keys()]);
-    }
-  });
-});
+initSocket(server);
 
 
 app.get('/', (_, res) => {
@@ -161,4 +48,5 @@ server.listen(PORT, () => {
   console.log(`Server is running on ${PORT}`);
 });
 
-export { io, socketUserMap, users };
+export { io } from './socket/index.js';
+export { users, socketUserMap } from './socket/store.js';

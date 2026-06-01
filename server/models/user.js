@@ -6,15 +6,11 @@ const userSchema = new mongoose.Schema({
   email: { type: String, required: true },
   password: {
     type: String,
-    required: function () {
-      return this.type === 'normal';
-    }
+    required: false
   },
   googleId: {
     type: String,
-    required: function () {
-      return this.type === 'google';
-    }
+    required: false
   },
   pfp: {
     type: String,
@@ -23,7 +19,8 @@ const userSchema = new mongoose.Schema({
   type: {
     type: String,
     enum: ['normal', 'google'],
-    required: true
+    required: false,
+    default: 'normal'
   },
   lastOnline: {
     type: Date,

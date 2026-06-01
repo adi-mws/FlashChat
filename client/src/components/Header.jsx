@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/AuthContext";
 import { useNotification } from "../hooks/NotificationContext";
-import { useTheme } from "../hooks/ThemeContext";
+
 import { LogOut, Settings, User } from "lucide-react";
 import { getImageUrl } from "../utils/imageUtils";
 
@@ -12,7 +12,7 @@ export default function Header() {
   const { user, logout } = useAuth();
   const { showNotification } = useNotification();
   const navigate = useNavigate();
-  const { theme, setTheme } = useTheme();
+
   const dropdownRef = useRef(null);
 
   useEffect(() => {
@@ -36,10 +36,10 @@ export default function Header() {
   return (
     <>
       <div className="header-relative h-[60px] w-full"></div>
-      <header className="header fixed top-0 left-0 bg-white z-100 dark:bg-black text-sm shadow-sm flex px-5 sm:px-10 h-[60px] w-full justify-between flex-row items-center">
+      <header className="header fixed top-0 left-0 bg-zinc-950 border-b border-zinc-900 z-100 text-sm shadow-sm flex px-5 sm:px-10 h-[60px] w-full justify-between flex-row items-center">
         <div className="flex items-center flex-row gap-5">
-          <Link to="/" className="logo text-lg dark:text-white flex gap-2 items-center"><img className="h-10 w-10 rounded-full text-xs" src='/imgs/logo.png' alt='logo'/>FlashChat <span className="bg-zinc-800 sm:block hidden text-sm font-secondary text-white px-2 py-0.5 rounded-md ml-2">v2.1</span>
-</Link>
+          <Link to="/" className="logo text-lg text-white flex gap-2 items-center"><img className="h-10 w-10 rounded-full text-xs" src='/imgs/logo.png' alt='logo'/>FlashChat <span className="bg-zinc-800 sm:block hidden text-sm font-secondary text-white px-2 py-0.5 rounded-md ml-2">v2.1</span>
+          </Link>
         </div>
 
         {/* Navigation Links */}
