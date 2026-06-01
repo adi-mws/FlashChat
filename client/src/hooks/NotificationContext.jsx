@@ -81,7 +81,7 @@ export const NotificationProvider = ({ children }) => {
 
                             {/* Message Content */}
                             <div className="flex-1 min-w-0">
-                                <p className="text-sm font-medium text-slate-800 dark:text-zinc-100 leading-normal break-words">
+                                <p className="text-xs font-medium text-slate-800 dark:text-zinc-100 leading-normal break-words">
                                     {n.message}
                                 </p>
                             </div>

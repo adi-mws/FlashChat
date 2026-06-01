@@ -32,7 +32,6 @@ export default function LoginForm() {
 
       if (response.status === 200) {
         setUser(response.data.user);
-        showNotification("success", response.data.message);
         setLoading(false);
         navigate('/chats');
       }
@@ -47,7 +46,7 @@ export default function LoginForm() {
 
   const handleGoogleSuccess = async (credentialResponse) => {
     setGoogleCredentialResponse(credentialResponse);
-   
+
     try {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/google-check`, { token: credentialResponse.credential }, { withCredentials: true });
       if (response.status === 200) {
@@ -90,22 +89,22 @@ export default function LoginForm() {
   };
 
   return (
-    <div className="min-h-[85vh] w-full flex items-center justify-center p-6 bg-slate-50/50 dark:bg-zinc-950/40">
-      <div className="w-full max-w-md bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800 shadow-xl rounded-2xl p-8 space-y-6 animate-scale-in">
-        
+    <div className="mt-10 w-full flex items-center justify-center p-1 bg-slate-50/50 dark:bg-zinc-950/40">
+      <div className="w-full max-w-md bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800 shadow-xl rounded-2xl p-4 sm:p-6 md:p-8 space-y-6 animate-scale-in">
+
         {/* Branding & Header */}
         <div className="flex flex-col items-center text-center space-y-2">
           <div className="flex items-center justify-center h-12 w-12 rounded-xl bg-indigo-500 text-white shadow-md shadow-indigo-500/20 mb-1">
             <Flame size={24} fill="white" />
           </div>
-          <h2 className="text-2xl font-bold tracking-tight text-slate-800 dark:text-zinc-100">Welcome Back!</h2>
-          <p className="text-sm text-slate-500 dark:text-zinc-400">
+          <h2 className="text-md sm:text-lg md:text-xl lg:text-2xl font-bold tracking-tight text-slate-800 dark:text-zinc-100">Welcome Back!</h2>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400">
             Login and start chatting with your friends instantly
           </p>
         </div>
 
         {/* Manual Login Form */}
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="">
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400">Username</label>
             <input
@@ -166,12 +165,13 @@ export default function LoginForm() {
         </div>
 
         {/* Google Authentication */}
-        <div className="flex justify-center w-full overflow-hidden rounded-xl border border-slate-200 dark:border-zinc-800/80 shadow-sm">
-          <div className="w-full flex justify-center py-0.5 bg-slate-50 dark:bg-zinc-950">
-            <GoogleLogin 
-              size="large" 
-              text="continue_with" 
-              theme={theme === 'dark' ? 'filled_black' : 'outline'}
+        <div className="w-full overflow-hidden rounded-xl border border-slate-200 dark:border-zinc-800/80 shadow-sm">
+          <div className="w-full b-1">
+            <GoogleLogin
+              width="100%"
+              size="large"
+              text="continue_with"
+              theme={theme === "dark" ? "filled_black" : "outline"}
               onSuccess={handleGoogleSuccess}
               onError={handleGoogleFailure}
             />
@@ -189,7 +189,7 @@ export default function LoginForm() {
           </Link>
         </p>
 
-        <UserNameForm setShowForm={setShowUsernameForm} showForm={showUsernameForm} credentialResponse={googleCredentialResponse}/>
+        <UserNameForm setShowForm={setShowUsernameForm} showForm={showUsernameForm} credentialResponse={googleCredentialResponse} />
       </div>
     </div>
   );

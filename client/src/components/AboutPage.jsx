@@ -6,21 +6,29 @@ export default function AboutPage() {
   useEffect(() => {
     setUpdates([
       {
-        version: '2.1',
+        version: '2.2.0',
+        date: 'June 1, 2026',
+        title: 'Major UI Refresh, Bug Fixes & Stability Improvements',
+        description:
+          'FlashChat v2.3.0 introduces a significant UI refresh with a cleaner messaging experience, improved chat layouts, and better overall organization across the application. Contact management and friend request workflows have been refined to provide a smoother and more seamless user experience. Numerous bugs have been fixed throughout the app, improving stability, responsiveness, and reliability. Performance optimizations and interface enhancements make FlashChat feel faster, more polished, and easier to navigate.',
+      },
+
+      {
+        version: '2.1.0',
         date: 'July 26, 2025',
         title: 'Minor Fixes & Navigation Improvements',
         description:
           'Fixed small bugs related to UI alignment and login for regular accounts. Resolved navigation errors when switching between profile, chat, and onboarding screens. App now behaves more predictably on slow networks and mobile devices.',
       },
       {
-        version: '2.0',
+        version: '2.0.0',
         date: 'July 24, 2025',
         title: 'Friend System, Profiles & Messaging Overhaul',
         description:
           'FlashChat has been reimagined. Added a full contact system with send/receive/cancel/accept friend requests. Users now manage connections instead of blindly chatting. Introduced editable profiles for personalization. Messaging logic was streamlined — removed hybrid REST+Socket model in favor of fully socket-driven chat delivery, making communication faster and more responsive.\n\nAlso introduced a new privacy feature: the ability to hide your last message in the chat list. This idea came from a personal experience — sometimes you need privacy, and this gives you the control to manage visibility right from your profile settings.',
       },
       {
-        version: '1.0',
+        version: '1.0.0',
         date: 'April 20, 2025',
         title: 'FlashChat v1 — The Beginning',
         description:

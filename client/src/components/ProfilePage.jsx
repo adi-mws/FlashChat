@@ -116,7 +116,7 @@ export default function ProfilePage({ edit = false }) {
         <div className="w-full h-full flex flex-col bg-slate-50/50 dark:bg-zinc-950/40 overflow-y-auto animate-fade-in relative">
             
             {/* Header Navigation */}
-            <div className="h-[64px] flex items-center px-4 sm:px-8 border-b border-slate-200/50 dark:border-zinc-900 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md sticky top-0 z-10 justify-between">
+            <div className="h-[64px] flex items-center px-4 py-2 sm:px-8 border-b border-slate-200/50 dark:border-zinc-900 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md sticky top-0 z-10 justify-between">
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => navigate(-1)}

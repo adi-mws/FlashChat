@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/AuthContext";
 import { useNotification } from "../hooks/NotificationContext";
-
+import { Flame } from "lucide-react";
 import { LogOut, Settings, User } from "lucide-react";
 import { getImageUrl } from "../utils/imageUtils";
 
@@ -37,20 +37,28 @@ export default function Header() {
     <>
       <div className="header-relative h-[60px] w-full"></div>
       <header className="header fixed top-0 left-0 bg-zinc-950 border-b border-zinc-900 z-100 text-sm shadow-sm flex px-5 sm:px-10 h-[60px] w-full justify-between flex-row items-center">
-        <div className="flex items-center flex-row gap-5">
-          <Link to="/" className="logo text-lg text-white flex gap-2 items-center"><img className="h-10 w-10 rounded-full text-xs" src='/imgs/logo.png' alt='logo'/>FlashChat <span className="bg-zinc-800 sm:block hidden text-sm font-secondary text-white px-2 py-0.5 rounded-md ml-2">v2.2</span>
-          </Link>
+        <div className="flex items-center flex-row gap-2">
+          <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-indigo-500 text-white shadow-sm shadow-indigo-500/20">
+            <Flame size={18} fill="white" />
+          </div>
+          <span className="text-slate-900 text-lg font-semibold dark:text-white">
+            FlashChat
+          </span>
+
+          <span className="text-slate-500 dark:text-white text-xs dark:bg-zinc-800/50 bg-slate-200/50 px-2 py-1 rounded-md">
+            v2.2.0
+          </span>
         </div>
 
         {/* Navigation Links */}
         <nav className={`nav-links ${menuOpen ? "open" : ""} flex flex-row gap-4`}>
-         
-                        
+
+
           {user ? (
             <>
               {/* Profile Section */}
               <div className="relative" ref={dropdownRef}>
-                <div 
+                <div
                   className="profile flex gap-3 items-center py-1 px-7 bg-zinc-100 dark:bg-zinc-900 rounded-md cursor-pointer hover:bg-zinc-200 dark:hover:bg-zinc-800 transition"
                   onClick={() => setDropdownOpen(!dropdownOpen)}
                 >
@@ -64,11 +72,11 @@ export default function Header() {
                   <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 shadow-lg rounded-md z-10">
                     <ul className="py-2">
                       <li className="flex items-center px-4 gap-5 py-3 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer transition" onClick={() => navigate('/chats/profile')}>
-                        <User size={20}/> <span> Profile</span>
+                        <User size={20} /> <span> Profile</span>
                       </li>
-                     
+
                       <li className="flex items-center gap-4 px-4 py-3 text-sm text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer transition" onClick={handleLogout}>
-                        <LogOut size={20}/> Logout
+                        <LogOut size={20} /> Logout
                       </li>
                     </ul>
                   </div>
@@ -77,10 +85,10 @@ export default function Header() {
             </>
           ) : (
             <>
-              <button className="px-12 py-2 hidden md:block dark:bg-primary-1 bg-primary hover:bg-primary dark:hover:bg-primary-1 transition duration-300 text-white rounded-md" 
+              <button className="px-6 py-2 text-sm font-normal hidden md:block dark:bg-primary-1 bg-primary hover:bg-primary dark:hover:bg-primary-1 transition duration-300 text-white rounded-md"
                 onClick={() => { setMenuOpen(false); navigate("/register") }}>Register</button>
 
-              <button className="px-12 py-2 border-1 hover:bg-primary hover:text-white border-primary transition duration-300 dark:text-white rounded-md" 
+              <button className="px-7 py-2 border-1 font-light text-sm hover:bg-primary hover:text-white border-primary transition duration-300 dark:text-white rounded-md"
                 onClick={() => { setMenuOpen(false); navigate("/login"); }}>Login</button>
             </>
           )}

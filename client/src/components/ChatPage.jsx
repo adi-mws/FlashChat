@@ -199,7 +199,7 @@ export default function ChatPage() {
                         handleDelete(messageId);
                         setShowMessageOptions({ show: false });
                     }}
-                    className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-slate-50 dark:hover:bg-zinc-800 flex items-center gap-2 transition"
+                    className="w-full text-left px-4 py-2 text-xs text-red-600 dark:text-red-400 hover:bg-slate-50 dark:hover:bg-zinc-800 flex items-center gap-2 transition"
                 >
                     <Trash size={14} /> Delete
                 </button>
@@ -299,7 +299,7 @@ export default function ChatPage() {
                     <div className="flex gap-2 items-center flex-shrink-0">
                         <ArrowLeft
                             className="w-5 h-5 text-slate-600 dark:text-zinc-400 sm:hidden cursor-pointer"
-                            onClick={() => { navigate(-1); setSelectedChat(null); }}
+                            onClick={() => { navigate(-1); }}
                         />
                         <div className="relative cursor-pointer" onClick={() => navigate(`/chats/profile/${getReceiverId()}`)}>
                             <img

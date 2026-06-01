@@ -65,8 +65,8 @@ export default function RegistrationForm() {
   };
 
   return (
-    <div className="min-h-[85vh] w-full flex items-center justify-center p-6 bg-slate-50/50 dark:bg-zinc-950/40">
-      <div className="w-full max-w-md bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800 shadow-xl rounded-2xl p-8 space-y-6 animate-scale-in">
+    <div className="mt-10 w-full flex items-center justify-center p-1 bg-slate-50/50 dark:bg-zinc-950/40">
+      <div className="w-full max-w-md bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800 shadow-xl rounded-2xl p-4 sm:p-6 md:p-8 space-y-6 animate-scale-in">
         
         {/* Branding & Header */}
         <div className="flex flex-col items-center text-center space-y-2">

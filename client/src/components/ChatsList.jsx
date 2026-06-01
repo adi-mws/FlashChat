@@ -147,14 +147,14 @@ export default function ChatsList() {
             <ChatListHeader />
 
             {/* Search bar */}
-            <div className="px-4 py-2.5 relative">
-                <div className="absolute inset-y-0 left-7 flex items-center pointer-events-none text-slate-400 dark:text-zinc-500">
+            <div className="px-1 py-2.5 relative">
+                <div className="absolute inset-y-0 left-5 flex items-center pointer-events-none text-slate-400 dark:text-zinc-500">
                     <Search size={16} />
                 </div>
                 <input
                     type="text"
                     placeholder="Search chats..."
-                    className="w-full pl-10 pr-4 py-2 text-sm bg-slate-100 hover:bg-slate-200/50 focus:bg-white dark:bg-zinc-900 dark:hover:bg-zinc-900/80 dark:focus:bg-zinc-900 dark:text-zinc-200 rounded-xl outline-none border border-transparent focus:border-indigo-500/30 dark:focus:border-indigo-500/20 transition-all duration-200 placeholder-slate-400 dark:placeholder-zinc-500"
+                    className="w-full pl-10 pr-4 py-2 text-xs bg-slate-100 hover:bg-slate-200/50 focus:bg-white dark:bg-zinc-900 dark:hover:bg-zinc-900/80 dark:focus:bg-zinc-900 dark:text-zinc-200 rounded-xl outline-none border border-transparent focus:border-indigo-500/30 dark:focus:border-indigo-500/20 transition-all duration-200 placeholder-slate-400 dark:placeholder-zinc-500"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                 />
@@ -254,15 +254,16 @@ export default function ChatsList() {
                                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />Online
                             </p>
                         </div>
+                        {/* Slider Menu */}
                         <div
                             className={`fixed left-4 ${sliderMenu ? 'bottom-22 opacity-100 scale-100' : 'bottom-[-100px] opacity-0 scale-95 pointer-events-none'} transition-all duration-300 w-48 bg-white dark:bg-zinc-900 shadow-xl border border-slate-100 dark:border-zinc-800/80 rounded-xl z-50`}
                         >
                             <ul className="py-1">
-                                <li onClick={() => { setSliderMenu(false); navigate('/chats/profile'); }} className="flex items-center px-4 gap-3 py-2.5 text-sm text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 cursor-pointer transition">
+                                <li onClick={() => { setSliderMenu(false); navigate('/chats/profile'); }} className="flex items-center px-4 gap-3 py-2.5 text-xs text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 cursor-pointer transition">
                                     <i className="fa-solid fa-user text-slate-400 dark:text-zinc-500"></i> <span>Profile Settings</span>
                                 </li>
                                 <li
-                                    className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 cursor-pointer transition border-t border-slate-100 dark:border-zinc-800/80"
+                                    className="flex items-center gap-3 px-4 py-2.5 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 cursor-pointer transition border-t border-slate-100 dark:border-zinc-800/80"
                                     onClick={handleLogout}
                                 >
                                     <LogOut size={15} /> Logout

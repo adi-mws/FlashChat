@@ -98,11 +98,11 @@ export default function ContactsPage() {
         if (prev.some(c => c._id === data.chat._id)) return prev;
         return [data.chat, ...prev];
       });
-      setSentRequests(prev => prev.filter(req => req.to?._id !== data._id));
+      setSentRequests(prev => prev.filter(req => req?._id !== data._id));
     };
 
     const handleFriendRequestRejected = (data) => {
-      setSentRequests(prev => prev.filter(req => req.to?._id !== data._id));
+      setSentRequests(prev => prev.filter(req => req?._id !== data._id));
     };
 
     const handleFriendRequestCancelled = (data) => {
@@ -170,7 +170,7 @@ export default function ContactsPage() {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/user/friends/cancel`, { toUserId }, { withCredentials: true });
       if (response.status === 200) {
         showNotification("info", 'Cancelled friend request');
-        setSentRequests(prev => prev.filter(request => request.to?._id !== toUserId));
+        setSentRequests(prev => prev.filter(request => request?._id !== toUserId));
       }
     } catch (err) {
       console.error(err);
@@ -182,7 +182,7 @@ export default function ContactsPage() {
     if (!searchQuery.trim()) return dataList;
     const search = searchQuery.toLowerCase();
     return dataList.filter(req => {
-      const targetUser = selectedTab === 'received' ? req.from : req.to;
+      const targetUser = selectedTab === 'received' ? req : req;
       return (
         targetUser?.name?.toLowerCase().includes(search) ||
         targetUser?.username?.toLowerCase().includes(search)

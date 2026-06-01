@@ -1,0 +1,70 @@
+import { useAuth } from "./hooks/AuthContext";
+import { useState, useEffect } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import Landing from "./components/Landing";
+import AboutPage from "./components/AboutPage";
+import ResetPassword from "./components/forms/ResetPassword";
+import ForgotPassword from "./components/forms/ForgotPassword";
+import NoChatsFound from "./components/NoChatsFound";
+import ChatLayout from "./layouts/ChatLayout";
+import SelectChat from "./components/SelectChat";
+import ChatPage from "./components/ChatPage";
+import ProfilePage from "./components/ProfilePage";
+import ChatsList from "./components/ChatsList";
+import ContactsPage from "./components/ContactsPage";
+import LoginForm from "./components/forms/LoginForm";
+import RegistrationForm from "./components/forms/RegistrationForm";
+import WebsiteLayout from "./layouts/WebsiteLayout";
+import PublicRoutes from "../routes/PublicRoutes";
+
+export default function AppRoutes() {
+
+    const { user, loading } = useAuth();
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobile(window.innerWidth < 640);
+        };
+        window.addEventListener("resize", handleResize);
+        return () => window.removeEventListener("resize", handleResize);
+    }, []);
+
+    if (loading) return <div className="loading">Loading...</div>;
+
+    return (
+        <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<PublicRoutes><WebsiteLayout /></PublicRoutes>}>
+                <Route index element={<Landing />} />
+                {/* <Route path="/test" element={<NoChatsFound />} /> */}
+                <Route
+                    path="login"
+                    element={<LoginForm />}
+                />
+                <Route
+                    path="register"
+                    element={<RegistrationForm />}
+                />
+                <Route path="reset-password/:token" element={<ResetPassword />} />
+                <Route path="forgot-password" element={<ForgotPassword />} />
+                <Route path="about" element={<AboutPage />} />
+            </Route>
+
+            {/* Protected Chat Routes */}
+            <Route
+                path="/chats"
+                element={user ? <ChatLayout /> : <Navigate to="/" replace />}
+            >
+                <Route index element={isMobile ? <ChatsList /> : <SelectChat />} />
+                <Route path=":chatId" element={<ChatPage />} />
+                <Route path="profile" element={<ProfilePage edit={true} />} />
+                <Route path="profile/:id" element={<ProfilePage />} />
+                <Route path="contacts" element={<ContactsPage />} />
+            </Route>
+
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+    );
+};

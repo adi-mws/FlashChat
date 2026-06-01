@@ -5,8 +5,8 @@
 @theme {
     --breakpoint-xs: 576px;
     --breakpoint-2xs: 400px;
-    --color-primary: #410e85;
-    --color-primary-1: #4f0c6e;
+    --color-primary: #6366f1;
+    --color-primary-1: #4f46e5;
     --color-primary-2: #4338ca;
     --color-primary-3: rgba(99, 102, 241, 0.15);
     --text-2xs: 10px;
@@ -16,8 +16,8 @@
 :root {
     --breakpoint-xs: 576px;
     --breakpoint-2xs: 400px;
-    --color-primary: #410e85;
-    --color-primary-1: #4f0c6e;
+    --color-primary: #6366f1;
+    --color-primary-1: #4f46e5;
     --color-primary-2: #4338ca;
     --color-primary-3: rgba(99, 102, 241, 0.15);
 
@@ -149,4 +149,18 @@ button:active {
 .google-login-button-container > div {
     width: 100%;
     overflow: hidden;
+}
+
+
+
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus {
+  -webkit-text-fill-color: white;
+  transition: background-color 5000s ease-in-out 0s;
+  box-shadow: 0 0 0px 1000px transparent inset;
+
 }
