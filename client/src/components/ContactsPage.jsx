@@ -22,7 +22,8 @@ export default function ContactsPage() {
     try {
       setLoading(true);
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/user/friends/requests`, { withCredentials: true });
-      setIncomingRequests(res.data.requests || []);
+      setIncomingRequests(res.data || []);
+      console.log(res.data)
     } catch (err) {
       console.error(err);
       showNotification('Failed to load friend requests.', 'error');
@@ -136,6 +137,7 @@ export default function ContactsPage() {
   };
 
   const acceptRequest = async (fromUserId) => {
+    console.log(fromUserId)
     try {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/user/friends/accept`, { fromUserId }, { withCredentials: true });
       if (response.status === 200) {
@@ -196,6 +198,10 @@ export default function ContactsPage() {
       : selectedTab === 'sent'
         ? filteredData(sentRequests)
         : [];
+
+
+    console.log("Data is recieved");
+    console.log(data);
 
     if (selectedTab === 'new') {
       return (
@@ -335,6 +341,7 @@ export default function ContactsPage() {
   };
 
   const hasNewFriendRequests = incomingRequests.length > 0;
+
 
   return (
     <div className="w-full h-full flex flex-col bg-slate-50/50 dark:bg-zinc-950/40 overflow-y-auto animate-fade-in">

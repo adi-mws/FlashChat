@@ -195,8 +195,15 @@ export const sendFriendRequest = async (req, res) => {
 
 export const getFriendRequests = async (req, res) => {
   const userId = req.user.id;
-  const user = await User.findById(userId).populate('friendRequests.from', 'name username pfp');
-  res.status(200).json({ requests: user.friendRequests });
+
+  const user = await User.findById(userId)
+    .select("friendRequests")
+    .populate("friendRequests.from", "name username pfp")
+    .lean();
+
+  return res.status(200).json(
+    user.friendRequests.map(request => request.from)
+  );
 };
 
 
@@ -310,7 +317,7 @@ export const rejectFriendRequest = async (req, res) => {
       username: toUser.username,
     });
   }
-  
+
 
   res.status(200).json({ message: "Friend request rejected" });
 };
@@ -355,7 +362,7 @@ export const getSentRequests = async (req, res) => {
         select: 'name username pfp',
       })
       .select('sentRequests');
-      console.log(user.sentRequests)
+    console.log(user.sentRequests)
 
     res.status(200).json({
       sentRequests: user.sentRequests.map(r => r.to)

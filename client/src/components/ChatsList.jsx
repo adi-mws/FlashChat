@@ -178,10 +178,12 @@ export default function ChatsList() {
 
                 {!loading && Array.isArray(filteredChats) && filteredChats.map((chat) => {
                     const isSelected = selectedChat && (typeof selectedChat === 'string' ? selectedChat === chat._id : selectedChat._id === chat._id);
-                    const time = new Date(chat.lastMessage.createdAt).toLocaleTimeString([], {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                    })
+                    if (chat.lastMessage && chat.lastMessage.createdAt) {
+                        const time = new Date(chat.lastMessage.createdAt).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                        })
+                    }
 
                     return (
                         <div
@@ -209,12 +211,12 @@ export default function ChatsList() {
                                         {chat.participant?.name}
                                     </h4>
                                     <span className="text-2xs text-slate-400 dark:text-zinc-500 whitespace-nowrap">
-                                        {chat?.lastMessage?.createdAt && time}
+                                        {chat?.lastMessage && chat?.lastMessage?.createdAt && time}
 
                                     </span>
                                 </div>
 
-                                {user?.showLastMessageInList ? (
+                                {chat?.lastMessage && user?.showLastMessageInList ? (
                                     <p className="text-xs text-slate-400 dark:text-zinc-400 truncate pr-4">
                                         {chat?.lastMessage?.sender?._id === user.id && (
                                             <span className="text-slate-500 dark:text-zinc-300 font-medium">You: </span>
