@@ -141,7 +141,7 @@ export default function ChatsList() {
     return (
         <div
             ref={sideBarRef}
-            className="chats-list bg-white dark:bg-zinc-950 h-full border-r border-slate-200/60 dark:border-zinc-900/80 flex flex-col"
+            className="chats-list bg-white dark:bg-zinc-950 h-[100dvh] border-r border-slate-200/60 dark:border-zinc-900/80 flex flex-col"
         >
             {/* Header */}
             <ChatListHeader />

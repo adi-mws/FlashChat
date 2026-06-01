@@ -1,6 +1,7 @@
 import { EllipsisVertical, Check, CheckCheck } from "lucide-react";
 
-export default function Message({ isSender, message, time, isMultiLine, handleShowMessageOptions }) {
+export default function Message({ isSender, message, time, isMultiLine, 
+    handleShowMessageOptions }) {
     return (
         <div
             className={`w-full flex items-end gap-1.5 group ${isSender ? "justify-end" : "justify-start"}`}

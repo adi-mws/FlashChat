@@ -17,6 +17,8 @@ export default function ChatPage() {
     const { isOnline } = useNetwork();
     const { showNotification } = useNotification();
     const { chatId } = useParams();
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+    
     const {
         chats,
         setSelectedChat,
@@ -347,7 +349,7 @@ export default function ChatPage() {
                         value={message}
                         onChange={handleChange}
                         onKeyDown={(e) => {
-                            if (e.key === "Enter" && !e.shiftKey) {
+                            if (!isMobile && e.key === "Enter" && !e.shiftKey) {
                                 e.preventDefault();
                                 onSubmit();
                             }
