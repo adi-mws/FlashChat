@@ -178,12 +178,10 @@ export default function ChatsList() {
 
                 {!loading && Array.isArray(filteredChats) && filteredChats.map((chat) => {
                     const isSelected = selectedChat && (typeof selectedChat === 'string' ? selectedChat === chat._id : selectedChat._id === chat._id);
-                    if (chat.lastMessage && chat.lastMessage.createdAt) {
-                        const time = new Date(chat.lastMessage.createdAt).toLocaleTimeString([], {
+                        const time = chat.lastMessage ? new Date(chat.lastMessage.createdAt).toLocaleTimeString([], {
                             hour: "2-digit",
                             minute: "2-digit",
-                        })
-                    }
+                        }): null;
 
                     return (
                         <div
