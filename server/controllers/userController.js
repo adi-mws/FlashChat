@@ -6,7 +6,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import Message from "../models/message.js";
 import { io } from "../socket/index.js";
-import { getSocketId } from "../socket/store.js";
+import { getUserRoom } from "../socket/store.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -77,7 +77,7 @@ export const getUserById = async (req, res) => {
   try {
     const userId = req.params.id;
 
-    const user = await User.findById(userId).select('-password -googleId -type -__v');
+    const user = await User.findById(userId).select('-password -type -__v');
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -176,9 +176,8 @@ export const sendFriendRequest = async (req, res) => {
   await fromUser.save();
   await toUser.save();
 
-  const toUserSocketId = getSocketId(toUserId);
-  if (toUserSocketId) {
-    io.to(toUserSocketId).emit("incomingFriendRequest", {
+  if (io) {
+    io.to(getUserRoom(toUserId)).emit("incomingFriendRequest", {
       _id: fromUser._id,
       name: fromUser.name,
       username: fromUser.username,
@@ -276,9 +275,8 @@ export const acceptFriendRequest = async (req, res) => {
       updatedAt: chat.updatedAt,
     };
 
-    const fromUserSocketId = getSocketId(fromUserId);
-    if (fromUserSocketId) {
-      io.to(fromUserSocketId).emit("friendRequestAccepted", {
+    if (io) {
+      io.to(getUserRoom(fromUserId)).emit("friendRequestAccepted", {
         _id: toUser._id,
         name: toUser.name,
         username: toUser.username,
@@ -309,9 +307,8 @@ export const rejectFriendRequest = async (req, res) => {
   await toUser.save();
   await fromUser.save();
 
-  const fromUserSocketId = getSocketId(fromUserId);
-  if (fromUserSocketId) {
-    io.to(fromUserSocketId).emit("friendRequestRejected", {
+  if (io) {
+    io.to(getUserRoom(fromUserId)).emit("friendRequestRejected", {
       _id: toUser._id,
       name: toUser.name,
       username: toUser.username,
@@ -337,9 +334,8 @@ export const cancelSentRequest = async (req, res) => {
     await fromUser.save();
     await toUser.save();
 
-    const toUserSocketId = getSocketId(toUser._id);
-    if (toUserSocketId) {
-      io.to(toUserSocketId).emit("friendRequestCancelled", {
+    if (io) {
+      io.to(getUserRoom(toUser._id)).emit("friendRequestCancelled", {
         _id: fromUser._id,
         name: fromUser.name,
         username: fromUser.username,

@@ -8,19 +8,9 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: false
   },
-  googleId: {
-    type: String,
-    required: false
-  },
   pfp: {
     type: String,
     default: ''
-  },
-  type: {
-    type: String,
-    enum: ['normal', 'google'],
-    required: false,
-    default: 'normal'
   },
   lastOnline: {
     type: Date,

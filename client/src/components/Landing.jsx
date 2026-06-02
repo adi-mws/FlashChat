@@ -1,145 +1,140 @@
-import React from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/AuthContext';
+import { UserPlus, LogIn, User, Users, MessageSquare } from 'lucide-react';
 
 export default function Landing() {
   const { user } = useAuth();
   const navigate = useNavigate();
+
   return (
-    <div className='Landing w-full flex items-center flex-col'>
-      <div className='hero-section-content min-h-screen items-center flex w-full flex-col gap-8 md:p-10 xl:p-17 sm:p-8 p-2 sm:mt-0 mt-30'>
-        <h1 className="hero-section-title text-4xl w-full font-extrabold lg:text-7xl md:text-5xl xs:text-4xl text-center text-white tracking-tight">
-          Talk One-on-One. Fast, Secure, Limitless
+    <div className="Landing w-full flex items-center flex-col bg-slate-50 dark:bg-zinc-950 transition-colors duration-200">
+      <div className="hero-section-content min-h-[90vh] flex flex-col justify-center items-center gap-8 px-4 sm:px-8 py-16 text-center max-w-5xl">
+        <h1 className="hero-section-title text-4xl sm:text-6xl lg:text-7xl font-black text-slate-800 dark:text-white tracking-tight leading-none">
+          Talk One-on-One.<br />
+          <span className="text-indigo-500">Fast. Secure. Limitless.</span>
         </h1>
-        <p className="hero-section-description text-slate-600 sm:w-[70%] w-[100%] dark:text-zinc-400 text-center text-sm sm:text-base leading-relaxed">
-          FlashChat is a simple application which connects two users on a chat for real time communication. Simply search the user with the registered email and start chatting.
+        <p className="hero-section-description text-slate-500 dark:text-zinc-400 max-w-2xl text-sm sm:text-base md:text-lg leading-relaxed">
+          FlashChat is a real-time messaging application that connects users instantly. Simply search for friends by username and start chatting with full end-to-end synchronization across all your devices.
         </p>
-        <div className="flex gap-4 flex-col items-center md:flex-row mt-2">
+        <div className="flex gap-4 flex-col sm:flex-row items-center mt-4">
           <button 
-            className="rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white hover:scale-[1.02] active:scale-95 transition sm:text-md md:w-auto w-[80vw] duration-200 text-sm py-3.5 lg:px-12 px-8 shadow-md shadow-indigo-500/10 cursor-pointer" 
+            className="rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white hover:scale-[1.02] active:scale-95 transition sm:text-md w-[80vw] sm:w-auto duration-200 text-sm py-3.5 lg:px-12 px-8 shadow-md shadow-indigo-500/10 cursor-pointer" 
             onClick={() => { navigate(user ? '/chats' : '/login') }}
           >
             Start Chatting
           </button>
           <button 
             onClick={() => { navigate('/about') }} 
-            className="rounded-xl text-sm sm:text-md text-slate-600 dark:text-zinc-300 font-bold bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 md:w-auto w-[80vw] hover:scale-[1.02] active:scale-95 hover:bg-slate-50 dark:hover:bg-zinc-800 transition duration-200 py-3.5 lg:px-10 px-8 shadow-sm cursor-pointer"
+            className="rounded-xl text-sm sm:text-md text-slate-600 dark:text-zinc-300 font-bold bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 w-[80vw] sm:w-auto hover:scale-[1.02] active:scale-95 hover:bg-slate-50 dark:hover:bg-zinc-800 transition duration-200 py-3.5 lg:px-10 px-8 shadow-sm cursor-pointer"
           >
             About Application
           </button>
         </div>
       </div>
 
-
       {/* Get started section for app tutorials */}
-      <div className='w-full flex flex-col gap-5 p-5 items-center  '>
-        <div className="title-container flex flex-col gap-2 items-center">
-          <p className="title text-3xl md:text-5xl dark:text-white">Get Started</p>
-          <p className="title text-md dark:text-zinc-300">Get started with flashchat in very easy steps</p>
+      <div className="w-full max-w-6xl mx-auto px-4 py-16 sm:py-24 flex flex-col gap-12 items-center">
+        <div className="text-center space-y-3">
+          <h2 className="text-3xl sm:text-5xl font-black text-slate-800 dark:text-white tracking-tight">Get Started</h2>
+          <p className="text-sm sm:text-base text-slate-500 dark:text-zinc-400 max-w-xl mx-auto">
+            Connect and message your friends in a few simple steps.
+          </p>
         </div>
 
-        <img src="/screenshots/chatting.png" alt="screenshot" className='text-xs mt-10' />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full mt-8">
+          {/* Step 1 */}
+          <div className="bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 rounded-2xl p-6 shadow-sm flex flex-col gap-4">
+            <div className="h-12 w-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-500 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/70">
+              <UserPlus size={22} />
+            </div>
+            <div>
+              <h4 className="text-lg font-bold text-slate-800 dark:text-zinc-100">1. Create Your Account</h4>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-2 leading-relaxed">
+                Go to the registration page and sign up using Google for instant access, or create a credentials-based account.
+              </p>
+            </div>
+          </div>
 
+          {/* Step 2 */}
+          <div className="bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 rounded-2xl p-6 shadow-sm flex flex-col gap-4">
+            <div className="h-12 w-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-500 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/70">
+              <LogIn size={22} />
+            </div>
+            <div>
+              <h4 className="text-lg font-bold text-slate-800 dark:text-zinc-100">2. Log In Securely</h4>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-2 leading-relaxed">
+                Log in to authenticate your session. Your account remains synchronized in real-time across all your tabs and devices.
+              </p>
+            </div>
+          </div>
 
-        <div className=' flex flex-col gap-4 items-center justify-center xl:grid xl:grid-cols-2 xl:grid-rows-1 w-full'>
-          <div className='bg-primary w-full p-8 sm:p-10 shrink-1 xl:p-15 flex flex-col gap-6 xl:gap-10'>
-            <p className="lg:text-4xl dark:text-white text-2xl"> Create Your Account</p>
-            <p className="xl:text-md dark:text-zinc-300 relative text-sm">To begin, go to the Login page and choose "Continue with Google" for instant access.
-              Don't want to use Google? You can also create an account from the Register page.</p>
+          {/* Step 3 */}
+          <div className="bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 rounded-2xl p-6 shadow-sm flex flex-col gap-4">
+            <div className="h-12 w-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-500 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/70">
+              <User size={22} />
+            </div>
+            <div>
+              <h4 className="text-lg font-bold text-slate-800 dark:text-zinc-100">3. Personalize Profile</h4>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-2 leading-relaxed">
+                Click your avatar to configure profile settings. Set up custom display names, bios, and upload your profile picture.
+              </p>
+            </div>
           </div>
-          <div className='w-full flex items-center justify-center '>
-            <img src="/screenshots/login-page.png" alt="screenshot" className='text-xs sm:w-80 mt-10' />
-            <img src="/screenshots/register-page.png" alt="screenshot" className='text-xs  hidden sm:block sm:w-80 mt-10' />
-          </div>
-        </div>
-        {/* STEP: Log In to Your Account */}
-        <div className='flex flex-col items-center md:items-stretch md:grid md:grid-cols-2 gap-2 w-full'>
-          <div className='w-full flex items-center justify-center dark:bg-zinc-950 order-1 md:order-2'>
-            <img src="/screenshots/login-after.png" alt="screenshot" className='text-xs mt-10' />
-          </div>
-          <div className='bg-zinc-950 w-full p-8 md:p-15 flex flex-col order-2 md:order-1 gap-5 md:gap-10'>
-            <p className="text-2xl md:text-4xl dark:text-white">Log In to Your Account</p>
-            <p className="text-sm md:text-md dark:text-zinc-300 relative">
-              Once registered, head to the Login page. Use your credentials or simply click "Continue with Google" to log in instantly. Seamless, secure, and quick — you're in!
-            </p>
-          </div>
-        </div>
 
-        {/* STEP: Personalize Your Profile */}
-        <div className='flex flex-col items-center md:items-stretch md:grid md:grid-cols-2 gap-2 w-full'>
-          <div className='w-full flex items-center justify-center dark:bg-zinc-950 order-1 md:order-1'>
-            <img src="/screenshots/profile.png" alt="screenshot" className='text-xs mt-10' />
+          {/* Step 4 */}
+          <div className="bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 rounded-2xl p-6 shadow-sm flex flex-col gap-4">
+            <div className="h-12 w-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-500 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/70">
+              <Users size={22} />
+            </div>
+            <div>
+              <h4 className="text-lg font-bold text-slate-800 dark:text-zinc-100">4. Find Friends</h4>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-2 leading-relaxed">
+                Search for other registered users by username, send friend requests, and build your contacts directory easily.
+              </p>
+            </div>
           </div>
-          <div className='bg-zinc-950 w-full p-8 md:p-15 flex flex-col order-2 md:order-2 gap-5 md:gap-10'>
-            <p className="text-2xl md:text-4xl dark:text-white">Personalize Your Profile</p>
-            <p className="text-sm md:text-md dark:text-zinc-300 relative">
-              Click your avatar or navigate to your Profile Page. Add a name, profile picture, and a short about. This helps friends recognize you easily!
-            </p>
-          </div>
-        </div>
 
-        {/* STEP: Explore Chats & Make Friends */}
-        <div className='flex flex-col items-center md:items-stretch md:grid md:grid-cols-2 gap-2 w-full'>
-          <div className='w-full flex items-center justify-center dark:bg-zinc-950 order-1 md:order-2'>
-            <img src="/screenshots/friends.png" alt="screenshot" className='text-xs mt-10' />
-          </div>
-          <div className='bg-zinc-950 w-full p-8 md:p-15 flex flex-col order-2 md:order-1 gap-5 md:gap-10'>
-            <p className="text-2xl md:text-4xl dark:text-white">Explore Chats & Make Friends</p>
-            <p className="text-sm md:text-md dark:text-zinc-300 relative">
-              Head over to the Chats section from the sidebar or home screen. You’ll see a list of existing contacts — or send a friend request to start building your list!
-              You can also accept or reject friend requests from others. No messages yet? That’s okay — your chat world is about to grow!
-            </p>
-          </div>
-        </div>
-
-        {/* STEP: Start Chatting! */}
-        <div className='flex flex-col items-center md:items-stretch md:grid md:grid-cols-2 gap-2 w-full'>
-          <div className='w-full flex items-center justify-center dark:bg-zinc-950 order-1 md:order-1'>
-            <img src="/screenshots/chatting.png" alt="screenshot" className='text-xs mt-10' />
-          </div>
-          <div className='bg-zinc-950 w-full p-8 md:p-15 flex flex-col order-2 md:order-2 gap-5 md:gap-10'>
-            <p className="text-2xl md:text-4xl dark:text-white">Start Chatting!</p>
-            <p className="text-sm md:text-md dark:text-zinc-300 relative">
-              Pick a friend from your chat list and start a conversation. Send messages, share emojis, and stay connected in real-time. You're all set — enjoy the experience and make every chat count!
-            </p>
-            <button onClick={() => navigate('/chats')} className='bg-primary text-white text-sm px-8 py-3 w-fit rounded-md'>
-              Go to Chats
-            </button>
+          {/* Step 5 */}
+          <div className="bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 rounded-2xl p-6 shadow-sm flex flex-col gap-4 md:col-span-2 lg:col-span-1">
+            <div className="h-12 w-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-500 flex items-center justify-center border border-indigo-100 dark:border-indigo-900/70">
+              <MessageSquare size={22} />
+            </div>
+            <div>
+              <h4 className="text-lg font-bold text-slate-800 dark:text-zinc-100">5. Chat Real-Time</h4>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-2 leading-relaxed">
+                Start chatting instantly! Send messages, view online statuses, read receipts, and manage sessions in real time.
+              </p>
+            </div>
           </div>
         </div>
 
-        <footer className="bg-black dark:bg-zinc-950 text-white dark:text-zinc-300 w-full px-6 py-10 mt-20">
-          <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+        <button 
+          onClick={() => navigate('/chats')} 
+          className="mt-8 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white hover:scale-[1.02] active:scale-95 transition sm:text-md py-3.5 px-10 shadow-md shadow-indigo-500/10 cursor-pointer"
+        >
+          Go to Chats
+        </button>
 
-            {/* Branding / About Section */}
+        <footer className="w-full border-t border-slate-200/60 dark:border-zinc-900 text-slate-600 dark:text-zinc-400 py-10 mt-16">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="text-center md:text-left">
-              <h2 className="text-lg font-semibold text-white dark:text-white">FlashChat</h2>
-              <p className="text-sm text-zinc-400 dark:text-zinc-400 mt-1">
+              <h2 className="text-lg font-black text-slate-800 dark:text-white">FlashChat</h2>
+              <p className="text-xs text-slate-500 dark:text-zinc-500 mt-1">
                 One-on-one messaging. Reimagined. Simple, fast & real-time.
               </p>
             </div>
-
-            {/* Quick Links */}
-            <div className="flex gap-6 text-sm">
-              <Link to="/chats" className="hover:text-primary transition-colors dark:hover:text-primary">Chats</Link>
-              <Link to="/about" className="hover:text-primary transition-colors dark:hover:text-primary">About</Link>
+            <div className="flex gap-6 text-sm font-semibold">
+              <Link to="/chats" className="hover:text-indigo-500 transition-colors">Chats</Link>
+              <Link to="/about" className="hover:text-indigo-500 transition-colors">About</Link>
             </div>
           </div>
-
-          {/* Divider */}
-          <div className="border-t border-zinc-800 dark:border-zinc-800 my-6" />
-
-          {/* Copyright */}
-          <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center text-xs text-zinc-500 dark:text-zinc-500">
+          <div className="border-t border-slate-200/40 dark:border-zinc-900/50 my-6" />
+          <div className="flex flex-col md:flex-row justify-between items-center text-xs text-slate-400 dark:text-zinc-500 gap-2">
             <p>&copy; {new Date().getFullYear()} FlashChat. All rights reserved.</p>
-            <p>Developed by <span className="text-white dark:text-white font-semibold">Aditya Raj</span></p>
+            <p>Developed by <span className="text-slate-800 dark:text-zinc-300 font-semibold">Aditya Raj</span></p>
           </div>
         </footer>
-
-
-
-
       </div>
-    </div >
-  )
+    </div>
+  );
 }

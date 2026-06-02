@@ -7,7 +7,7 @@ import { useTheme } from '../hooks/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { getImageUrl } from '../utils/imageUtils';
-import { LogOut, UserRoundPlus, Search } from 'lucide-react';
+import { LogOut, MonitorSmartphone, UserRoundPlus, Search, History } from 'lucide-react';
 
 export default function ChatsList() {
     const {
@@ -261,6 +261,12 @@ export default function ChatsList() {
                             <ul className="py-1">
                                 <li onClick={() => { setSliderMenu(false); navigate('/chats/profile'); }} className="flex items-center px-4 gap-3 py-2.5 text-xs text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 cursor-pointer transition">
                                     <i className="fa-solid fa-user text-slate-400 dark:text-zinc-500"></i> <span>Profile Settings</span>
+                                </li>
+                                <li onClick={() => { setSliderMenu(false); navigate('/chats/linked-devices'); }} className="flex items-center px-4 gap-3 py-2.5 text-xs text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 cursor-pointer transition">
+                                    <MonitorSmartphone size={15} className="text-slate-400 dark:text-zinc-500" /> <span>Linked Devices</span>
+                                </li>
+                                <li onClick={() => { setSliderMenu(false); navigate('/chats/update-history'); }} className="flex items-center px-4 gap-3 py-2.5 text-xs text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 cursor-pointer transition">
+                                    <History size={15} className="text-slate-400 dark:text-zinc-500" /> <span>Update History</span>
                                 </li>
                                 <li
                                     className="flex items-center gap-3 px-4 py-2.5 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 cursor-pointer transition border-t border-slate-100 dark:border-zinc-800/80"

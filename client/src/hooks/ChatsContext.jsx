@@ -19,7 +19,7 @@ export const socket = io(import.meta.env.VITE_BACKEND_URL || "http://localhost:3
 const ChatContext = createContext();
 
 export const ChatProvider = ({ children }) => {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { showNotification } = useNotification();
 
   const [chats, setChats] = useState([]);
@@ -53,15 +53,25 @@ export const ChatProvider = ({ children }) => {
     }
 
     socket.on("onlineUsers", setOnlineUsers);
+    
+    socket.on("session_revoked", () => {
+      console.log("Session revoked. Logging out...");
+      logout();
+    });
+
     socket.on("connect_error", (err) => {
       console.error("Socket error:", err.message);
+      if (err.message === "Authentication error") {
+        logout();
+      }
     });
 
     return () => {
       socket.off("onlineUsers");
+      socket.off("session_revoked");
       socket.off("connect_error");
     };
-  }, [user, fetchChats]);
+  }, [user, fetchChats, logout]);
 
   // Seen message acknowledgment (optional log)
   useEffect(() => {

@@ -12,10 +12,12 @@ import ChatPage from "./components/ChatPage";
 import ProfilePage from "./components/ProfilePage";
 import ChatsList from "./components/ChatsList";
 import ContactsPage from "./components/ContactsPage";
+import LinkedDevicesPage from "./components/LinkedDevicesPage";
 import LoginForm from "./components/forms/LoginForm";
 import RegistrationForm from "./components/forms/RegistrationForm";
 import WebsiteLayout from "./layouts/WebsiteLayout";
 import PublicRoutes from "../routes/PublicRoutes";
+import LoadingScreen from "./components/LoadingScreen";
 
 export default function AppRoutes() {
 
@@ -30,41 +32,45 @@ export default function AppRoutes() {
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
-    if (loading) return <div className="loading">Loading...</div>;
+
 
     return (
-        <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<PublicRoutes><WebsiteLayout /></PublicRoutes>}>
-                <Route index element={<Landing />} />
-                {/* <Route path="/test" element={<NoChatsFound />} /> */}
-                <Route
-                    path="login"
-                    element={<LoginForm />}
-                />
-                <Route
-                    path="register"
-                    element={<RegistrationForm />}
-                />
-                <Route path="reset-password/:token" element={<ResetPassword />} />
-                <Route path="forgot-password" element={<ForgotPassword />} />
-                <Route path="about" element={<AboutPage />} />
-            </Route>
+        <LoadingScreen loading={loading} text="Intializing Server...">
+            <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<PublicRoutes><WebsiteLayout /></PublicRoutes>}>
+                    <Route index element={<Landing />} />
+                    {/* <Route path="/test" element={<NoChatsFound />} /> */}
+                    <Route
+                        path="login"
+                        element={<LoginForm />}
+                    />
+                    <Route
+                        path="register"
+                        element={<RegistrationForm />}
+                    />
+                    <Route path="reset-password/:token" element={<ResetPassword />} />
+                    <Route path="forgot-password" element={<ForgotPassword />} />
+                    <Route path="about" element={<AboutPage />} />
+                </Route>
 
-            {/* Protected Chat Routes */}
-            <Route
-                path="/chats"
-                element={user ? <ChatLayout /> : <Navigate to="/" replace />}
-            >
-                <Route index element={isMobile ? <ChatsList /> : <SelectChat />} />
-                <Route path=":chatId" element={<ChatPage />} />
-                <Route path="profile" element={<ProfilePage edit={true} />} />
-                <Route path="profile/:id" element={<ProfilePage />} />
-                <Route path="contacts" element={<ContactsPage />} />
-            </Route>
+                {/* Protected Chat Routes */}
+                <Route
+                    path="/chats"
+                    element={user ? <ChatLayout /> : <Navigate to="/" replace />}
+                >
+                    <Route index element={isMobile ? <ChatsList /> : <SelectChat />} />
+                    <Route path=":chatId" element={<ChatPage />} />
+                    <Route path="profile" element={<ProfilePage edit={true} />} />
+                    <Route path="profile/:id" element={<ProfilePage />} />
+                    <Route path="contacts" element={<ContactsPage />} />
+                    <Route path="linked-devices" element={<LinkedDevicesPage />} />
+                    <Route path="update-history" element={<AboutPage />} />
+                </Route>
 
-            {/* Fallback */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+                {/* Fallback */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+        </LoadingScreen>
     );
 };

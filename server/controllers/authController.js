@@ -1,4 +1,6 @@
 import User from '../models/user.js';
+import Account from '../models/account.js';
+import Session from '../models/session.js';
 import bcrypt, { hashSync } from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { fileURLToPath } from 'url';
@@ -6,6 +8,9 @@ import { OAuth2Client } from 'google-auth-library';
 import path from 'path';
 import { sendEmailInWorker } from '../lib/createEmailWorker.js';
 import crypto from 'crypto';
+import { buildSession } from '../lib/session.js';
+import { io } from '../socket/index.js';
+import { getSessionRoom, isSessionOnline } from '../socket/store.js';
 
 // Get the current directory dynamically
 const __filename = fileURLToPath(import.meta.url);
@@ -24,25 +29,69 @@ const getCookieOptions = (maxAge = null) => {
   return options;
 };
 
+const createAuthToken = async (user, account, req, extraPayload = {}) => {
+  const session = buildSession(req);
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  await Session.create({
+    ...session,
+    user: user._id,
+    accountId: account._id,
+    expiresAt,
+  });
+
+  return jwt.sign(
+    {
+      id: user._id,
+      email: user.email,
+      sessionId: session.sessionId,
+      accountId: account._id,
+      provider: account.provider,
+      ...extraPayload,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+  );
+};
+
+const ensureAccount = async ({ user, provider, providerAccountId = null }) => {
+  let account = await Account.findOne({ user: user._id, provider });
+  if (account) {
+    let changed = false;
+    if (providerAccountId && account.providerAccountId !== providerAccountId) {
+      account.providerAccountId = providerAccountId;
+      changed = true;
+    }
+    if (changed) await account.save();
+    return account;
+  }
+
+  return Account.create({
+    user: user._id,
+    provider,
+    providerAccountId,
+  });
+};
+
 
 export const registerUser = async (req, res) => {
   const { email, password, username, name } = req.body;
   // console.log(email, password, username, name);
 
   try {
-    const userExists = await User.findOne({ type: 'normal', username });
+    const userExists = await User.findOne({ username });
     if (userExists) {
       return res.status(400).json({ message: "User already exists" });
     }
 
     // Create user with hashed password
-    await User.create({
+    const user = await User.create({
       username,
       email,
       name,
       password: hashSync(password, 10),
-      type: 'normal'
     });
+    await ensureAccount({ user, provider: 'credentials' });
 
     // Non-blocking email sending via Worker Thread
     sendEmailInWorker({
@@ -84,9 +133,13 @@ export const loginUser = async (req, res) => {
 
   try {
     // Find user by username
-    const user = await User.findOne({ username: username, type: 'normal' });
+    const user = await User.findOne({ username });
 
     if (!user) {
+      return res.status(401).json({ message: 'Invalid Credentials' });
+    }
+
+    if (!user.password) {
       return res.status(401).json({ message: 'Invalid Credentials' });
     }
 
@@ -97,12 +150,12 @@ export const loginUser = async (req, res) => {
       return res.status(401).json({ message: 'Invalid Credentials' });
     }
 
-    // Generate JWT token
-    const token = jwt.sign(
-      { id: user._id, email: user.email },  // Payload
-      process.env.JWT_SECRET,                   // Secret Key
-      { expiresIn: '7d' }                       // Expiration Time
-    );
+    const account = await ensureAccount({
+      user,
+      provider: 'credentials',
+    });
+
+    const token = await createAuthToken(user, account, req);
 
     // Set token in HTTP-only cookie
     res.cookie('token', token, getCookieOptions(7 * 24 * 60 * 60 * 1000));
@@ -116,6 +169,7 @@ export const loginUser = async (req, res) => {
         username: user.username,
         email: user.email,
         pfp: user.pfp,
+        type: account.provider,
         showLastMessageInList: user.showLastMessageInList
       },
       token // Also send the token in response
@@ -166,16 +220,16 @@ export const googleAuth = async (req, res) => {
 
     if (available) {
       // Find user by email
-      const user = await User.findOne({ email });
+      const existingAccount = await Account.findOne({
+        provider: 'google',
+        providerAccountId: googleId,
+      }).populate('user');
+      const user = existingAccount?.user || await User.findOne({ email });
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
       }
 
       let updated = false;
-      if (!user.googleId) {
-        user.googleId = googleId;
-        updated = true;
-      }
       if (!user.pfp && picture) {
         user.pfp = picture;
         updated = true;
@@ -184,11 +238,16 @@ export const googleAuth = async (req, res) => {
         await user.save();
       }
 
-      const jwtToken = jwt.sign(
-        { id: user._id, email, name: user.name, pfp: user.pfp },
-        process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRES_IN }
-      );
+      const account = existingAccount || await ensureAccount({
+        user,
+        provider: 'google',
+        providerAccountId: googleId,
+      });
+
+      const jwtToken = await createAuthToken(user, account, req, {
+        name: user.name,
+        pfp: user.pfp,
+      });
 
       res.cookie('token', jwtToken, getCookieOptions(7 * 24 * 60 * 60 * 1000));
 
@@ -200,7 +259,7 @@ export const googleAuth = async (req, res) => {
           name: user.name,
           email: user.email,
           pfp: user.pfp,
-          type: user.googleId ? 'google' : 'normal',
+          type: account.provider,
           showLastMessageInList: user.showLastMessageInList
         },
       });
@@ -217,20 +276,16 @@ export const googleAuth = async (req, res) => {
       const existingUserByEmail = await User.findOne({ email });
       if (existingUserByEmail) {
         // If email already exists, link Google ID and log them in
-        let updated = false;
-        if (!existingUserByEmail.googleId) {
-          existingUserByEmail.googleId = googleId;
-          updated = true;
-        }
-        if (updated) {
-          await existingUserByEmail.save();
-        }
+        const account = await ensureAccount({
+          user: existingUserByEmail,
+          provider: 'google',
+          providerAccountId: googleId,
+        });
 
-        const jwtToken = jwt.sign(
-          { id: existingUserByEmail._id, email: existingUserByEmail.email, name: existingUserByEmail.name, pfp: existingUserByEmail.pfp },
-          process.env.JWT_SECRET,
-          { expiresIn: process.env.JWT_EXPIRES_IN }
-        );
+        const jwtToken = await createAuthToken(existingUserByEmail, account, req, {
+          name: existingUserByEmail.name,
+          pfp: existingUserByEmail.pfp,
+        });
 
         res.cookie('token', jwtToken, getCookieOptions(7 * 24 * 60 * 60 * 1000));
 
@@ -249,19 +304,21 @@ export const googleAuth = async (req, res) => {
       }
 
       const newUser = await User.create({
-        googleId,
         username,
         name,
         email,
         pfp: picture,
-        type: 'google',
+      });
+      const account = await ensureAccount({
+        user: newUser,
+        provider: 'google',
+        providerAccountId: googleId,
       });
 
-      const jwtToken = jwt.sign(
-        { id: newUser._id, email, name: newUser.name, pfp: newUser.pfp },
-        process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRES_IN }
-      );
+      const jwtToken = await createAuthToken(newUser, account, req, {
+        name: newUser.name,
+        pfp: newUser.pfp,
+      });
 
       res.cookie('token', jwtToken, getCookieOptions(7 * 24 * 60 * 60 * 1000));
 
@@ -314,6 +371,32 @@ export const isUsernameExists = async (req, res) => {
 // Logout user
 export const logoutUser = async (req, res) => {
   try {
+    const token = req.cookies?.token || req.cookies?.googleToken;
+
+    if (token) {
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        if (decoded?.id && decoded?.sessionId) {
+          const sessionQuery = {
+            user: decoded.id,
+            sessionId: decoded.sessionId,
+          };
+          if (decoded.accountId) {
+            sessionQuery.accountId = decoded.accountId;
+          }
+
+          await Session.deleteOne(sessionQuery);
+
+          io?.to(getSessionRoom(decoded.id, decoded.sessionId)).emit('session_revoked');
+          setTimeout(() => {
+            io?.to(getSessionRoom(decoded.id, decoded.sessionId)).disconnectSockets(true);
+          }, 100);
+        }
+      } catch (error) {
+        // Clearing the cookie is still useful when the token is already expired.
+      }
+    }
+
     res.clearCookie('googleToken', getCookieOptions());
 
     res.clearCookie('token', getCookieOptions());
@@ -350,12 +433,42 @@ export const verifyUserDetails = async (req, res) => {
         if (err) {
           return res.status(403).json({ message: 'Invalid or expired token' })
         }
+        if (!decoded.sessionId) {
+          return res.status(403).json({ message: 'Invalid session' });
+        }
+
+        const sessionQuery = {
+          user: decoded.id,
+          sessionId: decoded.sessionId,
+          expiresAt: { $gt: new Date() },
+        };
+        if (decoded.accountId) {
+          sessionQuery.accountId = decoded.accountId;
+        }
+
+        const session = await Session.findOneAndUpdate(
+          sessionQuery,
+          { $set: { lastSeenAt: new Date() } },
+          { new: true }
+        ).populate('accountId');
+        if (!session) {
+          return res.status(403).json({ message: 'Session expired or logged out' });
+        }
+
         user = await User.findById(decoded.id);
         if (!user) {
           return res.status(404).json({ message: 'User not found' });
         }
         else {
-          return res.status(200).json({ id: user._id, email: user.email, username: user.username, showLastMessageInList: user.showLastMessageInList, pfp: user.pfp, name: user.name })
+          return res.status(200).json({
+            id: user._id,
+            email: user.email,
+            username: user.username,
+            showLastMessageInList: user.showLastMessageInList,
+            pfp: user.pfp,
+            name: user.name,
+            type: session.accountId?.provider || decoded.provider || 'credentials',
+          })
         }
       });
     }
@@ -366,6 +479,62 @@ export const verifyUserDetails = async (req, res) => {
   }
 };
 
+export const getLoggedInDevices = async (req, res) => {
+  try {
+    const sessions = await Session.find({
+      user: req.user.id,
+      expiresAt: { $gt: new Date() },
+    })
+      .populate('accountId', 'provider')
+      .sort({ lastSeenAt: -1 })
+      .lean();
+
+    const devices = sessions.map((session) => ({
+      id: session._id,
+      sessionId: session.sessionId,
+      provider: session.accountId?.provider || 'credentials',
+      os: session.os || 'Unknown',
+      browser: session.browser || 'Unknown',
+      ip: session.ip || '',
+      userAgent: session.userAgent || '',
+      createdAt: session.createdAt,
+      lastSeenAt: session.lastSeenAt,
+      expiresAt: session.expiresAt,
+      isCurrent: session.sessionId === req.sessionId,
+      isOnline: isSessionOnline(req.user.id, session.sessionId),
+    }));
+
+    return res.status(200).json({ devices });
+  } catch (error) {
+    console.error('Failed to fetch logged in devices:', error);
+    return res.status(500).json({ message: 'Failed to fetch logged in devices' });
+  }
+};
+
+export const revokeSession = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const session = await Session.findOne({ _id: id, user: req.user.id });
+
+    if (!session) {
+      return res.status(404).json({ message: 'Session not found' });
+    }
+
+    await Session.deleteOne({ _id: id });
+
+    // Emit session_revoked event, then disconnect the socket for this session if it is online
+    io?.to(getSessionRoom(req.user.id, session.sessionId)).emit('session_revoked');
+    setTimeout(() => {
+      io?.to(getSessionRoom(req.user.id, session.sessionId)).disconnectSockets(true);
+    }, 100);
+
+    return res.status(200).json({ message: 'Device session revoked successfully' });
+  } catch (error) {
+    console.error('Failed to revoke session:', error);
+    return res.status(500).json({ message: 'Failed to revoke session' });
+  }
+};
+
 
 
 
@@ -373,11 +542,13 @@ export const forgotPassword = async (req, res) => {
   const { email } = req.body;
 
   try {
-    const user = await User.findOne({ email, type: 'normal' });
+    const user = await User.findOne({ email, password: { $exists: true, $ne: null } });
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
+
+    await ensureAccount({ user, provider: 'credentials' });
 
     const token = crypto.randomBytes(32).toString('hex');
     const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
@@ -434,12 +605,17 @@ export const resetPassword = async (req, res) => {
     const user = await User.findOne({
       resetPasswordToken: hashedToken,
       resetPasswordExpires: { $gt: Date.now() },
-      type: 'normal'
     });
 
     if (!user) {
       return res.status(400).json({ message: 'Invalid or expired token.' });
     }
+
+    const account = await Account.findOne({ user: user._id, provider: 'credentials' });
+    if (!account && !user.password) {
+      return res.status(400).json({ message: 'Invalid or expired token.' });
+    }
+    await ensureAccount({ user, provider: 'credentials' });
 
     user.password = hashSync(newPassword, 10);
     user.resetPasswordToken = undefined;

@@ -1,6 +1,6 @@
 import { Server } from "socket.io";
 import socketAuth from "../middlewares/socketAuth.js";
-import { addUser, removeUser, getOnlineUsers, getSocketId } from "./store.js";
+import { addUser, removeUser, getOnlineUsers, getUserRoom, getSessionRoom } from "./store.js";
 import Message from "../models/message.js";
 import Chat from "../models/chat.js";
 import User from "../models/user.js";
@@ -20,11 +20,22 @@ export const initSocket = (server) => {
 
   io.on("connection", (socket) => {
     console.log("Socket connected:", socket.id);
+    const userId = socket.user?.id?.toString();
+    const sessionId = socket.user?.sessionId?.toString();
+
+    if (userId && sessionId) {
+      addUser(userId, sessionId, socket.id);
+      socket.join(getUserRoom(userId));
+      socket.join(getSessionRoom(userId, sessionId));
+      io.emit("onlineUsers", getOnlineUsers());
+      console.log(`User ${userId} session ${sessionId} connected`);
+    }
 
     socket.on("join", (userId) => {
-      if (!userId) return;
-      addUser(userId, socket.id);
-      console.log(`User ${userId} joined`);
+      if (!socket.user?.id || userId?.toString() !== socket.user.id?.toString()) return;
+      socket.join(getUserRoom(socket.user.id));
+      socket.join(getSessionRoom(socket.user.id, socket.user.sessionId));
+      console.log(`User ${socket.user.id} joined`);
 
       io.emit("onlineUsers", getOnlineUsers());
     });
@@ -76,7 +87,11 @@ export const initSocket = (server) => {
 
         const populatedMsg = await newMessage.populate("sender", "_id name username pfp");
 
-        io.to(chatId).emit("newMessage", populatedMsg);
+        let messageTarget = io.to(chatId).to(getUserRoom(socket.user.id));
+        if (receiverId) {
+          messageTarget = messageTarget.to(getUserRoom(receiverId));
+        }
+        messageTarget.emit("newMessage", populatedMsg);
       } catch (error) {
         console.error("sendMessage error:", error);
       }
@@ -88,9 +103,8 @@ export const initSocket = (server) => {
           $addToSet: { readBy: socket.user.id },
         });
 
-        const senderSocket = getSocketId(senderId);
-        if (senderSocket) {
-          io.to(senderSocket).emit("receiverSeenMessage", {
+        if (senderId) {
+          io.to(getUserRoom(senderId)).emit("receiverSeenMessage", {
             chatId,
             messageId,
             receiverId: socket.user.id,
@@ -102,11 +116,14 @@ export const initSocket = (server) => {
     });
 
     socket.on("disconnect", () => {
-      const userId = removeUser(socket.id);
-      if (userId) {
+      const socketInfo = removeUser(socket.id);
+      if (socketInfo?.userId) {
+        const { userId } = socketInfo;
         console.log(`User ${userId} disconnected`);
         const updateOnlineStatus = async () => {
-          await User.findByIdAndUpdate(userId, { lastOnline: Date.now() });
+          if (!getOnlineUsers().includes(userId)) {
+            await User.findByIdAndUpdate(userId, { lastOnline: Date.now() });
+          }
         };
         updateOnlineStatus();
 

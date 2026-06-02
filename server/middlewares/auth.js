@@ -1,4 +1,5 @@
 import jwt from 'jsonwebtoken';
+import Session from '../models/session.js';
 
 // Middleware to authenticate using cookies
 const authenticateJWT = (req, res, next) => {
@@ -8,7 +9,7 @@ const authenticateJWT = (req, res, next) => {
         return res.status(401).json({ message: 'Access denied, no token provided' });
     }
     let verificationToken = token ? token : googleToken 
-    jwt.verify(verificationToken, process.env.JWT_SECRET, (err, decoded) => {
+    jwt.verify(verificationToken, process.env.JWT_SECRET, async (err, decoded) => {
         if (err) {
             return res.status(403).json({ message: 'Invalid or expired token' });
         }
@@ -21,7 +22,37 @@ const authenticateJWT = (req, res, next) => {
             return res.status(401).json({ message: 'Token expired' });
         }
 
-        next();
+        try {
+            if (!decoded.sessionId) {
+                return res.status(403).json({ message: 'Invalid session' });
+            }
+
+            const sessionQuery = {
+                user: decoded.id,
+                sessionId: decoded.sessionId,
+                expiresAt: { $gt: new Date() },
+            };
+            if (decoded.accountId) {
+                sessionQuery.accountId = decoded.accountId;
+            }
+
+            const session = await Session.findOneAndUpdate(
+                sessionQuery,
+                { $set: { lastSeenAt: new Date() } },
+                { new: true }
+            ).select("_id");
+
+            if (!session) {
+                return res.status(403).json({ message: 'Session expired or logged out' });
+            }
+
+            req.sessionId = decoded.sessionId;
+            req.accountId = decoded.accountId;
+            req.provider = decoded.provider;
+            next();
+        } catch (error) {
+            return res.status(500).json({ message: 'Authentication failed', error: error.message });
+        }
     });
 };
 
