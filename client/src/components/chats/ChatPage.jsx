@@ -4,15 +4,16 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useChat } from "../../hooks/ChatsContext";
 import { useAuth } from "../../hooks/AuthContext";
+import { CHAT_ROUTES } from "../../../routes/routes";
 import { useNotification } from "../../hooks/NotificationContext";
 import { useNetwork } from "../../hooks/NetworkContext";
 import { ArrowLeft, Trash, Send, EllipsisVertical, Lock } from "lucide-react";
 import SelectChat from "./SelectChat";
 import NoChatsFound from "./NoChatsFound";
 import axios from "axios";
-import { getImageUrl } from "../../utils/imageUtils";
+import { getImageUrl } from "../../lib/imageUtils";
 import MessageList from "../messages/MessageList";
-import { decryptMessage } from "../../utils/crypto";
+import { decryptMessage } from "../../lib/crypto";
 
 export default function ChatPage() {
     const { isOnline } = useNetwork();
@@ -276,7 +277,7 @@ export default function ChatPage() {
                     setSelectedChat('');
                     setLocalMessages([]);
                     showNotification("info", "Contact deleted successfully");
-                    navigate('/chats');
+                    navigate(CHAT_ROUTES.root);
                 }
             } catch (error) {
                 console.error("Error deleting contact:", error.response?.data || error.message);
@@ -326,7 +327,7 @@ export default function ChatPage() {
                             className="w-5 h-5 text-slate-600 dark:text-zinc-400 sm:hidden cursor-pointer"
                             onClick={() => { navigate(-1); }}
                         />
-                        <div className="relative cursor-pointer" onClick={() => navigate(`/chats/profile/${getReceiverId()}`)}>
+                        <div className="relative cursor-pointer" onClick={() => navigate(CHAT_ROUTES.profile(getReceiverId()))}>
                             <img
                                 src={getImageUrl(chat.participant?.pfp)}
                                 alt={chat.participant?.name || "User"}

@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, GitCommit } from 'lucide-react';
+import { MARKETING_ROUTES } from '../../../routes/routes';
 
 export default function AboutPage() {
   const [updates, setUpdates] = useState([]);
   const location = useLocation();
   const navigate = useNavigate();
-  const inChat = location.pathname.startsWith('/chats');
+  const inChat = location.pathname.startsWith('/app');
 
   useEffect(() => {
     setUpdates([
@@ -69,7 +70,7 @@ export default function AboutPage() {
       ) : (
         <div className="max-w-4xl mx-auto w-full px-4 pt-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <button
-            onClick={() => navigate('/')}
+            onClick={() => navigate(MARKETING_ROUTES.landing)}
             className="flex items-center gap-2 p-2 px-4 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-sm transition hover:scale-[1.02] active:scale-95 cursor-pointer"
           >
             <ArrowLeft size={14} /> Back to Home

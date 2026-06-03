@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, KeyRound, Laptop, MonitorSmartphone, RefreshCw, Smartphone, LogOut } from 'lucide-react';
 import { useNotification } from '../../hooks/NotificationContext';
+import { MARKETING_ROUTES } from '../../../routes/routes';
 
 const providerBadge = (provider) => {
     const normalized = (provider || 'credentials').toLowerCase();
@@ -70,7 +71,7 @@ export default function LinkedDevicesPage() {
             
             const revokedDevice = devices.find(d => d.id === deviceId);
             if (revokedDevice?.isCurrent) {
-                navigate('/login');
+                navigate(MARKETING_ROUTES.login);
             } else {
                 fetchDevices();
             }

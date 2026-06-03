@@ -4,6 +4,7 @@ import axios from "axios";
 import { useNotification } from "../../hooks/NotificationContext";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../hooks/AuthContext";
+import { MARKETING_ROUTES, CHAT_ROUTES } from "../../../routes/routes";
 import { GoogleLogin } from "@react-oauth/google";
 import { useTheme } from "../../hooks/ThemeContext";
 import UserNameForm from "./UserNameForm";
@@ -33,7 +34,7 @@ export default function LoginForm() {
       if (response.status === 200) {
         setUser(response.data.user);
         setLoading(false);
-        navigate('/chats');
+        navigate(CHAT_ROUTES.root);
       }
     } catch (error) {
       console.error("Login failed:", error);
@@ -62,7 +63,7 @@ export default function LoginForm() {
               const user = r.data.user;
               setUser(user);
               showNotification("success", "Login Successful!");
-              navigate('/chats');
+              navigate(CHAT_ROUTES.root);
             } else {
               showNotification("error", "Failed to login");
             }
@@ -129,7 +130,7 @@ export default function LoginForm() {
               <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400">Password</label>
               <Link
                 className="text-xs text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 font-semibold"
-                to={"/forgot-password"}
+                to={MARKETING_ROUTES.forgotPassword}
               >
                 Forgot Password?
               </Link>
@@ -182,7 +183,7 @@ export default function LoginForm() {
         <p className="text-center text-xs text-slate-500 dark:text-zinc-400 mt-4">
           New to FlashChat?{" "}
           <Link
-            to="/register"
+            to={MARKETING_ROUTES.register}
             className="text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 font-semibold transition"
           >
             Create account

@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
 import { useNotification } from "../../hooks/NotificationContext";
+import { MARKETING_ROUTES } from "../../../routes/routes";
 import useDebounce from "../../hooks/useDebounce";
 import { Flame, CheckCircle2, XCircle } from "lucide-react";
 
@@ -54,7 +55,7 @@ export default function RegistrationForm() {
       if (response.status === 201) {
         showNotification("success", response.data.message);
         reset();
-        navigate("/login");
+        navigate(MARKETING_ROUTES.login);
       } else {
         showNotification("error", response.data.message);
       }
@@ -192,7 +193,7 @@ export default function RegistrationForm() {
         <p className="text-center text-xs text-slate-500 dark:text-zinc-400 mt-4">
           Already have an account?{" "}
           <Link
-            to="/login"
+            to={MARKETING_ROUTES.login}
             className="text-indigo-500 hover:text-indigo-600 dark:hover:text-indigo-400 font-semibold transition"
           >
             Login

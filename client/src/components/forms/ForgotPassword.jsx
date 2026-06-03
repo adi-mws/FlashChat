@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import axios from "axios";
 import { useNotification } from "../../hooks/NotificationContext";
 import { useNavigate } from "react-router-dom";
+import { MARKETING_ROUTES } from "../../../routes/routes";
 
 export default function ForgotPassword() {
   const { showNotification } = useNotification();
@@ -22,7 +23,7 @@ export default function ForgotPassword() {
       
       if (response.status === 200) {
         showNotification("success", "Password reset link sent to your email.");
-        navigate("/login");
+        navigate(MARKETING_ROUTES.login);
       } else {
         showNotification("error", response.data.message);
       }
@@ -57,7 +58,7 @@ export default function ForgotPassword() {
 
         <div className="flex justify-center gap-5">
           <button
-            onClick={() => navigate("/login")}
+            onClick={() => navigate(MARKETING_ROUTES.login)}
             type="button"
             className="text-sm text-primary hover:underline transition duration-300"
           >

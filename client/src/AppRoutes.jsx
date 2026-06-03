@@ -5,7 +5,7 @@ import LandingPage from "./components/marketing/LandingPage";
 import AboutPage from "./components/marketing/AboutPage";
 import ResetPassword from "./components/forms/ResetPassword";
 import ForgotPassword from "./components/forms/ForgotPassword";
-import NoChatsFound from "./components/chats/NoChatsFound";
+import ChatLayout from "./layouts/ChatLayout";
 import AppLayout from "./layouts/AppLayout";
 import SelectChat from "./components/chats/SelectChat";
 import ChatPage from "./components/chats/ChatPage";
@@ -18,6 +18,7 @@ import RegistrationForm from "./components/forms/RegistrationForm";
 import MarketingLayout from "./layouts/MarketingLayout";
 import PublicRoutes from "../routes/PublicRoutes";
 import LoadingScreen from "./components/global/LoadingScreen";
+import { MARKETING_ROUTES, ACCOUNT_ROUTES, CHAT_ROUTES } from "../routes/routes";
 
 export default function AppRoutes() {
 
@@ -54,22 +55,31 @@ export default function AppRoutes() {
                     <Route path="about" element={<AboutPage />} />
                 </Route>
 
-                {/* Protected Chat Routes */}
+                {/* Protected Routes */}
                 <Route
-                    path="/chats"
-                    element={user ? <AppLayout /> : <Navigate to="/" replace />}
+                    path="/app"
+                    element={user ? <AppLayout /> : <Navigate to={MARKETING_ROUTES.landing} replace />}
                 >
-                    <Route index element={isMobile ? <ChatList /> : <SelectChat />} />
-                    <Route path=":chatId" element={<ChatPage />} />
+                    <Route
+                        path="chats" element={user ? <ChatLayout /> : <Navigate to={MARKETING_ROUTES.landing} replace />}
+                    >
+                        <Route index element={isMobile ? <ChatList /> : <SelectChat />} />
+                        <Route path=":chatId" element={<ChatPage />} />
+                        <Route path="profile/:id" element={<ProfilePage />} />
+                        <Route path="linked-devices" element={<LinkedDevicesPage />} />
+                        <Route path="update-history" element={<AboutPage />} />
+                    </Route>
                     <Route path="profile" element={<ProfilePage edit={true} />} />
-                    <Route path="profile/:id" element={<ProfilePage />} />
                     <Route path="contacts" element={<ContactsPage />} />
                     <Route path="linked-devices" element={<LinkedDevicesPage />} />
                     <Route path="update-history" element={<AboutPage />} />
+
                 </Route>
+                
+
 
                 {/* Fallback */}
-                <Route path="*" element={<Navigate to="/" replace />} />
+                <Route path="*" element={<Navigate to={MARKETING_ROUTES.landing} replace />} />
             </Routes>
         </LoadingScreen>
     );

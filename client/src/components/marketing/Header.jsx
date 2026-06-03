@@ -4,7 +4,8 @@ import { useAuth } from "../../hooks/AuthContext";
 import { useNotification } from "../../hooks/NotificationContext";
 import { Flame } from "lucide-react";
 import { LogOut, Settings, User } from "lucide-react";
-import { getImageUrl } from "../../utils/imageUtils";
+import { getImageUrl } from "../../lib/imageUtils";
+import { MARKETING_ROUTES, ACCOUNT_ROUTES } from "../../../routes/routes";
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -30,7 +31,7 @@ export default function Header() {
   const handleLogout = () => {
     logout();
     showNotification("success", "Logout Successful!");
-    navigate("/login");
+    navigate(MARKETING_ROUTES.login);
   };
 
   return (
@@ -71,7 +72,7 @@ export default function Header() {
                 {dropdownOpen && (
                   <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-zinc-800 shadow-lg rounded-md z-10">
                     <ul className="py-2">
-                      <li className="flex items-center px-4 gap-5 py-3 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer transition" onClick={() => navigate('/chats/profile')}>
+                      <li className="flex items-center px-4 gap-5 py-3 text-sm text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-700 cursor-pointer transition" onClick={() => navigate(ACCOUNT_ROUTES.profile)}>
                         <User size={20} /> <span> Profile</span>
                       </li>
 
@@ -86,10 +87,10 @@ export default function Header() {
           ) : (
             <>
               <button className="px-6 py-2 text-sm font-normal hidden md:block dark:bg-primary-1 bg-primary hover:bg-primary dark:hover:bg-primary-1 transition duration-300 text-white rounded-md"
-                onClick={() => { setMenuOpen(false); navigate("/register") }}>Register</button>
+                onClick={() => { setMenuOpen(false); navigate(MARKETING_ROUTES.register) }}>Register</button>
 
               <button className="px-7 py-2 border-1 font-light text-sm hover:bg-primary hover:text-white border-primary transition duration-300 dark:text-white rounded-md"
-                onClick={() => { setMenuOpen(false); navigate("/login"); }}>Login</button>
+                onClick={() => { setMenuOpen(false); navigate(MARKETING_ROUTES.login); }}>Login</button>
             </>
           )}
         </nav>

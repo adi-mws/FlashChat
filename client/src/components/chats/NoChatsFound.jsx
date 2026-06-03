@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserPlus2 } from 'lucide-react';
+import { ACCOUNT_ROUTES } from '../../../routes/routes';
 
 export default function NoChatsFound({ children }) {
   const navigate = useNavigate();
@@ -21,7 +22,7 @@ export default function NoChatsFound({ children }) {
         
         <button 
           className="mt-6 w-full py-2.5 px-4 bg-indigo-500 hover:bg-indigo-600 active:scale-95 text-white font-medium text-sm rounded-xl shadow-md shadow-indigo-500/10 transition-all duration-200"
-          onClick={() => navigate('/chats/contacts')}
+          onClick={() => navigate(ACCOUNT_ROUTES.contacts)}
         >
           Add Contacts
         </button>

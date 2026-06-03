@@ -5,6 +5,7 @@ import useDebounce from '../../hooks/useDebounce';
 import { useAuth } from '../../hooks/AuthContext';
 import { useNotification } from '../../hooks/NotificationContext';
 import { useNavigate } from 'react-router-dom';
+import { CHAT_ROUTES } from '../../../routes/routes';
 
 export default function UserNameForm({ showForm, setShowForm, credentialResponse }) {
   const {
@@ -34,7 +35,7 @@ export default function UserNameForm({ showForm, setShowForm, credentialResponse
         // Actually 201 signs that the user is registered for the first time by Google Auth and also 
         // logged in (
         setUser(response.data.user)
-        navigate('/chats')
+        navigate(CHAT_ROUTES.root)
         showNotification("success", "Login Successful!");
       }
     } catch (error) {

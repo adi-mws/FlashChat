@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { ArrowLeft, Plus, UserCheck2, UserMinus2, Send, Search, Check, X, AlertCircle } from 'lucide-react';
-import { getImageUrl } from '../../utils/imageUtils';
+import { getImageUrl } from '../../lib/imageUtils';
 import { useNotification } from '../../hooks/NotificationContext';
 import { useNavigate } from 'react-router-dom';
 import { useChat } from '../../hooks/ChatsContext';
+import { CHAT_ROUTES } from '../../../routes/routes';
 
 export default function ContactsPage() {
   const [selectedTab, setSelectedTab] = useState('received');
@@ -349,7 +350,7 @@ export default function ContactsPage() {
       {/* Header */}
       <div className="h-[64px] flex items-center px-4 sm:px-8 border-b border-slate-200/50 dark:border-zinc-900 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md sticky top-0 z-10 gap-3">
         <button
-          onClick={() => navigate('/chats')}
+          onClick={() => navigate(CHAT_ROUTES.root)}
           className="p-2 rounded-xl text-slate-600 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-900 transition"
           title="Back to Chats"
         >

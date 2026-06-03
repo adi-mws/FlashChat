@@ -1,6 +1,7 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../hooks/AuthContext';
 import { UserPlus, LogIn, User, Users, MessageSquare } from 'lucide-react';
+import { MARKETING_ROUTES, CHAT_ROUTES } from '../../../routes/routes';
 
 export default function LandingPage() {
   const { user } = useAuth();
@@ -19,12 +20,12 @@ export default function LandingPage() {
         <div className="flex gap-4 flex-col sm:flex-row items-center mt-4">
           <button 
             className="rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white hover:scale-[1.02] active:scale-95 transition sm:text-md w-[80vw] sm:w-auto duration-200 text-sm py-3.5 lg:px-12 px-8 shadow-md shadow-indigo-500/10 cursor-pointer" 
-            onClick={() => { navigate(user ? '/chats' : '/login') }}
+            onClick={() => { navigate(user ? CHAT_ROUTES.root : MARKETING_ROUTES.login) }}
           >
             Start Chatting
           </button>
           <button 
-            onClick={() => { navigate('/about') }} 
+            onClick={() => { navigate(MARKETING_ROUTES.about) }} 
             className="rounded-xl text-sm sm:text-md text-slate-600 dark:text-zinc-300 font-bold bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 w-[80vw] sm:w-auto hover:scale-[1.02] active:scale-95 hover:bg-slate-50 dark:hover:bg-zinc-800 transition duration-200 py-3.5 lg:px-10 px-8 shadow-sm cursor-pointer"
           >
             About Application
@@ -109,7 +110,7 @@ export default function LandingPage() {
         </div>
 
         <button 
-          onClick={() => navigate('/chats')} 
+          onClick={() => navigate(CHAT_ROUTES.root)} 
           className="mt-8 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white hover:scale-[1.02] active:scale-95 transition sm:text-md py-3.5 px-10 shadow-md shadow-indigo-500/10 cursor-pointer"
         >
           Go to Chats
@@ -124,8 +125,8 @@ export default function LandingPage() {
               </p>
             </div>
             <div className="flex gap-6 text-sm font-semibold">
-              <Link to="/chats" className="hover:text-indigo-500 transition-colors">Chats</Link>
-              <Link to="/about" className="hover:text-indigo-500 transition-colors">About</Link>
+              <Link to={CHAT_ROUTES.root} className="hover:text-indigo-500 transition-colors">Chats</Link>
+              <Link to={MARKETING_ROUTES.about} className="hover:text-indigo-500 transition-colors">About</Link>
             </div>
           </div>
           <div className="border-t border-slate-200/40 dark:border-zinc-900/50 my-6" />

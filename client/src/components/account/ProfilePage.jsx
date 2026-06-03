@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../hooks/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { getImageUrl } from '../../utils/imageUtils';
+import { getImageUrl } from '../../lib/imageUtils';
 import { useNotification } from '../../hooks/NotificationContext';
 import { Pencil, X, Check, ArrowLeft, Camera, Calendar, Mail, User, Info, ShieldCheck } from 'lucide-react';
+import { ACCOUNT_ROUTES } from '../../../routes/routes';
 
 export default function ProfilePage({ edit = false }) {
     const [profile, setProfile] = useState({});
@@ -116,7 +117,7 @@ export default function ProfilePage({ edit = false }) {
         <div className="w-full h-full flex flex-col bg-slate-50/50 dark:bg-zinc-950/40 overflow-y-auto animate-fade-in relative">
             
             {/* Header Navigation */}
-            <div className="h-[64px] flex items-center px-4 py-2 sm:px-8 border-b border-slate-200/50 dark:border-zinc-900 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md sticky top-0 z-10 justify-between">
+            <div className="h-[75px] flex items-center px-4 py-2 sm:px-8 border-b border-slate-200/50 dark:border-zinc-900 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md sticky top-0 z-10 justify-between">
                 <div className="flex items-center gap-3">
                     <button
                         onClick={() => navigate(-1)}
@@ -125,6 +126,7 @@ export default function ProfilePage({ edit = false }) {
                     >
                         <ArrowLeft size={20} />
                     </button>
+                    <p className="dark:text-white font-semibold text-md">Profile & Settings</p>
                 </div>
 
                 {isOwnProfile && !isEditing && (
@@ -299,7 +301,7 @@ export default function ProfilePage({ edit = false }) {
 
                         {/* Contacts view link */}
                         <div 
-                            onClick={() => navigate('/chats/contacts')}
+                            onClick={() => navigate(ACCOUNT_ROUTES.contacts)}
                             className="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-950/20 hover:bg-slate-100/50 dark:hover:bg-zinc-950/60 transition cursor-pointer"
                         >
                             <div className="space-y-0.5">
