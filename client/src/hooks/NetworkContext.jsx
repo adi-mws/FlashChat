@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { NetworkStatusBar } from '../components/NetworkStatusBar';
+import { NetworkStatusBar } from '../components/global/NetworkStatusBar';
 const NetworkContext = createContext();
 
 export function useNetwork() {

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { ArrowLeft, Plus, UserCheck2, UserMinus2, Send, Search, Check, X, AlertCircle } from 'lucide-react';
-import { getImageUrl } from '../utils/imageUtils';
-import { useNotification } from '../hooks/NotificationContext';
+import { getImageUrl } from '../../utils/imageUtils';
+import { useNotification } from '../../hooks/NotificationContext';
 import { useNavigate } from 'react-router-dom';
-import { useChat } from '../hooks/ChatsContext';
+import { useChat } from '../../hooks/ChatsContext';
 
 export default function ContactsPage() {
   const [selectedTab, setSelectedTab] = useState('received');

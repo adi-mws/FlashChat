@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../hooks/AuthContext";
-import { useNotification } from "../hooks/NotificationContext";
+import { useAuth } from "../../hooks/AuthContext";
+import { useNotification } from "../../hooks/NotificationContext";
 import { Flame } from "lucide-react";
 import { LogOut, Settings, User } from "lucide-react";
-import { getImageUrl } from "../utils/imageUtils";
+import { getImageUrl } from "../../utils/imageUtils";
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -46,7 +46,7 @@ export default function Header() {
           </span>
 
           <span className="text-slate-500 dark:text-white text-xs dark:bg-zinc-800/50 bg-slate-200/50 px-2 py-1 rounded-md">
-            v2.2.0
+            v2.3.0
           </span>
         </div>
 

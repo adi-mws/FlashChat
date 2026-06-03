@@ -66,7 +66,7 @@ const formatUser = (user) => ({
   name: user.name,
   email: user.email,
   about: user.about,
-  pfp: user.pfp,
+  pfp: user.pfp, publicKey: user.publicKey,
   lastOnline: user.lastOnline,
   showLastMessageInList: user.showLastMessageInList,
   createdAt: user.createdAt,
@@ -244,11 +244,11 @@ export const acceptFriendRequest = async (req, res) => {
     await chat.populate([
       {
         path: 'participants',
-        select: 'username name pfp',
+        select: 'username name pfp publicKey',
       },
       {
         path: 'lastMessage',
-        select: 'content sender createdAt',
+        select: 'content sender createdAt encryption',
         populate: {
           path: 'sender',
           select: 'name',
@@ -366,6 +366,31 @@ export const getSentRequests = async (req, res) => {
   } catch (err) {
     console.error('Error fetching sent requests:', err);
     res.status(500).json({ message: 'Failed to fetch sent requests' });
+  }
+};
+
+export const updateUserPublicKey = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { publicKey } = req.body;
+
+    if (!publicKey) {
+      return res.status(400).json({ message: "Public key is required." });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.publicKey = publicKey;
+    user.updatedAt = Date.now();
+    await user.save();
+
+    res.status(200).json({ message: "Public key registered successfully" });
+  } catch (error) {
+    console.error("Error in updateUserPublicKey:", error);
+    res.status(500).json({ message: "Failed to update public key", error: error.message });
   }
 };
 

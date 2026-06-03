@@ -12,6 +12,7 @@ import {
   cancelSentRequest,
   getFriendRequests,
   getSentRequests,
+  updateUserPublicKey,
  
 } from '../controllers/userController.js';
 
@@ -21,6 +22,7 @@ const router = express.Router();
 
 router.get('/get-users', authenticateJWT, searchUsers);
 router.get('/:id', authenticateJWT, getUserById);
+router.put('/public-key', authenticateJWT, updateUserPublicKey);
 router.put('/:id', authenticateJWT, uploadPfp, updateUserProfile);
 
 router.post('/friends/request', authenticateJWT,  sendFriendRequest);

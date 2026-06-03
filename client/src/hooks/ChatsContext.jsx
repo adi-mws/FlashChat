@@ -1,15 +1,17 @@
 // context/ChatContext.js
-import React, {
+import {
   createContext,
   useContext,
   useEffect,
   useState,
   useCallback,
 } from "react";
+import PropTypes from 'prop-types';
 import { io } from "socket.io-client";
 import axios from "axios";
 import { useNotification } from "./NotificationContext";
 import { useAuth } from "./AuthContext";
+import { decryptMessage, encryptMessage } from "../utils/crypto";
 
 export const socket = io(import.meta.env.VITE_BACKEND_URL || "http://localhost:3000", {
   autoConnect: false,
@@ -33,13 +35,31 @@ export const ChatProvider = ({ children }) => {
       const res = await axios.get(`${import.meta.env.VITE_API_URL}/chats/get-all/${user.id}`, {
         withCredentials: true,
       });
-      // console.log(res.data.chats)
-      setChats(res.data.chats);
+      const decryptedChats = await Promise.all(
+        (res.data.chats || []).map(async (chat) => {
+          if (chat.lastMessage?.encryption?.isEncrypted) {
+            try {
+              const decryptedContent = await decryptMessage(chat.lastMessage, user.id, user.username);
+              return {
+                ...chat,
+                lastMessage: {
+                  ...chat.lastMessage,
+                  content: decryptedContent
+                }
+              };
+            } catch (err) {
+              console.error("Failed to decrypt last message in chat list:", err);
+            }
+          }
+          return chat;
+        })
+      );
+      setChats(decryptedChats);
     } catch (err) {
       console.error("Failed to fetch chats:", err);
       showNotification("error", "Failed to load chats");
     }
-  }, [user]);
+  }, [user, showNotification]);
 
   // Initialize socket
   useEffect(() => {
@@ -75,9 +95,7 @@ export const ChatProvider = ({ children }) => {
 
   // Seen message acknowledgment (optional log)
   useEffect(() => {
-    socket.on("receiverSeenMessage", ({ chatId, messageId, receiverId }) => {
-      // console.log(`Message ${messageId} in chat ${chatId} seen by ${receiverId}`);
-    });
+    socket.on("receiverSeenMessage", () => {});
 
     return () => {
       socket.off("receiverSeenMessage");
@@ -85,13 +103,39 @@ export const ChatProvider = ({ children }) => {
   }, []);
 
   // Emit a new message
-  const sendMessage = useCallback((chatId, message, receiverId) => {
+  const sendMessage = useCallback(async (chatId, message, receiverId) => {
+    const chatObj = chats.find(c => c._id === chatId);
+    const senderPublicKey = user?.publicKey;
+    const receiverPublicKey = chatObj?.participant?.publicKey;
+
+    if (senderPublicKey && receiverPublicKey) {
+      try {
+        const encrypted = await encryptMessage(
+          message,
+          user.id,
+          senderPublicKey,
+          receiverId,
+          receiverPublicKey
+        );
+        socket.emit("sendMessage", {
+          chatId,
+          message: encrypted.ciphertext,
+          receiverId,
+          encryption: encrypted.encryption
+        });
+        return;
+      } catch (error) {
+        console.error("Encryption error, sending plaintext fallback:", error);
+      }
+    }
+
     socket.emit("sendMessage", {
       chatId,
       message,
       receiverId,
+      encryption: { isEncrypted: false }
     });
-  }, []);
+  }, [chats, user]);
 
   // Emit seen messages
   const emitSeenMessages = useCallback(
@@ -118,8 +162,18 @@ export const ChatProvider = ({ children }) => {
   const listenToMessages = useCallback(() => {
     socket.off("newMessage");
 
-    socket.on("newMessage", (incomingMessage) => {
+    socket.on("newMessage", async (incomingMessage) => {
       const { chatId } = incomingMessage;
+      let msgToSet = incomingMessage;
+
+      if (incomingMessage.encryption?.isEncrypted) {
+        try {
+          const decryptedContent = await decryptMessage(incomingMessage, user?.id, user?.username);
+          msgToSet = { ...incomingMessage, content: decryptedContent };
+        } catch (err) {
+          console.error("Failed to decrypt incoming message in list:", err);
+        }
+      }
 
       // Update unread count if user is not viewing this chat
       setChats((prevChats) =>
@@ -131,14 +185,14 @@ export const ChatProvider = ({ children }) => {
               unreadCount: isCurrentChatOpen
                 ? 0
                 : (chat.unreadCount || 0) + 1,
-              latestMessage: incomingMessage,
+              lastMessage: msgToSet,
             };
           }
           return chat;
         })
       );
     });
-  }, [selectedChat]);
+  }, [selectedChat, user]);
 
   // Join a specific chat room
   const joinChat = useCallback(
@@ -170,3 +224,7 @@ export const ChatProvider = ({ children }) => {
 };
 
 export const useChat = () => useContext(ChatContext);
+
+ChatProvider.propTypes = {
+  children: PropTypes.node.isRequired,
+};

@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import axios from 'axios';
-import { useNotification } from './NotificationContext';
+import { initializeUserKeys } from '../utils/crypto';
 
 const AuthContext = createContext();
 
@@ -10,8 +11,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);         // Store user info
   const [loading, setLoading] = useState(true);   // Loading state
   const [error, setError] = useState(null);       // Error handling
-  const [userExistence, setUserExistence] = useState(false);
-  const { showNotification } = useNotification();
+
   // Verify user based on HTTP-only cookie
   const verifyUserFromCookie = async () => {
     try {
@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
       } else {
         setUser(null);
       }
-    } catch (err) {
+    } catch {
       setUser(null);
     } finally {
       setLoading(false);
@@ -34,10 +34,35 @@ export const AuthProvider = ({ children }) => {
 
 
   useEffect(() => {
-
-      verifyUserFromCookie();
-   
+    verifyUserFromCookie();
   }, []);
+
+  useEffect(() => {
+    const initE2EE = async () => {
+      if (user) {
+        const localPrivateKeyName = `e2ee_private_key_${user.username}`;
+        const hasLocalKey = localStorage.getItem(localPrivateKeyName);
+        if (!user.publicKey || !hasLocalKey) {
+          try {
+            if (!hasLocalKey) {
+              localStorage.removeItem(`e2ee_public_key_${user.username}`);
+            }
+            const pubKey = await initializeUserKeys(user.username);
+            await axios.put(
+              `${import.meta.env.VITE_API_URL}/user/public-key`,
+              { publicKey: pubKey },
+              { withCredentials: true }
+            );
+            setUser(prev => prev ? { ...prev, publicKey: pubKey } : null);
+            console.log("E2EE Key pair initialized and registered.");
+          } catch (error) {
+            console.error("Failed to initialize E2EE keys:", error);
+          }
+        }
+      }
+    };
+    initE2EE();
+  }, [user]);
 
 
   // Logout function
@@ -62,7 +87,6 @@ export const AuthProvider = ({ children }) => {
       error,
       setLoading,
       logout,
-      userExistence
     }}>
       {children}
     </AuthContext.Provider>
@@ -72,4 +96,8 @@ export const AuthProvider = ({ children }) => {
 // ustom hook to use AuthContext
 export const useAuth = () => {
   return useContext(AuthContext);
+};
+
+AuthProvider.propTypes = {
+  children: PropTypes.node.isRequired,
 };

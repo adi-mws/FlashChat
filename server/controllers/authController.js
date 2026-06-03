@@ -170,7 +170,8 @@ export const loginUser = async (req, res) => {
         email: user.email,
         pfp: user.pfp,
         type: account.provider,
-        showLastMessageInList: user.showLastMessageInList
+        showLastMessageInList: user.showLastMessageInList,
+        publicKey: user.publicKey
       },
       token // Also send the token in response
     });
@@ -260,7 +261,8 @@ export const googleAuth = async (req, res) => {
           email: user.email,
           pfp: user.pfp,
           type: account.provider,
-          showLastMessageInList: user.showLastMessageInList
+          showLastMessageInList: user.showLastMessageInList,
+          publicKey: user.publicKey
         },
       });
     }
@@ -298,7 +300,8 @@ export const googleAuth = async (req, res) => {
             email: existingUserByEmail.email,
             pfp: existingUserByEmail.pfp,
             type: 'google',
-            showLastMessageInList: existingUserByEmail.showLastMessageInList
+            showLastMessageInList: existingUserByEmail.showLastMessageInList,
+            publicKey: existingUserByEmail.publicKey
           },
         });
       }
@@ -331,7 +334,8 @@ export const googleAuth = async (req, res) => {
           email: newUser.email,
           pfp: newUser.pfp,
           type: 'google',
-          showLastMessageInList: newUser.showLastMessageInList
+          showLastMessageInList: newUser.showLastMessageInList,
+          publicKey: newUser.publicKey
         },
       });
     }
@@ -468,6 +472,7 @@ export const verifyUserDetails = async (req, res) => {
             pfp: user.pfp,
             name: user.name,
             type: session.accountId?.provider || decoded.provider || 'credentials',
+            publicKey: user.publicKey,
           })
         }
       });

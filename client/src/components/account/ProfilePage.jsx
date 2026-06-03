@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useAuth } from '../hooks/AuthContext';
+import { useAuth } from '../../hooks/AuthContext';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
-import { getImageUrl } from '../utils/imageUtils';
-import { useNotification } from '../hooks/NotificationContext';
+import { getImageUrl } from '../../utils/imageUtils';
+import { useNotification } from '../../hooks/NotificationContext';
 import { Pencil, X, Check, ArrowLeft, Camera, Calendar, Mail, User, Info, ShieldCheck } from 'lucide-react';
 
 export default function ProfilePage({ edit = false }) {

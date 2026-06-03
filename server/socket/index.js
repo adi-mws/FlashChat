@@ -74,13 +74,14 @@ export const initSocket = (server) => {
       console.log(`${socket.id} left chat room ${chatId}`);
     });
 
-    socket.on("sendMessage", async ({ chatId, message, receiverId }) => {
+    socket.on("sendMessage", async ({ chatId, message, receiverId, encryption }) => {
       try {
         const newMessage = await Message.create({
           chat: chatId,
           sender: socket.user.id,
           content: message,
           readBy: [socket.user.id],
+          encryption: encryption || { isEncrypted: false },
         });
 
         await Chat.findByIdAndUpdate(chatId, { lastMessage: newMessage._id });

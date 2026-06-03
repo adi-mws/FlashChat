@@ -1,8 +1,8 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/AuthContext';
+import { useAuth } from '../../hooks/AuthContext';
 import { UserPlus, LogIn, User, Users, MessageSquare } from 'lucide-react';
 
-export default function Landing() {
+export default function LandingPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
 

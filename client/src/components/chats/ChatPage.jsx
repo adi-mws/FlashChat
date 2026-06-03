@@ -1,23 +1,24 @@
 // src/pages/ChatPage.jsx
 
-import React, { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useChat } from "../hooks/ChatsContext";
-import { useAuth } from "../hooks/AuthContext";
-import { useNotification } from "../hooks/NotificationContext";
-import { useNetwork } from "../hooks/NetworkContext";
-import { ArrowLeft, Trash, Send, EllipsisVertical } from "lucide-react";
-import SelectChat from "../components/SelectChat";
-import NoChatsFound from "../components/NoChatsFound";
+import { useChat } from "../../hooks/ChatsContext";
+import { useAuth } from "../../hooks/AuthContext";
+import { useNotification } from "../../hooks/NotificationContext";
+import { useNetwork } from "../../hooks/NetworkContext";
+import { ArrowLeft, Trash, Send, EllipsisVertical, Lock } from "lucide-react";
+import SelectChat from "./SelectChat";
+import NoChatsFound from "./NoChatsFound";
 import axios from "axios";
-import { getImageUrl } from "../utils/imageUtils";
-import MessageList from "./messages/MessageList";
+import { getImageUrl } from "../../utils/imageUtils";
+import MessageList from "../messages/MessageList";
+import { decryptMessage } from "../../utils/crypto";
 
 export default function ChatPage() {
     const { isOnline } = useNetwork();
     const { showNotification } = useNotification();
     const { chatId } = useParams();
-    const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
+    const [isMobile] = useState(window.innerWidth < 640);
     
     const {
         chats,
@@ -79,7 +80,20 @@ export default function ChatPage() {
                 const { data } = await axios.get(`${import.meta.env.VITE_API_URL}/chats/get-messages/${chatId}`, {
                     withCredentials: true,
                 });
-                setLocalMessages(data.messages || []);
+                const decrypted = await Promise.all(
+                    (data.messages || []).map(async (msg) => {
+                        if (msg.encryption?.isEncrypted) {
+                            try {
+                                const decryptedContent = await decryptMessage(msg, user.id, user.username);
+                                return { ...msg, content: decryptedContent };
+                            } catch (err) {
+                                console.error("Decryption failed for historical msg:", err);
+                            }
+                        }
+                        return msg;
+                    })
+                );
+                setLocalMessages(decrypted);
                 emitSeenMessages(chatId, data.messages);
             } catch (err) {
                 showNotification("Failed to load messages", "error");
@@ -90,20 +104,29 @@ export default function ChatPage() {
         };
 
         fetchMessages();
-    }, [chatId]);
+    }, [chatId, user, emitSeenMessages, showNotification]);
 
     useEffect(() => {
-        const handleIncomingMessage = (newMessage) => {
+        const handleIncomingMessage = async (newMessage) => {
             if (newMessage.chat === chatId) {
-                setLocalMessages((prev) => [...prev, newMessage]);
+                let msgToSet = newMessage;
+                if (newMessage.encryption?.isEncrypted) {
+                    try {
+                        const decryptedContent = await decryptMessage(newMessage, user.id, user.username);
+                        msgToSet = { ...newMessage, content: decryptedContent };
+                    } catch (err) {
+                        console.error("Decryption failed for incoming message:", err);
+                    }
+                }
+                setLocalMessages((prev) => [...prev, msgToSet]);
                 emitSeenMessages(chatId, [newMessage]);
-                setSendingMessages((prev) => prev.filter((m) => m.content !== newMessage.content));
+                setSendingMessages((prev) => prev.filter((m) => m.content !== msgToSet.content));
             }
         };
 
         socket?.on("newMessage", handleIncomingMessage);
         return () => socket?.off("newMessage", handleIncomingMessage);
-    }, [socket, chatId]);
+    }, [socket, chatId, user, emitSeenMessages]);
 
     useEffect(() => {
         scrollToBottom();
@@ -165,13 +188,13 @@ export default function ChatPage() {
                     return c;
                 })
             );
-        } catch (error) {
+        } catch {
             showNotification("Failed to delete message", "error");
         }
     };
 
     useEffect(() => {
-        const handleMessageDeleted = ({ messageId, chatId }) => {
+        const handleMessageDeleted = ({ messageId }) => {
             setLocalMessages(prev => prev.filter(msg => msg._id !== messageId));
         };
 
@@ -316,13 +339,18 @@ export default function ChatPage() {
                     </div>
                     <div className="flex flex-col min-w-0 gap-0.5">
                         <p className="text-slate-800 dark:text-zinc-100 text-xs truncate">{chat.participant?.name || "Deleted User"}</p>
-                        <p className="text-2xs text-slate-400 dark:text-zinc-500 truncate">
+                        <div className="text-2xs text-slate-400 dark:text-zinc-500 truncate flex items-center gap-1.5">
                             {chat.participant?._id && onlineUsers.includes(chat.participant._id) ? (
                                 <span className="text-emerald-500 font-medium">Active now</span>
                             ) : (
                                 <span>Offline</span>
                             )}
-                        </p>
+                            {user?.publicKey && chat.participant?.publicKey && (
+                                <span className="text-emerald-600 dark:text-emerald-400/80 font-medium flex items-center gap-0.5" title="End-to-End Encrypted">
+                                    • <Lock size={10} className="inline" /> Encrypted
+                                </span>
+                            )}
+                        </div>
                     </div>
                 </div>
                 <button

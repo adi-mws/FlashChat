@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, KeyRound, Laptop, MonitorSmartphone, RefreshCw, Smartphone, LogOut } from 'lucide-react';
-import { useNotification } from '../hooks/NotificationContext';
+import { useNotification } from '../../hooks/NotificationContext';
 
 const providerBadge = (provider) => {
     const normalized = (provider || 'credentials').toLowerCase();

@@ -1,15 +1,16 @@
 import React, { useEffect, useState, useRef } from 'react';
 import ChatListHeader from './ChatListHeader';
-import { useChat } from '../hooks/ChatsContext';
-import { usePopUp } from '../hooks/PopUpContext';
-import { useAuth } from '../hooks/AuthContext';
-import { useTheme } from '../hooks/ThemeContext';
+import { useChat } from '../../hooks/ChatsContext';
+import { usePopUp } from '../../hooks/PopUpContext';
+import { useAuth } from '../../hooks/AuthContext';
+import { useTheme } from '../../hooks/ThemeContext';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { getImageUrl } from '../utils/imageUtils';
-import { LogOut, MonitorSmartphone, UserRoundPlus, Search, History } from 'lucide-react';
+import { getImageUrl } from '../../utils/imageUtils';
+import { LogOut, MonitorSmartphone, UserRoundPlus, Search, History, Check, CheckCheck } from 'lucide-react';
+import { decryptMessage } from '../../utils/crypto';
 
-export default function ChatsList() {
+export default function ChatList() {
     const {
         chats,
         setChats,
@@ -75,20 +76,37 @@ export default function ChatsList() {
     };
 
     useEffect(() => {
-        if (!socket) return;
+        if (!socket || !user) return;
 
-        const handleNewMessage = (newMessage) => {
+        const handleNewMessage = async (newMessage) => {
             const chatId = newMessage.chat;
             const isCurrentChat = selectedChat && (typeof selectedChat === 'string' ? selectedChat === chatId : selectedChat._id === chatId);
-            const isMessageFromSelf = newMessage.sender._id === user.id;
+            const isMessageFromSelf = newMessage.sender._id === user?.id;
 
-            // Making this chat to appear on top if a message is sent or received
+            let decryptedMsg = newMessage;
+            if (newMessage.encryption?.isEncrypted) {
+                try {
+                    const decryptedContent = await decryptMessage(newMessage, user?.id, user?.username);
+                    decryptedMsg = { ...newMessage, content: decryptedContent };
+                } catch (err) {
+                    console.error("Failed to decrypt message in ChatsList handleNewMessage:", err);
+                }
+            }
+
             setChats(prev => {
-                const updated = prev.map(chat =>
-                    chat._id === chatId
-                        ? { ...chat, lastMessage: newMessage }
-                        : chat
-                );
+                const updated = prev.map(chat => {
+                    if (chat._id === chatId) {
+                        const newUnreadCount = (!isMessageFromSelf && !isCurrentChat)
+                            ? (chat.unreadCount || 0) + 1
+                            : (isCurrentChat ? 0 : chat.unreadCount || 0);
+                        return {
+                            ...chat,
+                            lastMessage: decryptedMsg,
+                            unreadCount: newUnreadCount
+                        };
+                    }
+                    return chat;
+                });
 
                 const updatedChat = updated.find(chat => chat._id === chatId);
                 if (!updatedChat) return prev; // If not in active chats
@@ -96,34 +114,33 @@ export default function ChatsList() {
 
                 return [updatedChat, ...others];
             });
+        };
 
-            // Managing the readCounts when a new message is received
-            setChats(prevChats => {
-                return prevChats.map(chat => {
-                    if (chat._id === chatId) {
-                        if (!isMessageFromSelf && !isCurrentChat) {
-                            return {
-                                ...chat,
-                                latestMessage: newMessage,
-                                unreadCount: (chat.unreadCount || 0) + 1
-                            };
-                        } else {
-                            return {
-                                ...chat,
-                                latestMessage: newMessage
-                            };
-                        }
+        const handleReceiverSeenMessage = ({ chatId, messageId, receiverId }) => {
+            setChats(prev => prev.map(chat => {
+                if (chat._id === chatId && chat.lastMessage && chat.lastMessage._id === messageId) {
+                    const currentReadBy = chat.lastMessage.readBy || [];
+                    if (!currentReadBy.includes(receiverId)) {
+                        return {
+                            ...chat,
+                            lastMessage: {
+                                ...chat.lastMessage,
+                                readBy: [...currentReadBy, receiverId]
+                            }
+                        };
                     }
-                    return chat;
-                });
-            });
+                }
+                return chat;
+            }));
         };
 
         socket.on('newMessage', handleNewMessage);
+        socket.on('receiverSeenMessage', handleReceiverSeenMessage);
         return () => {
             socket.off('newMessage', handleNewMessage);
+            socket.off('receiverSeenMessage', handleReceiverSeenMessage);
         };
-    }, [socket, selectedChat, user.id]);
+    }, [socket, selectedChat, user?.id, user?.username]);
 
     useEffect(() => {
         const search = searchTerm.trim().toLowerCase();
@@ -215,11 +232,21 @@ export default function ChatsList() {
                                 </div>
 
                                 {chat?.lastMessage && user?.showLastMessageInList ? (
-                                    <p className="text-xs text-slate-400 dark:text-zinc-400 truncate pr-4">
-                                        {chat?.lastMessage?.sender?._id === user.id && (
-                                            <span className="text-slate-500 dark:text-zinc-300 font-medium">You: </span>
+                                    <p className="text-xs text-slate-400 dark:text-zinc-400 flex items-center gap-1 pr-4 min-w-0">
+                                        {chat?.lastMessage?.sender?._id === user?.id && (
+                                            <span className="inline-flex items-center gap-1 flex-shrink-0">
+                                                {chat.lastMessage.readBy && (
+                                                    chat.lastMessage.readBy.includes(chat.participant?._id) ||
+                                                    chat.lastMessage.readBy.some(id => id.toString() === chat.participant?._id?.toString())
+                                                ) ? (
+                                                    <CheckCheck size={14} className="text-indigo-500 dark:text-indigo-400 flex-shrink-0" />
+                                                ) : (
+                                                    <Check size={14} className="text-slate-400 dark:text-zinc-500 flex-shrink-0" />
+                                                )}
+                                                <span className="text-slate-500 dark:text-zinc-300 font-medium flex-shrink-0">You:</span>
+                                            </span>
                                         )}
-                                        {chat?.lastMessage?.content}
+                                        <span className="truncate min-w-0">{chat?.lastMessage?.content}</span>
                                     </p>
                                 ) : (
                                     <p className="text-xs text-slate-400 dark:text-zinc-500 font-medium truncate">

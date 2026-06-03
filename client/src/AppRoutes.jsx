@@ -1,23 +1,23 @@
 import { useAuth } from "./hooks/AuthContext";
 import { useState, useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import Landing from "./components/Landing";
-import AboutPage from "./components/AboutPage";
+import LandingPage from "./components/marketing/LandingPage";
+import AboutPage from "./components/marketing/AboutPage";
 import ResetPassword from "./components/forms/ResetPassword";
 import ForgotPassword from "./components/forms/ForgotPassword";
-import NoChatsFound from "./components/NoChatsFound";
-import ChatLayout from "./layouts/ChatLayout";
-import SelectChat from "./components/SelectChat";
-import ChatPage from "./components/ChatPage";
-import ProfilePage from "./components/ProfilePage";
-import ChatsList from "./components/ChatsList";
-import ContactsPage from "./components/ContactsPage";
-import LinkedDevicesPage from "./components/LinkedDevicesPage";
+import NoChatsFound from "./components/chats/NoChatsFound";
+import AppLayout from "./layouts/AppLayout";
+import SelectChat from "./components/chats/SelectChat";
+import ChatPage from "./components/chats/ChatPage";
+import ProfilePage from "./components/account/ProfilePage";
+import ChatList from "./components/chats/ChatList";
+import ContactsPage from "./components/contact/ContactsPage";
+import LinkedDevicesPage from "./components/account/LinkedDevicesPage";
 import LoginForm from "./components/forms/LoginForm";
 import RegistrationForm from "./components/forms/RegistrationForm";
-import WebsiteLayout from "./layouts/WebsiteLayout";
+import MarketingLayout from "./layouts/MarketingLayout";
 import PublicRoutes from "../routes/PublicRoutes";
-import LoadingScreen from "./components/LoadingScreen";
+import LoadingScreen from "./components/global/LoadingScreen";
 
 export default function AppRoutes() {
 
@@ -38,8 +38,8 @@ export default function AppRoutes() {
         <LoadingScreen loading={loading} text="Intializing Server...">
             <Routes>
                 {/* Public Routes */}
-                <Route path="/" element={<PublicRoutes><WebsiteLayout /></PublicRoutes>}>
-                    <Route index element={<Landing />} />
+                <Route path="/" element={<PublicRoutes><MarketingLayout /></PublicRoutes>}>
+                    <Route index element={<LandingPage />} />
                     {/* <Route path="/test" element={<NoChatsFound />} /> */}
                     <Route
                         path="login"
@@ -57,9 +57,9 @@ export default function AppRoutes() {
                 {/* Protected Chat Routes */}
                 <Route
                     path="/chats"
-                    element={user ? <ChatLayout /> : <Navigate to="/" replace />}
+                    element={user ? <AppLayout /> : <Navigate to="/" replace />}
                 >
-                    <Route index element={isMobile ? <ChatsList /> : <SelectChat />} />
+                    <Route index element={isMobile ? <ChatList /> : <SelectChat />} />
                     <Route path=":chatId" element={<ChatPage />} />
                     <Route path="profile" element={<ProfilePage edit={true} />} />
                     <Route path="profile/:id" element={<ProfilePage />} />

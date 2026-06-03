@@ -18,6 +18,17 @@ const messageSchema = new mongoose.Schema({
     trim: true
   },
   
+  encryption: {
+    isEncrypted: { type: Boolean, default: false },
+    iv: { type: String },
+    encryptedKeys: [
+      {
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+        key: { type: String }
+      }
+    ]
+  },
+  
   media: {
     url: String,
     type: {

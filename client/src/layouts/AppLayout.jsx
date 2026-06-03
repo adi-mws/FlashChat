@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import ChatsList from "../components/ChatsList";
+import ChatsList from "../components/chats/ChatList";
 
-export default function ChatLayout() {
+export default function AppLayout() {
     const [isSidebarDragging, setIsSidebarDragging] = useState(false);
     const [sidebarWidth, setSidebarWidth] = useState(350);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
@@ -17,7 +17,6 @@ export default function ChatLayout() {
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
-    // Drag-to-resize for desktop
     useEffect(() => {
         const handleMouseMove = (e) => {
             if (!isSidebarDragging) return;
@@ -45,7 +44,7 @@ export default function ChatLayout() {
         };
     }, [isSidebarDragging]);
 
-    // 📱 MOBILE: Show only the chat (or chat list) without sidebar or resizer
+    // Show only the chat  without sidebar or resizer
     if (isMobile) {
         return (
             <div className="h-screen w-full bg-white dark:bg-zinc-900">
@@ -58,7 +57,6 @@ export default function ChatLayout() {
         );
     }
 
-    // 💻 DESKTOP: Full resizable layout
     return (
         <div className="chat-container h-screen w-full flex">
             {/* Sidebar */}

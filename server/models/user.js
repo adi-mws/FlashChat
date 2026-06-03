@@ -26,6 +26,10 @@ const userSchema = new mongoose.Schema({
     default: "FlashChat User", 
     required: false,
   },
+  publicKey: {
+    type: String,
+    required: false
+  },
   contacts: [
     {
       type: mongoose.Schema.Types.ObjectId,

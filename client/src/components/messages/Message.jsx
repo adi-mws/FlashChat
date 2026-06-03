@@ -29,15 +29,19 @@ export default function Message({ isSender, message, time, isMultiLine,
                         </div>
 
                         <div
-                            className={`mt-1 text-[9px] text-right flex items-center ${isSender
+                            className={`mt-1 text-[9px] text-right flex items-center gap-0.5 ${isSender
                                 ? "text-indigo-200 justify-end"
                                 : "text-slate-400 dark:text-zinc-500"
                                 }`}
                         >
                             {time}
-                            {isSender ?
-                                <Check size={14} />
-                                : null}
+                            {isSender ? (
+                                message.readBy && message.readBy.length > 1 ? (
+                                    <CheckCheck size={14} className="text-indigo-200" />
+                                ) : (
+                                    <Check size={14} className="text-indigo-200" />
+                                )
+                            ) : null}
                         </div>
                     </>
                 ) : (
@@ -53,9 +57,13 @@ export default function Message({ isSender, message, time, isMultiLine,
                                 }`}
                         >
                             {time}
-                            {isSender ?
-                                <Check size={14} />
-                                : null}
+                            {isSender ? (
+                                message.readBy && message.readBy.length > 1 ? (
+                                    <CheckCheck size={14} className="text-indigo-200" />
+                                ) : (
+                                    <Check size={14} className="text-indigo-200" />
+                                )
+                            ) : null}
                         </span>
                     </div>
                 )}

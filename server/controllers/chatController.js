@@ -17,11 +17,11 @@ export const showAllChatsOfUser = async (req, res) => {
         })
             .populate({
                 path: "participants",
-                select: "username name pfp"
+                select: "username name pfp publicKey"
             })
             .populate({
                 path: "lastMessage",
-                select: "content sender createdAt",
+                select: "content sender createdAt encryption readBy",
                 populate: {
                     path: "sender",
                     select: "name"
