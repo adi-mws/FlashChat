@@ -6,6 +6,7 @@ import { useNotification } from '../../hooks/NotificationContext';
 import { useNavigate } from 'react-router-dom';
 import { useChat } from '../../hooks/ChatsContext';
 import { CHAT_ROUTES } from '../../../routes/routes';
+import AppHeader from '../layout/AppHeader';
 
 export default function ContactsPage() {
   const [selectedTab, setSelectedTab] = useState('received');
@@ -348,24 +349,15 @@ export default function ContactsPage() {
     <div className="w-full h-full flex flex-col bg-slate-50/50 dark:bg-zinc-950/40 overflow-y-auto animate-fade-in">
 
       {/* Header */}
-      <div className="h-[64px] flex items-center px-4 sm:px-8 border-b border-slate-200/50 dark:border-zinc-900 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md sticky top-0 z-10 gap-3">
-        <button
-          onClick={() => navigate(CHAT_ROUTES.root)}
-          className="p-2 rounded-xl text-slate-600 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-900 transition"
-          title="Back to Chats"
-        >
-          <ArrowLeft size={20} />
-        </button>
-        <h3 className="text-base font-bold text-slate-800 dark:text-zinc-100">
-          Contacts & Friends
-        </h3>
-      </div>
+     <AppHeader title={"Contacts"}>
+
+     </AppHeader>
 
       {/* Main Body */}
-      <div className="max-w-2xl w-full mx-auto p-4 sm:p-6 space-y-6">
+      <div className="max-w-2xl w-full mx-auto p-2 sm:p-2 space-y-6">
 
         {/* Navigation Tabs */}
-        <div className="flex bg-slate-100 dark:bg-zinc-900/60 p-1 rounded-2xl border border-slate-200/20 dark:border-zinc-800/40">
+        <div className="flex bg-slate-100 dark:bg-zinc-900/60 p-1 rounded-2xl">
           {[
             { id: 'received', label: 'Requests' },
             { id: 'sent', label: 'Sent Requests' },

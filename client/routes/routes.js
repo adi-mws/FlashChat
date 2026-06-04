@@ -26,3 +26,8 @@ export const CHAT_ROUTES = {
     linkedDevices: `${APP_ROOT}/chats/linked-devices`,
     updateHistory: `${APP_ROOT}/chats/update-history`,
 };
+
+export const SPARK_ROUTES = {
+    root: `${APP_ROOT}/sparks`, 
+    spark: (sparkId) => `/sparks/${sparkId}`
+}

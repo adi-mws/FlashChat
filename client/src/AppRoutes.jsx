@@ -19,6 +19,7 @@ import MarketingLayout from "./layouts/MarketingLayout";
 import PublicRoutes from "../routes/PublicRoutes";
 import LoadingScreen from "./components/global/LoadingScreen";
 import { MARKETING_ROUTES, ACCOUNT_ROUTES, CHAT_ROUTES } from "../routes/routes";
+import Sparks from "./components/sparks/Sparks";
 
 export default function AppRoutes() {
 
@@ -70,6 +71,7 @@ export default function AppRoutes() {
                         <Route path="update-history" element={<AboutPage />} />
                     </Route>
                     <Route path="profile" element={<ProfilePage edit={true} />} />
+                    <Route path="sparks" element={<Sparks />} />
                     <Route path="contacts" element={<ContactsPage />} />
                     <Route path="linked-devices" element={<LinkedDevicesPage />} />
                     <Route path="update-history" element={<AboutPage />} />
