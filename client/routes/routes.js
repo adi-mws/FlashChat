@@ -21,13 +21,16 @@ export const ACCOUNT_ROUTES = {
 
 export const CHAT_ROUTES = {
     root: `${APP_ROOT}/chats`,
-    chat: (chatId) => `${APP_ROOT}/chats/${chatId}`,
-    profile: (id) => `${APP_ROOT}/chats/profile/${id}`,
-    linkedDevices: `${APP_ROOT}/chats/linked-devices`,
-    updateHistory: `${APP_ROOT}/chats/update-history`,
+    chat: (chatId) => `/chat/${chatId}`,
+    profile: (id) => `/profile/${id}`,
 };
 
 export const SPARK_ROUTES = {
     root: `${APP_ROOT}/sparks`, 
     spark: (sparkId) => `/sparks/${sparkId}`
+}
+
+export const PROFILE_ROUTES = {
+    userProfile: (userId) `/chat/${userId}`,
+    groupProfile: (groupId) `/profile/group/${id}`
 }

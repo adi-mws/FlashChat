@@ -8,7 +8,7 @@ import ForgotPassword from "./components/forms/ForgotPassword";
 import ChatLayout from "./layouts/ChatLayout";
 import AppLayout from "./layouts/AppLayout";
 import SelectChat from "./components/chats/SelectChat";
-import ChatPage from "./components/chats/ChatPage";
+import Conversation from "./components/chats/Conversation";
 import ProfilePage from "./components/account/ProfilePage";
 import ChatList from "./components/chats/ChatList";
 import ContactsPage from "./components/contact/ContactsPage";
@@ -18,7 +18,7 @@ import RegistrationForm from "./components/forms/RegistrationForm";
 import MarketingLayout from "./layouts/MarketingLayout";
 import PublicRoutes from "../routes/PublicRoutes";
 import LoadingScreen from "./components/global/LoadingScreen";
-import { MARKETING_ROUTES, ACCOUNT_ROUTES, CHAT_ROUTES } from "../routes/routes";
+import { MARKETING_ROUTES } from "../routes/routes";
 import Sparks from "./components/sparks/Sparks";
 
 export default function AppRoutes() {
@@ -62,10 +62,10 @@ export default function AppRoutes() {
                     element={user ? <AppLayout /> : <Navigate to={MARKETING_ROUTES.landing} replace />}
                 >
                     <Route
-                        path="chats" element={user ? <ChatLayout /> : <Navigate to={MARKETING_ROUTES.landing} replace />}
+                        path="chats" element={user ? <ChatLayout /> : <Navigate to={MARKETING_ROUTES.login} replace />}
                     >
                         <Route index element={isMobile ? <ChatList /> : <SelectChat />} />
-                        <Route path=":chatId" element={<ChatPage />} />
+                        <Route path=":chatId" element={<Conversation />} />
                         <Route path="profile/:id" element={<ProfilePage />} />
                         <Route path="linked-devices" element={<LinkedDevicesPage />} />
                         <Route path="update-history" element={<AboutPage />} />
@@ -77,6 +77,8 @@ export default function AppRoutes() {
                     <Route path="update-history" element={<AboutPage />} />
 
                 </Route>
+
+                <Route path="/chat/:chatId" element={user ? <ChatLayout /> : <Navigate to={MARKETING_ROUTES.login} replacel />} />
                 
 
 

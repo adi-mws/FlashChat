@@ -7,6 +7,7 @@ import { useNotification } from '../../hooks/NotificationContext';
 import { Pencil, X, Check, ArrowLeft, Camera, Calendar, Mail, User, Info, ShieldCheck } from 'lucide-react';
 import { ACCOUNT_ROUTES } from '../../../routes/routes';
 import AppHeader from '../layout/AppHeader';
+import Loading from '../global/Loading';
 
 export default function ProfilePage({ edit = false }) {
     const [profile, setProfile] = useState({});
@@ -95,7 +96,7 @@ export default function ProfilePage({ edit = false }) {
                 setIsEditing(false);
                 setImagePreview("");
                 setSelectedImageFile(null);
-                showNotification("Profile updated successfully", "success");
+                // showNotification("Profile updated successfully", "success");
             }
         } catch (err) {
             console.error("Save failed:", err);
@@ -105,14 +106,6 @@ export default function ProfilePage({ edit = false }) {
         }
     };
 
-    if (loading) {
-        return (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-slate-50/50 dark:bg-zinc-950/40 p-8">
-                <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-                <p className="mt-4 text-sm text-slate-500 dark:text-zinc-400">Loading profile...</p>
-            </div>
-        );
-    }
 
     return (
         <>
@@ -121,17 +114,17 @@ export default function ProfilePage({ edit = false }) {
                 {isOwnProfile && !isEditing && (
                     <button
                         onClick={() => setIsEditing(true)}
-                        className="flex items-center gap-1.5 py-1.5 px-3.5 bg-indigo-500 hover:bg-indigo-600 active:scale-95 text-white font-medium text-xs rounded-xl shadow-sm transition"
+                        className="flex items-center gap-1.5 py-1.5 px-3.5 dark:bg-zinc-950 active:scale-95 text-white font-medium text-sm rounded-xl shadow-sm transition"
                     >
-                        <Pencil size={13} /> Edit Profile
+                        <Pencil size={13} /> Edit 
                     </button>
                 )}
 
             </AppHeader>
 
+            {/* Profile Content Container */}
 
-
-                {/* Profile Content Container */}
+            {loading ? <Loading /> :
                 <div className="max-w-4xl w-full mx-auto p-4 sm:p-6 space-y-6">
 
                     {/* Main Identity Card */}
@@ -327,32 +320,33 @@ export default function ProfilePage({ edit = false }) {
                         </div>
                     )}
                 </div>
+            }
 
-                {/* Enlarged Image Overlay Modal */}
-                {showEnlargedImage && (
+            {/* Enlarged Image Overlay Modal */}
+            {showEnlargedImage && (
+                <div
+                    onClick={() => setShowEnlargedImage(false)}
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm animate-fade-in"
+                >
                     <div
-                        onClick={() => setShowEnlargedImage(false)}
-                        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm animate-fade-in"
+                        onClick={(e) => e.stopPropagation()}
+                        className="relative bg-white dark:bg-zinc-900 p-3 rounded-2xl max-w-lg w-full shadow-2xl animate-scale-in"
                     >
-                        <div
-                            onClick={(e) => e.stopPropagation()}
-                            className="relative bg-white dark:bg-zinc-900 p-3 rounded-2xl max-w-lg w-full shadow-2xl animate-scale-in"
+                        <button
+                            onClick={() => setShowEnlargedImage(false)}
+                            className="absolute top-4 right-4 text-white bg-black/50 hover:bg-red-500 hover:text-white transition p-1.5 rounded-full z-10"
+                            aria-label="Close"
                         >
-                            <button
-                                onClick={() => setShowEnlargedImage(false)}
-                                className="absolute top-4 right-4 text-white bg-black/50 hover:bg-red-500 hover:text-white transition p-1.5 rounded-full z-10"
-                                aria-label="Close"
-                            >
-                                <X className="w-4 h-4" />
-                            </button>
-                            <img
-                                src={getImageUrl(profile.pfp)}
-                                alt="Enlarged avatar"
-                                className="w-full h-auto max-h-[70vh] object-contain rounded-xl"
-                            />
-                        </div>
+                            <X className="w-4 h-4" />
+                        </button>
+                        <img
+                            src={getImageUrl(profile.pfp)}
+                            alt="Enlarged avatar"
+                            className="w-full h-auto max-h-[70vh] object-contain rounded-xl"
+                        />
                     </div>
-                )}
+                </div>
+            )}
         </>
     );
 }

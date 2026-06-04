@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { useChat } from '../../hooks/ChatsContext';
 import { CHAT_ROUTES } from '../../../routes/routes';
 import AppHeader from '../layout/AppHeader';
+import Loading from '../global/Loading';
 
 export default function ContactsPage() {
   const [selectedTab, setSelectedTab] = useState('received');
@@ -264,9 +265,7 @@ export default function ContactsPage() {
     return (
       <div className="space-y-3">
         {loading && (
-          <div className="flex justify-center p-8">
-            <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-          </div>
+          <Loading />
         )}
         {/* {console.log(data)} */}
         {!loading && data.map((req) => {
