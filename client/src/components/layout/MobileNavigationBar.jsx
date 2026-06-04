@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom';
 import { CircleUser, MessageSquare, Sparkle, Sparkles, Users } from 'lucide-react';
-import { ACCOUNT_ROUTES, CHAT_ROUTES, SPARK_ROUTES } from '../../../routes/routes';
+import { ACCOUNT_ROUTES, CHAT_ROUTES, SETTINGS_ROUTES, SPARK_ROUTES } from '../../../routes/routes';
 
 export default function MobileNavigationBar() {
     const [showMenu, setShowMenu] = useState(true);

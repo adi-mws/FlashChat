@@ -9,7 +9,7 @@ import { ACCOUNT_ROUTES } from '../../../routes/routes';
 import AppHeader from '../layout/AppHeader';
 import Loading from '../global/Loading';
 
-export default function ProfilePage({ edit = false }) {
+export default function Profile({ edit = false }) {
     const [profile, setProfile] = useState({});
     const [editedProfile, setEditedProfile] = useState({});
     const [isEditing, setIsEditing] = useState(false);

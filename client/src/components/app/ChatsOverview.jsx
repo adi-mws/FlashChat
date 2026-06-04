@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import { CHAT_ROUTES } from "../../routes/routes";
-import Conversation from "../components/chats/Conversation"
-import ChatList from "../components/chats/ChatList";
-export default function ChatLayout() {
+import { CHAT_ROUTES } from "../../../routes/routes";
+import ChatList from "../chats/ChatList";
+import SelectChat from "../chats/SelectChat";
+
+export default function ChatsOverview() {
+    
     const [isSidebarDragging, setIsSidebarDragging] = useState(false);
     const [sidebarWidth, setSidebarWidth] = useState(350);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
@@ -48,7 +50,7 @@ export default function ChatLayout() {
     if (isMobile) {
         return (
             <div className="h-screen w-full bg-white dark:bg-zinc-900">
-                <Conversation />
+                    <ChatList />
             </div>
         );
     }
@@ -77,8 +79,8 @@ export default function ChatLayout() {
                 className="chat-content overflow-hidden flex justify-center items-center"
                 style={{ width: `calc(100% - ${sidebarWidth}px)` }}
             >
-                <Conversation />
-
+              <SelectChat />
+              
             </div>
         </div>
     );

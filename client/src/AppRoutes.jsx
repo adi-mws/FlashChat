@@ -8,19 +8,22 @@ import ForgotPassword from "./components/forms/ForgotPassword";
 import ChatLayout from "./layouts/ChatLayout";
 import AppLayout from "./layouts/AppLayout";
 import SelectChat from "./components/chats/SelectChat";
-import Conversation from "./components/chats/Conversation";
-import ProfilePage from "./components/account/ProfilePage";
+import Profile from "./components/settings/Profile";
 import ChatList from "./components/chats/ChatList";
 import ContactsPage from "./components/contact/ContactsPage";
-import LinkedDevicesPage from "./components/account/LinkedDevicesPage";
+import LinkedDevicesPage from "./components/settings/LinkedDevicesPage";
 import LoginForm from "./components/forms/LoginForm";
 import RegistrationForm from "./components/forms/RegistrationForm";
 import MarketingLayout from "./layouts/MarketingLayout";
 import PublicRoutes from "../routes/PublicRoutes";
 import LoadingScreen from "./components/global/LoadingScreen";
-import { MARKETING_ROUTES } from "../routes/routes";
+import { MARKETING_ROUTES, INFO_ROUTES } from "../routes/routes";
 import Sparks from "./components/sparks/Sparks";
-
+import DetailsLayout from "./layouts/DetailsLayout";
+import Settings from "./components/settings/Settings";
+import GroupInfo from "./components/chats/GroupInfo";
+import ChatInfo from "./components/chats/ChatInfo";
+import ChatsOverview from "./components/app/ChatsOverview";
 export default function AppRoutes() {
 
     const { user, loading } = useAuth();
@@ -61,25 +64,24 @@ export default function AppRoutes() {
                     path="/app"
                     element={user ? <AppLayout /> : <Navigate to={MARKETING_ROUTES.landing} replace />}
                 >
-                    <Route
-                        path="chats" element={user ? <ChatLayout /> : <Navigate to={MARKETING_ROUTES.login} replace />}
-                    >
-                        <Route index element={isMobile ? <ChatList /> : <SelectChat />} />
-                        <Route path=":chatId" element={<Conversation />} />
-                        <Route path="profile/:id" element={<ProfilePage />} />
-                        <Route path="linked-devices" element={<LinkedDevicesPage />} />
-                        <Route path="update-history" element={<AboutPage />} />
-                    </Route>
-                    <Route path="profile" element={<ProfilePage edit={true} />} />
+                    <Route path='chats' element={user ? <ChatsOverview /> : <Navigate to={MARKETING_ROUTES.login} replace />} /> 
+                    <Route path="profile" element={<Profile edit={true} />} />
                     <Route path="sparks" element={<Sparks />} />
                     <Route path="contacts" element={<ContactsPage />} />
-                    <Route path="linked-devices" element={<LinkedDevicesPage />} />
-                    <Route path="update-history" element={<AboutPage />} />
 
                 </Route>
 
-                <Route path="/chat/:chatId" element={user ? <ChatLayout /> : <Navigate to={MARKETING_ROUTES.login} replacel />} />
-                
+                <Route path="/chat/:chatId" element={user ? <ChatLayout /> : <Navigate to={MARKETING_ROUTES.login} replace />} />
+
+                <Route path="/chat/:chatId/info" element={user ? <DetailsLayout><ChatInfo /></DetailsLayout> : <Navigate to={MARKETING_ROUTES.login} replace />} />
+                <Route path="/group/:groupId/info" element={user ? <DetailsLayout><GroupInfo /></DetailsLayout> : <Navigate to={MARKETING_ROUTES.login} replace />} />
+
+                <Route path="/settings" element={user ? <DetailsLayout /> : <Navigate to={MARKETING_ROUTES.login} />}>
+                    <Route index element={<Settings />} />
+                    <Route path="profile" element={<Profile edit={true} />} />
+                    <Route path="update-history" element={<AboutPage />} />
+                    <Route path="linked-devices" element={<LinkedDevicesPage />} />
+                </Route>
 
 
                 {/* Fallback */}
