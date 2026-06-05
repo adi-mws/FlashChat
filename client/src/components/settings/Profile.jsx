@@ -4,8 +4,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { getImageUrl } from '../../lib/imageUtils';
 import { useNotification } from '../../hooks/NotificationContext';
-import { Pencil, X, Check, ArrowLeft, Camera, Calendar, Mail, User, Info, ShieldCheck } from 'lucide-react';
-import { ACCOUNT_ROUTES } from '../../../routes/routes';
+import { Pencil, X, Check, ArrowLeft, Camera, Calendar, Mail, User, Info, ShieldCheck, MonitorSmartphone, History } from 'lucide-react';
+import { ACCOUNT_ROUTES, SETTINGS_ROUTES } from '../../../routes/routes';
 import AppHeader from '../layout/AppHeader';
 import Loading from '../global/Loading';
 
@@ -296,6 +296,34 @@ export default function Profile({ edit = false }) {
                                     </p>
                                 </div>
                                 <i className="fa-solid fa-chevron-right text-xs text-slate-400" />
+                            </div>
+
+                            {/* Linked Devices view link */}
+                            <div
+                                onClick={() => navigate(SETTINGS_ROUTES.linkedDevices)}
+                                className="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-950/20 hover:bg-slate-100/50 dark:hover:bg-zinc-950/60 transition cursor-pointer"
+                            >
+                                <div className="space-y-0.5">
+                                    <p className="text-xs font-semibold text-slate-800 dark:text-zinc-200">Linked Devices</p>
+                                    <p className="text-[11px] text-slate-500 dark:text-zinc-500">
+                                        Manage other browser sessions and devices signed into this account
+                                    </p>
+                                </div>
+                                <MonitorSmartphone size={16} className="text-slate-400 dark:text-zinc-500" />
+                            </div>
+
+                            {/* Update History view link */}
+                            <div
+                                onClick={() => navigate(SETTINGS_ROUTES.updateHistory)}
+                                className="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-950/20 hover:bg-slate-100/50 dark:hover:bg-zinc-950/60 transition cursor-pointer"
+                            >
+                                <div className="space-y-0.5">
+                                    <p className="text-xs font-semibold text-slate-800 dark:text-zinc-200">Update History</p>
+                                    <p className="text-[11px] text-slate-500 dark:text-zinc-500">
+                                        View FlashChat release notes and version changelog
+                                    </p>
+                                </div>
+                                <History size={16} className="text-slate-400 dark:text-zinc-500" />
                             </div>
                         </div>
                     )}

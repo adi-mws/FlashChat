@@ -1,6 +1,7 @@
-// This file contains all the routes for the application including public and protected routes.
-
 const APP_ROOT = "/app";
+
+export const MOBILE_BREAKPOINT = 640;
+export const getIsMobile = () => window.innerWidth < MOBILE_BREAKPOINT;
 
 export const MARKETING_ROUTES = {
     landing: "/",
@@ -13,8 +14,8 @@ export const MARKETING_ROUTES = {
 
 export const SETTINGS_ROUTES = {
     profile: `/settings/profile`,
-    linkedDevices: `${APP_ROOT}/linked-devices`,
-    updateHistory: `${APP_ROOT}/update-history`,
+    linkedDevices: `/settings/linked-devices`,
+    updateHistory: `/settings/update-history`,
 }
 
 

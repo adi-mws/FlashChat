@@ -7,7 +7,7 @@ export default function AboutPage() {
   const [updates, setUpdates] = useState([]);
   const location = useLocation();
   const navigate = useNavigate();
-  const inChat = location.pathname.startsWith('/app');
+  const inChat = location.pathname !== '/about';
 
   useEffect(() => {
     setUpdates([
