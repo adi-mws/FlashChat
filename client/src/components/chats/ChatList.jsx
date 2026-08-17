@@ -8,9 +8,9 @@ import {
   selectLoadingChats,
   setSelectedChat,
   markMessagesRead,
+  selectDrafts,
 } from '../../redux/slices/chatsSlice';
 import { selectUser } from '../../redux/slices/authSlice';
-import { selectShowSearchUsers, setShowSearchUsers } from '../../redux/slices/uiSlice';
 import { useNavigate } from 'react-router-dom';
 import { getImageUrl } from '../../lib/imageUtils';
 import { Search, Check, CheckCheck, Plus } from 'lucide-react';
@@ -30,6 +30,8 @@ export default function ChatList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredChats, setFilteredChats] = useState([]);
   const [selectedFilter, setSelectedFilter] = useState('all');
+
+  const drafts = useSelector(selectDrafts);
 
   const handleChatClick = (chat) => {
     dispatch(setSelectedChat(chat._id));
@@ -104,6 +106,18 @@ export default function ChatList() {
             minute: '2-digit',
           }) : null;
 
+
+          const draft = drafts.find(
+            draft => draft.chatId === chat._id
+          );
+
+          const draftTime = draft?.updatedAt
+            ? new Date(draft.updatedAt).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+            : null;
+
           return (
             <div
               key={chat._id}
@@ -111,7 +125,7 @@ export default function ChatList() {
               className={`chat-list-item flex items-center gap-3.5 px-1 py-2 cursor-pointer transition-all duration-200 ${isSelected
                 ? 'bg-indigo-50/70 dark:bg-indigo-950/20 shadow-sm'
                 : 'hover:bg-slate-100/50 dark:hover:bg-zinc-900/40'
-              }`}
+                }`}
             >
               <div className="relative flex-shrink-0">
                 <img
@@ -130,26 +144,33 @@ export default function ChatList() {
                     {chat.participant?.name}
                   </h4>
                   <span className="text-2xs text-slate-400 dark:text-zinc-500 whitespace-nowrap">
-                    {chat?.lastMessage && chat?.lastMessage?.createdAt && time}
+                    {draft ? draftTime : chat?.lastMessage && chat?.lastMessage?.createdAt && time}
+
                   </span>
                 </div>
 
-                {chat?.lastMessage && user?.showLastMessageInList ? (
+                {(chat?.lastMessage || draft) && user?.showLastMessageInList ? (
                   <p className="text-xs text-slate-400 dark:text-zinc-400 flex items-center gap-1 pr-4 min-w-0">
-                    {chat?.lastMessage?.sender?._id === user?.id && (
-                      <span className="inline-flex items-center gap-1 flex-shrink-0">
-                        {chat.lastMessage.readBy && (
-                          chat.lastMessage.readBy.includes(chat.participant?._id) ||
-                          chat.lastMessage.readBy.some(id => id.toString() === chat.participant?._id?.toString())
-                        ) ? (
-                          <CheckCheck size={14} className="text-indigo-500 dark:text-indigo-400 flex-shrink-0" />
-                        ) : (
-                          <Check size={14} className="text-slate-400 dark:text-zinc-500 flex-shrink-0" />
-                        )}
-                        <span className="text-slate-500 dark:text-zinc-300 font-medium flex-shrink-0">You:</span>
-                      </span>
-                    )}
-                    <span className="truncate min-w-0">{chat?.lastMessage?.content}</span>
+                    {draft ?
+                      (<span className="inline-flex bold dark:text-white items-center gap-1 flex-shrink-0">
+                        Draft:
+                      </span>)
+                      :
+                      (chat?.lastMessage?.sender?._id === user?.id && (
+                        <span className="inline-flex items-center gap-1 flex-shrink-0">
+                          {chat.lastMessage.readBy && (
+                            chat.lastMessage.readBy.includes(chat.participant?._id) ||
+                            chat.lastMessage.readBy.some(id => id.toString() === chat.participant?._id?.toString())
+
+                          ) ? (
+                            <CheckCheck size={14} className="text-indigo-500 dark:text-indigo-400 flex-shrink-0" />
+                          ) : (
+                            <Check size={14} className="text-slate-400 dark:text-zinc-500 flex-shrink-0" />
+                          )}
+                          <span className="text-slate-500 dark:text-zinc-300 font-medium flex-shrink-0">You:</span>
+                        </span>
+                      ))}
+                    <span className="truncate min-w-0">{draft ? draft?.message : chat?.lastMessage?.content}</span>
                   </p>
                 ) : (
                   <p className="text-xs text-slate-400 dark:text-zinc-500 font-medium truncate">
@@ -158,15 +179,17 @@ export default function ChatList() {
                 )}
               </div>
 
-              {chat.unreadCount > 0 && (
-                <span className="flex-shrink-0 bg-indigo-600 text-white font-bold rounded-full min-w-5 h-5 px-1.5 flex justify-center items-center text-[10px] shadow-sm shadow-indigo-500/20">
-                  {chat.unreadCount}
-                </span>
-              )}
+              {
+                chat.unreadCount > 0 && (
+                  <span className="flex-shrink-0 bg-indigo-600 text-white font-bold rounded-full min-w-5 h-5 px-1.5 flex justify-center items-center text-[10px] shadow-sm shadow-indigo-500/20">
+                    {chat.unreadCount}
+                  </span>
+                )
+              }
             </div>
           );
         })}
       </div>
-    </div>
+    </div >
   );
 }

@@ -13,7 +13,10 @@ import {
   fetchMessages,
   deleteMessage,
   deleteAllMessages,
+  selectDraft,
   deleteContact,
+  saveDraft,
+  removeDraft
 } from "../../redux/slices/chatsSlice";
 import { selectUser } from "../../redux/slices/authSlice";
 import { selectIsOnline } from "../../redux/slices/uiSlice";
@@ -61,7 +64,7 @@ export default function Conversation() {
   const [preview, setPreview] = useState(null);
   const selectedAttachementsRef = useRef(null);
   const [selectedAttachements, setSelectedAttachements] = useState([]);
-  const [showSelectedAttachementsPreview, setShowSelectedAttachementsPreview] = useState(true);
+  const [showSelectedAttachementsPreview, setShowSelectedAttachementsPreview] = useState(false);
 
   // Textarea ref
   const textareaRef = useRef(null);
@@ -72,6 +75,7 @@ export default function Conversation() {
 
   const handleChange = (e) => {
     setMessage(e.target.value);
+
     const textarea = textareaRef.current;
     textarea.style.height = "auto";
     textarea.style.height = `${textarea.scrollHeight}px`;
@@ -110,6 +114,56 @@ export default function Conversation() {
     });
   }, [chatId, user, dispatch]);
 
+  // Saving the chat as draft
+  useEffect(() => {
+    if (!chatId) return;
+
+    if (message || selectedAttachements.length > 0) {
+      dispatch(
+        saveDraft({
+          chatId,
+          message,
+          attachments: selectedAttachements,
+        })
+      );
+    } else {
+      dispatch(removeDraft(chatId));
+    }
+  }, [
+    message,
+    selectedAttachements,
+    chatId,
+    dispatch,
+  ]);
+
+  // Loading the draft
+  const draft = useSelector(
+    state => selectDraft(state, chatId)
+  );
+
+  const isLoadingDraft = useRef(false);
+
+  useEffect(() => {
+    if (!chatId) return;
+
+    isLoadingDraft.current = true;
+
+    setMessage(draft?.message || "");
+    setSelectedAttachements(draft?.attachments || []);
+
+    // Allow the state updates above to finish before saving again
+    setTimeout(() => {
+      isLoadingDraft.current = false;
+    }, 0);
+  }, [chatId]);
+
+
+  // * Auto focus
+  useEffect(() => {
+  textareaRef.current?.focus();
+}, [chatId]);
+
+  
   // Scroll on new messages
   useEffect(() => {
     scrollToBottom();
@@ -156,6 +210,7 @@ export default function Conversation() {
             encryption: encrypted.encryption,
           });
           setMessage("");
+          dispatch(removeDraft(chatId));
           return;
         } catch (error) {
           console.error("Encryption error, sending plaintext fallback:", error);
@@ -344,6 +399,7 @@ export default function Conversation() {
           </button>
           <textarea
             ref={textareaRef}
+            autoFocus={true}
             className="flex-1 bg-transparent text-xs outline-none resize-none text-slate-800 dark:text-zinc-100 py-3.25 min-h-[46px] max-h-40 overflow-y-auto placeholder-slate-400 dark:placeholder-zinc-500"
             rows={1}
             placeholder="Type a message..."

@@ -139,6 +139,7 @@ const chatsSlice = createSlice({
     onlineUsers: [],
     messages: [],              // messages for currently open chat
     sendingMessages: [],       // optimistic messages
+    drafts: [],
     loadingChats: false,
     loadingMessages: false,
     error: null,
@@ -152,6 +153,35 @@ const chatsSlice = createSlice({
     },
     setOnlineUsers(state, action) {
       state.onlineUsers = action.payload;
+    },
+
+    saveDraft(state, action) {
+      const { chatId, message, attachments } = action.payload;
+
+      const existingDraft = state.drafts.find(
+        draft => draft.chatId === chatId
+      );
+
+      if (existingDraft) {
+        existingDraft.message = message;
+        existingDraft.attachments = attachments;
+        existingDraft.updatedAt = Date.now();
+      } else {
+        state.drafts.push({
+          chatId,
+          message,
+          attachments,
+          updatedAt: Date.now(),
+        });
+      }
+    },
+
+    removeDraft(state, action) {
+      const chatId = action.payload;
+
+      state.drafts = state.drafts.filter(
+        draft => draft.chatId !== chatId
+      );
     },
     clearMessages(state) {
       state.messages = [];
@@ -320,6 +350,10 @@ export const {
   prependChat,
   removeChatById,
   updateChatLastMessage,
+  saveDraft,
+  getDraft,
+  hasDraft,
+  removeDraft,
 } = chatsSlice.actions;
 
 export default chatsSlice.reducer;
@@ -332,3 +366,5 @@ export const selectMessages = (state) => state.chats.messages;
 export const selectSendingMessages = (state) => state.chats.sendingMessages;
 export const selectLoadingChats = (state) => state.chats.loadingChats;
 export const selectLoadingMessages = (state) => state.chats.loadingMessages;
+export const selectDrafts = (state) => state.chats.drafts;
+export const selectDraft = (state, chatId) => state.chats.drafts.find(draft => draft.chatId === chatId);
