@@ -1,4 +1,5 @@
-import { useAuth } from "./hooks/AuthContext";
+import { useSelector } from "react-redux";
+import { selectUser, selectAuthLoading } from "./redux/slices/authSlice";
 import { useState, useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import LandingPage from "./components/marketing/LandingPage";
@@ -28,14 +29,12 @@ import DesktopLayout from "./layouts/DesktopLayout";
 import Conversation from "./components/chats/Conversation";
 
 export default function AppRoutes() {
-
-    const { user, loading } = useAuth();
+    const user = useSelector(selectUser);
+    const loading = useSelector(selectAuthLoading);
     const [isMobile, setIsMobile] = useState(getIsMobile());
 
     useEffect(() => {
-        const handleResize = () => {
-            setIsMobile(getIsMobile());
-        };
+        const handleResize = () => setIsMobile(getIsMobile());
         window.addEventListener("resize", handleResize);
         return () => window.removeEventListener("resize", handleResize);
     }, []);
@@ -46,14 +45,8 @@ export default function AppRoutes() {
                 {/* Public Routes */}
                 <Route path="/" element={<PublicRoutes><MarketingLayout /></PublicRoutes>}>
                     <Route index element={<LandingPage />} />
-                    <Route
-                        path="login"
-                        element={<LoginForm />}
-                    />
-                    <Route
-                        path="register"
-                        element={<RegistrationForm />}
-                    />
+                    <Route path="login" element={<LoginForm />} />
+                    <Route path="register" element={<RegistrationForm />} />
                     <Route path="reset-password/:token" element={<ResetPassword />} />
                     <Route path="forgot-password" element={<ForgotPassword />} />
                     <Route path="about" element={<AboutPage />} />
@@ -66,7 +59,7 @@ export default function AppRoutes() {
                             path="/app"
                             element={user ? <AppLayout /> : <Navigate to={MARKETING_ROUTES.landing} replace />}
                         >
-                            <Route path='chats' element={user ? <ChatsOverview /> : <Navigate to={MARKETING_ROUTES.login} replace />} /> 
+                            <Route path='chats' element={user ? <ChatsOverview /> : <Navigate to={MARKETING_ROUTES.login} replace />} />
                             <Route path="profile" element={<Profile edit={true} />} />
                             <Route path="sparks" element={<Sparks />} />
                             <Route path="contacts" element={<ContactsPage />} />
@@ -91,12 +84,12 @@ export default function AppRoutes() {
                             element={user ? <DesktopLayout /> : <Navigate to={MARKETING_ROUTES.landing} replace />}
                         >
                             <Route path="app" element={<Navigate to="/app/chats" replace />} />
-                            <Route path="app/chats" element={<SelectChat />} /> 
+                            <Route path="app/chats" element={<SelectChat />} />
                             <Route path="chat/:chatId" element={<Conversation />} />
-                            
+
                             <Route path="chat/:chatId/info" element={<DetailsLayout><ChatInfo /></DetailsLayout>} />
                             <Route path="group/:groupId/info" element={<DetailsLayout><GroupInfo /></DetailsLayout>} />
-                            
+
                             <Route path="app/sparks" element={<Sparks />} />
                             <Route path="app/contacts" element={<ContactsPage />} />
                             <Route path="app/profile" element={<Profile edit={true} />} />
@@ -116,4 +109,4 @@ export default function AppRoutes() {
             </Routes>
         </LoadingScreen>
     );
-};
+}

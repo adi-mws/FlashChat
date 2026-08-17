@@ -91,14 +91,14 @@ export async function importPrivateKey(jwkString) {
 // Encrypt message content with hybrid RSA-OAEP + AES-GCM
 export async function encryptMessage(text, senderId, senderPublicKeyJwk, receiverId, receiverPublicKeyJwk) {
   try {
-    // 1. Generate random AES symmetric key
+    // generate random AES symmetric key
     const aesKey = await window.crypto.subtle.generateKey(
       { name: "AES-GCM", length: 256 },
       true,
       ["encrypt", "decrypt"]
     );
 
-    // 2. Encrypt text using AES-GCM
+    // encrypting text using AES-GCM
     const iv = window.crypto.getRandomValues(new Uint8Array(12));
     const encodedText = new TextEncoder().encode(text);
     const encryptedContentBuffer = await window.crypto.subtle.encrypt(
@@ -110,12 +110,12 @@ export async function encryptMessage(text, senderId, senderPublicKeyJwk, receive
     const ciphertextBase64 = arrayBufferToBase64(encryptedContentBuffer);
     const ivBase64 = arrayBufferToBase64(iv);
 
-    // 3. Export raw AES key to encrypt it with recipients' RSA public keys
+    // exporting raw AES key to encrypt it with recipients' RSA public keys
     const rawAesKey = await window.crypto.subtle.exportKey("raw", aesKey);
 
     const encryptedKeys = [];
 
-    // Encrypt for sender
+    // Encrypting for sender
     if (senderPublicKeyJwk) {
       const senderPubKey = await importPublicKey(senderPublicKeyJwk);
       const senderEncryptedAesBuffer = await window.crypto.subtle.encrypt(
@@ -129,7 +129,7 @@ export async function encryptMessage(text, senderId, senderPublicKeyJwk, receive
       });
     }
 
-    // Encrypt for receiver
+    // Encrypting for receiver
     if (receiverPublicKeyJwk && receiverId !== senderId) {
       const receiverPubKey = await importPublicKey(receiverPublicKeyJwk);
       const receiverEncryptedAesBuffer = await window.crypto.subtle.encrypt(
@@ -157,7 +157,7 @@ export async function encryptMessage(text, senderId, senderPublicKeyJwk, receive
   }
 }
 
-// Decrypt message content using user's private key
+// Decrypting message content using user's private key
 export async function decryptMessage(encryptedMsg, currentUserId, currentUsername) {
   try {
     if (!encryptedMsg.encryption || !encryptedMsg.encryption.isEncrypted) {
@@ -168,14 +168,14 @@ export async function decryptMessage(encryptedMsg, currentUserId, currentUsernam
     const userKeyObj = encryptedKeys.find(k => k.userId?.toString() === currentUserId?.toString());
 
     if (!userKeyObj) {
-      return "🔒 Decryption key not available for this session";
+      return "Decryption key not available for this session";
     }
 
     const localPrivateKeyName = `e2ee_private_key_${currentUsername}`;
     const privateKeyJwkStr = localStorage.getItem(localPrivateKeyName);
 
     if (!privateKeyJwkStr) {
-      return "🔒 Private key missing (cannot decrypt)";
+      return "Private key missing (cannot decrypt)";
     }
 
     // 1. Import local private key
@@ -210,6 +210,6 @@ export async function decryptMessage(encryptedMsg, currentUserId, currentUsernam
     return new TextDecoder().decode(decryptedBuffer);
   } catch (error) {
     console.error("Message decryption failed:", error);
-    return "🔒 Error decrypting message";
+    return "Error decrypting message";
   }
 }

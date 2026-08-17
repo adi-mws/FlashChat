@@ -29,7 +29,6 @@ export const CHAT_ROUTES = {
     root: `${APP_ROOT}/chats`,
     chat: (chatId) => `/chat/${chatId}`,
     group: (groupId) => `/group/${groupId}`,
-    profile: (id) => `/profile/${id}`,
 };
 
 export const SPARK_ROUTES = {

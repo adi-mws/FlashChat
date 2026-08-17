@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { useAuth } from "../../hooks/AuthContext";
-import { useNotification } from "../../hooks/NotificationContext";
+import { useSelector, useDispatch } from "react-redux";
+import { selectUser, logoutUser } from "../../redux/slices/authSlice";
+import { useNotification } from "../../hooks/useNotification";
 import { Flame } from "lucide-react";
 import { LogOut, Settings, User } from "lucide-react";
 import { getImageUrl } from "../../lib/imageUtils";
@@ -10,7 +11,8 @@ import { MARKETING_ROUTES, ACCOUNT_ROUTES } from "../../../routes/routes";
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const dispatch = useDispatch();
+  const user = useSelector(selectUser);
   const { showNotification } = useNotification();
   const navigate = useNavigate();
 
@@ -29,9 +31,10 @@ export default function Header() {
   }, []);
 
   const handleLogout = () => {
-    logout();
-    showNotification("success", "Logout Successful!");
-    navigate(MARKETING_ROUTES.login);
+    dispatch(logoutUser()).then(() => {
+      showNotification("success", "Logout Successful!");
+      navigate(MARKETING_ROUTES.login);
+    });
   };
 
   return (

@@ -1,140 +1,125 @@
 import React, { useEffect, useState } from 'react';
-import { useAuth } from '../../hooks/AuthContext';
+import { useSelector, useDispatch } from 'react-redux';
+import { selectUser, updateUser } from '../../redux/slices/authSlice';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { getImageUrl } from '../../lib/imageUtils';
-import { useNotification } from '../../hooks/NotificationContext';
+import { useNotification } from '../../hooks/useNotification';
 import { Pencil, X, Check, ArrowLeft, Camera, Calendar, Mail, User, Info, ShieldCheck, MonitorSmartphone, History } from 'lucide-react';
 import { ACCOUNT_ROUTES, SETTINGS_ROUTES } from '../../../routes/routes';
 import AppHeader from '../layout/AppHeader';
 import Loading from '../global/Loading';
 
 export default function Profile({ edit = false }) {
+    const dispatch = useDispatch();
     const [profile, setProfile] = useState({});
     const [editedProfile, setEditedProfile] = useState({});
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
     const [showEnlargedImage, setShowEnlargedImage] = useState(false);
-    const { user, setUser } = useAuth();
-    const { id } = useParams();
+    const user = useSelector(selectUser);
+    const { chatId } = useParams();
     const navigate = useNavigate();
     const { showNotification } = useNotification();
     const [selectedImageFile, setSelectedImageFile] = useState(null);
-    const [imagePreview, setImagePreview] = useState("");
+    const [imagePreview, setImagePreview] = useState('');
 
-    const isOwnProfile = edit || (user && user.id === id);
+    const isOwnProfile = edit;
 
     useEffect(() => {
         const fetchProfile = async () => {
             try {
                 setLoading(true);
-                const targetId = isOwnProfile ? user?.id : id;
+                const targetId = isOwnProfile ? user?.id : chatId;
                 if (!targetId) return;
-
                 const path = `${import.meta.env.VITE_API_URL}/user/${targetId}`;
                 const res = await axios.get(path, { withCredentials: true });
                 setProfile(res.data.user);
                 setEditedProfile(res.data.user);
             } catch (err) {
-                console.error("Failed to load profile:", err);
-                showNotification("Failed to load profile", "error");
+                console.error('Failed to load profile:', err);
+                showNotification('Failed to load profile', 'error');
             } finally {
                 setLoading(false);
             }
         };
         fetchProfile();
-    }, [edit, id, user, isOwnProfile]);
+    }, [edit, chatId, user, isOwnProfile]);
 
     const handleCancel = () => {
         setEditedProfile({ ...profile });
         setIsEditing(false);
-        setImagePreview("");
+        setImagePreview('');
         setSelectedImageFile(null);
     };
 
     const handleChange = (field, value) => {
-        setEditedProfile(prev => ({ ...prev, [field]: value }));
+        setEditedProfile((prev) => ({ ...prev, [field]: value }));
     };
 
     const handleSave = async () => {
         if (!editedProfile.name?.trim()) {
-            showNotification("Name cannot be empty", "error");
+            showNotification('Name cannot be empty', 'error');
             return;
         }
-
         try {
             setSaving(true);
             const formData = new FormData();
-            formData.append("name", editedProfile.name.trim());
-            formData.append("about", (editedProfile.about || "").trim());
-            formData.append("showLastMessageInList", editedProfile.showLastMessageInList ?? true);
-
-            if (selectedImageFile) {
-                formData.append("pfp", selectedImageFile);
-            }
+            formData.append('name', editedProfile.name.trim());
+            formData.append('about', (editedProfile.about || '').trim());
+            formData.append('showLastMessageInList', editedProfile.showLastMessageInList ?? true);
+            if (selectedImageFile) formData.append('pfp', selectedImageFile);
 
             const res = await axios.put(
                 `${import.meta.env.VITE_API_URL}/user/${user.id}`,
                 formData,
-                {
-                    withCredentials: true,
-                    headers: { "Content-Type": "multipart/form-data" },
-                }
+                { withCredentials: true, headers: { 'Content-Type': 'multipart/form-data' } }
             );
 
             if (res.status === 200) {
                 setProfile(res.data.user);
                 setEditedProfile(res.data.user);
-                setUser((prev) => ({
-                    ...prev,
+                // Update Redux store instead of context setUser
+                dispatch(updateUser({
                     name: res.data.user.name,
                     showLastMessageInList: res.data.user.showLastMessageInList,
                     showLastMessage: res.data.user.showLastMessageInList,
                     pfp: res.data.user.pfp,
                 }));
                 setIsEditing(false);
-                setImagePreview("");
+                setImagePreview('');
                 setSelectedImageFile(null);
-                // showNotification("Profile updated successfully", "success");
             }
         } catch (err) {
-            console.error("Save failed:", err);
-            showNotification("Failed to save changes", "error");
+            console.error('Save failed:', err);
+            showNotification('Failed to save changes', 'error');
         } finally {
             setSaving(false);
         }
     };
 
-
     return (
         <>
             <AppHeader title={"Profile & Settings"}>
-                {/* Header Navigation */}
                 {isOwnProfile && !isEditing && (
                     <button
                         onClick={() => setIsEditing(true)}
                         className="flex items-center gap-1.5 py-1.5 px-3.5 dark:bg-zinc-950 active:scale-95 text-white font-medium text-sm rounded-xl shadow-sm transition"
                     >
-                        <Pencil size={13} /> Edit 
+                        <Pencil size={13} /> Edit
                     </button>
                 )}
-
             </AppHeader>
-
-            {/* Profile Content Container */}
 
             {loading ? <Loading /> :
                 <div className="max-w-4xl w-full mx-auto p-4 sm:p-6 space-y-6">
-
                     {/* Main Identity Card */}
                     <div className="bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row items-center gap-6">
-
-                        {/* Profile Picture */}
                         <div className="relative group flex-shrink-0">
                             <div
                                 onClick={() => !isEditing && setShowEnlargedImage(true)}
-                                className={`w-32 h-32 rounded-full overflow-hidden border-2 border-slate-100 dark:border-zinc-800 shadow-sm ${!isEditing ? "cursor-zoom-in" : ""}`}
+                                className={`w-32 h-32 rounded-full overflow-hidden border-2 border-slate-100 dark:border-zinc-800 shadow-sm ${!isEditing ? 'cursor-zoom-in' : ''}`}
                             >
                                 <img
                                     src={imagePreview || getImageUrl(profile.pfp)}
@@ -142,7 +127,6 @@ export default function Profile({ edit = false }) {
                                     className="w-full h-full object-cover"
                                 />
                             </div>
-
                             {isOwnProfile && isEditing && (
                                 <>
                                     <input
@@ -168,22 +152,13 @@ export default function Profile({ edit = false }) {
                             )}
                         </div>
 
-                        {/* Quick Metadata */}
                         <div className="text-center sm:text-left min-w-0 flex-1">
-                            <h4 className="text-xl font-bold text-slate-800 dark:text-zinc-100 truncate">
-                                {profile.name}
-                            </h4>
-                            <p className="text-sm text-indigo-500 font-semibold mb-3">
-                                @{profile.username}
-                            </p>
-
+                            <h4 className="text-xl font-bold text-slate-800 dark:text-zinc-100 truncate">{profile.name}</h4>
+                            <p className="text-sm text-indigo-500 font-semibold mb-3">@{profile.username}</p>
                             <div className="flex flex-wrap justify-center sm:justify-start gap-3 text-xs text-slate-400 dark:text-zinc-500">
                                 <span className="flex items-center gap-1.5">
                                     <Calendar size={13} />
-                                    Joined {profile?.createdAt && new Date(profile.createdAt).toLocaleDateString("en-US", {
-                                        year: "numeric",
-                                        month: "long",
-                                    })}
+                                    Joined {profile?.createdAt && new Date(profile.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}
                                 </span>
                             </div>
                         </div>
@@ -191,9 +166,7 @@ export default function Profile({ edit = false }) {
 
                     {/* Form Fields Card */}
                     <div className="bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 rounded-2xl p-6 shadow-sm space-y-5">
-                        <h4 className="text-sm font-bold text-slate-800 dark:text-zinc-200 tracking-wide uppercase border-b border-slate-100 dark:border-zinc-800 pb-2">
-                            Profile Information
-                        </h4>
+                        <h4 className="text-sm font-bold text-slate-800 dark:text-zinc-200 tracking-wide uppercase border-b border-slate-100 dark:border-zinc-800 pb-2">Profile Information</h4>
 
                         {/* Display Name */}
                         <div className="space-y-1.5">
@@ -205,8 +178,8 @@ export default function Profile({ edit = false }) {
                                     className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-150 text-sm"
                                     type="text"
                                     placeholder="Enter display name"
-                                    value={editedProfile.name || ""}
-                                    onChange={(e) => handleChange("name", e.target.value)}
+                                    value={editedProfile.name || ''}
+                                    onChange={(e) => handleChange('name', e.target.value)}
                                 />
                             ) : (
                                 <p className="text-sm text-slate-800 dark:text-zinc-200 bg-slate-50/50 dark:bg-zinc-950/40 border border-slate-100 dark:border-zinc-900 rounded-xl px-4 py-2.5 font-medium">
@@ -215,7 +188,7 @@ export default function Profile({ edit = false }) {
                             )}
                         </div>
 
-                        {/* About Section */}
+                        {/* About */}
                         <div className="space-y-1.5">
                             <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400 flex items-center gap-1.5">
                                 <Info size={13} /> About
@@ -225,12 +198,12 @@ export default function Profile({ edit = false }) {
                                     className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-150 text-sm resize-none"
                                     rows={3}
                                     placeholder="Write something about yourself..."
-                                    value={editedProfile.about || ""}
-                                    onChange={(e) => handleChange("about", e.target.value)}
+                                    value={editedProfile.about || ''}
+                                    onChange={(e) => handleChange('about', e.target.value)}
                                 />
                             ) : (
                                 <p className="text-sm text-slate-700 dark:text-zinc-300 bg-slate-50/50 dark:bg-zinc-950/40 border border-slate-100 dark:border-zinc-900 rounded-xl px-4 py-2.5 whitespace-pre-wrap leading-relaxed">
-                                    {profile.about || "FlashChat User"}
+                                    {profile.about || 'FlashChat User'}
                                 </p>
                             )}
                         </div>
@@ -238,30 +211,20 @@ export default function Profile({ edit = false }) {
                         {/* Read-only details */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
-                                <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400 flex items-center gap-1.5">
-                                    <User size={13} /> Username
-                                </label>
-                                <p className="text-sm text-slate-500 dark:text-zinc-400 bg-slate-100/50 dark:bg-zinc-950/20 border border-slate-100 dark:border-zinc-900 rounded-xl px-4 py-2.5 font-medium cursor-not-allowed">
-                                    @{profile.username}
-                                </p>
+                                <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400 flex items-center gap-1.5"><User size={13} /> Username</label>
+                                <p className="text-sm text-slate-500 dark:text-zinc-400 bg-slate-100/50 dark:bg-zinc-950/20 border border-slate-100 dark:border-zinc-900 rounded-xl px-4 py-2.5 font-medium cursor-not-allowed">@{profile.username}</p>
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400 flex items-center gap-1.5">
-                                    <Mail size={13} /> Email Address
-                                </label>
-                                <p className="text-sm text-slate-500 dark:text-zinc-400 bg-slate-100/50 dark:bg-zinc-950/20 border border-slate-100 dark:border-zinc-900 rounded-xl px-4 py-2.5 font-medium cursor-not-allowed truncate">
-                                    {profile.email || "Private"}
-                                </p>
+                                <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400 flex items-center gap-1.5"><Mail size={13} /> Email Address</label>
+                                <p className="text-sm text-slate-500 dark:text-zinc-400 bg-slate-100/50 dark:bg-zinc-950/20 border border-slate-100 dark:border-zinc-900 rounded-xl px-4 py-2.5 font-medium cursor-not-allowed truncate">{profile.email || 'Private'}</p>
                             </div>
                         </div>
                     </div>
 
-                    {/* Privacy & Settings Card (Visible only on own profile) */}
+                    {/* Privacy & Settings Card */}
                     {isOwnProfile && (
                         <div className="bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 rounded-2xl p-6 shadow-sm space-y-4">
-                            <h4 className="text-sm font-bold text-slate-800 dark:text-zinc-200 tracking-wide uppercase border-b border-slate-100 dark:border-zinc-800 pb-2">
-                                Privacy & Account Options
-                            </h4>
+                            <h4 className="text-sm font-bold text-slate-800 dark:text-zinc-200 tracking-wide uppercase border-b border-slate-100 dark:border-zinc-800 pb-2">Privacy & Account Options</h4>
 
                             <div className="flex items-center justify-between gap-4 py-1">
                                 <div className="space-y-0.5">
@@ -269,7 +232,7 @@ export default function Profile({ edit = false }) {
                                         <ShieldCheck size={15} className="text-indigo-500" /> Show Last Message in Chat List
                                     </label>
                                     <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-md">
-                                        Toggle to show or hide your latest messages in the chat sidebar. Handy for keeping notifications private.
+                                        Toggle to show or hide your latest messages in the chat sidebar.
                                     </p>
                                 </div>
                                 <label className="relative inline-flex items-center cursor-pointer flex-shrink-0">
@@ -284,94 +247,52 @@ export default function Profile({ edit = false }) {
                                 </label>
                             </div>
 
-                            {/* Contacts view link */}
-                            <div
-                                onClick={() => navigate(ACCOUNT_ROUTES.contacts)}
-                                className="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-950/20 hover:bg-slate-100/50 dark:hover:bg-zinc-950/60 transition cursor-pointer"
-                            >
+                            <div onClick={() => navigate(ACCOUNT_ROUTES.contacts)} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-950/20 hover:bg-slate-100/50 dark:hover:bg-zinc-950/60 transition cursor-pointer">
                                 <div className="space-y-0.5">
                                     <p className="text-xs font-semibold text-slate-800 dark:text-zinc-200">Manage Contacts</p>
-                                    <p className="text-[11px] text-slate-500 dark:text-zinc-400">
-                                        View sent or pending friend requests and manage list
-                                    </p>
+                                    <p className="text-[11px] text-slate-500 dark:text-zinc-400">View sent or pending friend requests and manage list</p>
                                 </div>
                                 <i className="fa-solid fa-chevron-right text-xs text-slate-400" />
                             </div>
 
-                            {/* Linked Devices view link */}
-                            <div
-                                onClick={() => navigate(SETTINGS_ROUTES.linkedDevices)}
-                                className="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-950/20 hover:bg-slate-100/50 dark:hover:bg-zinc-950/60 transition cursor-pointer"
-                            >
+                            <div onClick={() => navigate(SETTINGS_ROUTES.linkedDevices)} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-950/20 hover:bg-slate-100/50 dark:hover:bg-zinc-950/60 transition cursor-pointer">
                                 <div className="space-y-0.5">
                                     <p className="text-xs font-semibold text-slate-800 dark:text-zinc-200">Linked Devices</p>
-                                    <p className="text-[11px] text-slate-500 dark:text-zinc-500">
-                                        Manage other browser sessions and devices signed into this account
-                                    </p>
+                                    <p className="text-[11px] text-slate-500 dark:text-zinc-500">Manage other browser sessions and devices signed into this account</p>
                                 </div>
                                 <MonitorSmartphone size={16} className="text-slate-400 dark:text-zinc-500" />
                             </div>
 
-                            {/* Update History view link */}
-                            <div
-                                onClick={() => navigate(SETTINGS_ROUTES.updateHistory)}
-                                className="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-950/20 hover:bg-slate-100/50 dark:hover:bg-zinc-950/60 transition cursor-pointer"
-                            >
+                            <div onClick={() => navigate(SETTINGS_ROUTES.updateHistory)} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-950/20 hover:bg-slate-100/50 dark:hover:bg-zinc-950/60 transition cursor-pointer">
                                 <div className="space-y-0.5">
                                     <p className="text-xs font-semibold text-slate-800 dark:text-zinc-200">Update History</p>
-                                    <p className="text-[11px] text-slate-500 dark:text-zinc-500">
-                                        View FlashChat release notes and version changelog
-                                    </p>
+                                    <p className="text-[11px] text-slate-500 dark:text-zinc-500">View FlashChat release notes and version changelog</p>
                                 </div>
                                 <History size={16} className="text-slate-400 dark:text-zinc-500" />
                             </div>
                         </div>
                     )}
 
-                    {/* Edit Mode Actions Block */}
+                    {/* Edit Mode Actions */}
                     {isEditing && (
                         <div className="flex items-center justify-end gap-3 pt-4">
-                            <button
-                                onClick={handleCancel}
-                                disabled={saving}
-                                className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-900 text-sm font-semibold transition"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleSave}
-                                disabled={saving}
-                                className="px-5 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold transition shadow-md shadow-indigo-500/10 flex items-center justify-center"
-                            >
-                                {saving ? "Saving Changes..." : "Save Changes"}
+                            <button onClick={handleCancel} disabled={saving} className="px-5 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-900 text-sm font-semibold transition">Cancel</button>
+                            <button onClick={handleSave} disabled={saving} className="px-5 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-sm font-semibold transition shadow-md shadow-indigo-500/10 flex items-center justify-center">
+                                {saving ? 'Saving Changes...' : 'Save Changes'}
                             </button>
                         </div>
                     )}
                 </div>
             }
 
-            {/* Enlarged Image Overlay Modal */}
+            {/* Enlarged Image Overlay */}
             {showEnlargedImage && (
-                <div
-                    onClick={() => setShowEnlargedImage(false)}
-                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm animate-fade-in"
-                >
-                    <div
-                        onClick={(e) => e.stopPropagation()}
-                        className="relative bg-white dark:bg-zinc-900 p-3 rounded-2xl max-w-lg w-full shadow-2xl animate-scale-in"
-                    >
-                        <button
-                            onClick={() => setShowEnlargedImage(false)}
-                            className="absolute top-4 right-4 text-white bg-black/50 hover:bg-red-500 hover:text-white transition p-1.5 rounded-full z-10"
-                            aria-label="Close"
-                        >
+                <div onClick={() => setShowEnlargedImage(false)} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm animate-fade-in">
+                    <div onClick={(e) => e.stopPropagation()} className="relative bg-white dark:bg-zinc-900 p-3 rounded-2xl max-w-lg w-full shadow-2xl animate-scale-in">
+                        <button onClick={() => setShowEnlargedImage(false)} className="absolute top-4 right-4 text-white bg-black/50 hover:bg-red-500 hover:text-white transition p-1.5 rounded-full z-10">
                             <X className="w-4 h-4" />
                         </button>
-                        <img
-                            src={getImageUrl(profile.pfp)}
-                            alt="Enlarged avatar"
-                            className="w-full h-auto max-h-[70vh] object-contain rounded-xl"
-                        />
+                        <img src={getImageUrl(profile.pfp)} alt="Enlarged avatar" className="w-full h-auto max-h-[70vh] object-contain rounded-xl" />
                     </div>
                 </div>
             )}

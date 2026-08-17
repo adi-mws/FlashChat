@@ -11,7 +11,6 @@ import { getUserRoom } from "../socket/store.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-
 export const searchUsers = async (req, res) => {
   const { username } = req.query;
   const currentUserId = req.user.id;
@@ -56,9 +55,6 @@ export const searchUsers = async (req, res) => {
   }
 };
 
-
-
-
 // Helper function to format user data safely
 const formatUser = (user) => ({
   _id: user._id,
@@ -89,8 +85,6 @@ export const getUserById = async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch user', error: error.message });
   }
 };
-
-
 
 
 export const updateUserProfile = async (req, res) => {
@@ -188,9 +182,6 @@ export const sendFriendRequest = async (req, res) => {
   res.status(200).json({ message: "Friend request sent" });
 
 };
-
-
-
 
 export const getFriendRequests = async (req, res) => {
   const userId = req.user.id;
@@ -391,6 +382,27 @@ export const updateUserPublicKey = async (req, res) => {
   } catch (error) {
     console.error("Error in updateUserPublicKey:", error);
     res.status(500).json({ message: "Failed to update public key", error: error.message });
+  }
+};
+
+export const getFriendsList = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const user = await User.findById(userId)
+      .populate("contacts", "name username pfp about lastOnline")
+      .select("contacts")
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({
+      friends: user.contacts || []
+    });
+  } catch (error) {
+    console.error("Error in getFriendsList:", error);
+    res.status(500).json({ message: "Failed to fetch friends list" });
   }
 };
 

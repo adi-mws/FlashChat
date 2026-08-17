@@ -1,41 +1,34 @@
 import "./App.css";
 import { BrowserRouter as Router } from "react-router-dom";
-import { AuthProvider, useAuth } from "./hooks/AuthContext";
-import { NotificationProvider } from "./hooks/NotificationContext";
-import { ThemeProvider } from "./hooks/ThemeContext";
-
+import { Provider } from "react-redux";
+import store from "./redux/store";
 import { GoogleOAuthProvider } from "@react-oauth/google";
-import { ChatProvider } from "./hooks/ChatsContext";
-import { PopUpProvider } from "./hooks/PopUpContext";
-import { NetworkProvider } from "./hooks/NetworkContext";
 import AppRoutes from "./AppRoutes";
+import AppInitializer from "./components/global/AppInitializer";
+import SocketManager from "./components/global/SocketManager";
+import NotificationDisplay from "./components/global/NotificationDisplay";
+import NetworkWatcher from "./components/global/NetworkWatcher";
 
-
+// Apply dark theme to document root
+document.documentElement.classList.add("dark");
 
 function App() {
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}>
-      <ThemeProvider>
-        <NetworkProvider>
-          <NotificationProvider>
-            <AuthProvider>
-              <PopUpProvider>
-                <ChatProvider>
-                  <Router>
-                    <AppRoutes />
-                  </Router>
-                </ChatProvider>
-              </PopUpProvider>
-            </AuthProvider>
-          </NotificationProvider>
-        </NetworkProvider>
-      </ThemeProvider>
+      <Provider store={store}>
+        <Router>
+          {/* Side-effect components (no UI) */}
+          <AppInitializer />
+          <SocketManager />
+          <NetworkWatcher />
+          {/* Global notification toasts */}
+          <NotificationDisplay />
+          {/* App Routes */}
+          <AppRoutes />
+        </Router>
+      </Provider>
     </GoogleOAuthProvider>
   );
 }
-
-
-
-
 
 export default App;

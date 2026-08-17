@@ -13,14 +13,14 @@ import {
   getFriendRequests,
   getSentRequests,
   updateUserPublicKey,
+  getFriendsList
  
 } from '../controllers/userController.js';
-
-
 
 const router = express.Router();
 
 router.get('/get-users', authenticateJWT, searchUsers);
+router.get('/friends/list', authenticateJWT, getFriendsList);
 router.get('/:id', authenticateJWT, getUserById);
 router.put('/public-key', authenticateJWT, updateUserPublicKey);
 router.put('/:id', authenticateJWT, uploadPfp, updateUserProfile);

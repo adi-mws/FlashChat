@@ -1,10 +1,11 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../hooks/AuthContext';
+import { useSelector } from 'react-redux';
+import { selectUser } from '../../redux/slices/authSlice';
 import { UserPlus, LogIn, User, Users, MessageSquare } from 'lucide-react';
 import { MARKETING_ROUTES, CHAT_ROUTES } from '../../../routes/routes';
-
+import { ShieldCheck } from 'lucide-react';
 export default function LandingPage() {
-  const { user } = useAuth();
+  const user = useSelector(selectUser);
   const navigate = useNavigate();
 
   return (
@@ -15,17 +16,17 @@ export default function LandingPage() {
           <span className="text-indigo-500">Fast. Secure. Limitless.</span>
         </h1>
         <p className="hero-section-description text-slate-500 dark:text-zinc-400 max-w-2xl text-sm sm:text-base md:text-lg leading-relaxed">
-          FlashChat is a real-time messaging application that connects users instantly. Simply search for friends by username and start chatting with full end-to-end synchronization across all your devices.
+          FlashChat makes communication simple and secure. Discover friends, start conversations instantly, and enjoy private messaging protected by end-to-end encryption.
         </p>
         <div className="flex gap-4 flex-col sm:flex-row items-center mt-4">
-          <button 
-            className="rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white hover:scale-[1.02] active:scale-95 transition sm:text-md w-[80vw] sm:w-auto duration-200 text-sm py-3.5 lg:px-12 px-8 shadow-md shadow-indigo-500/10 cursor-pointer" 
+          <button
+            className="rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white hover:scale-[1.02] active:scale-95 transition sm:text-md w-[80vw] sm:w-auto duration-200 text-sm py-3.5 lg:px-12 px-8 shadow-md shadow-indigo-500/10 cursor-pointer"
             onClick={() => { navigate(user ? CHAT_ROUTES.root : MARKETING_ROUTES.login) }}
           >
             Start Chatting
           </button>
-          <button 
-            onClick={() => { navigate(MARKETING_ROUTES.about) }} 
+          <button
+            onClick={() => { navigate(MARKETING_ROUTES.about) }}
             className="rounded-xl text-sm sm:text-md text-slate-600 dark:text-zinc-300 font-bold bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 w-[80vw] sm:w-auto hover:scale-[1.02] active:scale-95 hover:bg-slate-50 dark:hover:bg-zinc-800 transition duration-200 py-3.5 lg:px-10 px-8 shadow-sm cursor-pointer"
           >
             About Application
@@ -103,14 +104,30 @@ export default function LandingPage() {
             <div>
               <h4 className="text-lg font-bold text-slate-800 dark:text-zinc-100">5. Chat Real-Time</h4>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-2 leading-relaxed">
-                Start chatting instantly! Send messages, view online statuses, read receipts, and manage sessions in real time.
+                Start chatting instantly! Send messages, read receipts, and manage sessions in real time.
+              </p>
+            </div>
+          </div>
+
+
+          {/* Step 6 */}
+          <div className="bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 rounded-2xl p-6 shadow-sm flex flex-col gap-4 md:col-span-2 lg:col-span-1">
+            <div className="h-12 w-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-500 flex items-center justify-center border border-emerald-100 dark:border-emerald-900/70">
+              <ShieldCheck size={22} />
+            </div>
+            <div>
+              <h4 className="text-lg font-bold text-slate-800 dark:text-zinc-100">
+                6. End-to-End Encrypted
+              </h4>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-zinc-400 mt-2 leading-relaxed">
+                Every message is encrypted before it leaves your device, ensuring only you and the recipient can read it.
               </p>
             </div>
           </div>
         </div>
 
-        <button 
-          onClick={() => navigate(CHAT_ROUTES.root)} 
+        <button
+          onClick={() => navigate(CHAT_ROUTES.root)}
           className="mt-8 rounded-xl font-bold bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600 text-white hover:scale-[1.02] active:scale-95 transition sm:text-md py-3.5 px-10 shadow-md shadow-indigo-500/10 cursor-pointer"
         >
           Go to Chats

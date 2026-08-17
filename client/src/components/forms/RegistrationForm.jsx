@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
-import { useNotification } from "../../hooks/NotificationContext";
+import { useNotification } from "../../hooks/useNotification";
 import { MARKETING_ROUTES } from "../../../routes/routes";
 import useDebounce from "../../hooks/useDebounce";
 import { Flame, CheckCircle2, XCircle } from "lucide-react";

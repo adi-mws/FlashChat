@@ -14,6 +14,10 @@ export default function ChatListHeader() {
           FlashChat
         </span>
       </Link>
+
+      <div className="flex gap-1 items-center">
+       
+      </div>
     </div>
   );
 }

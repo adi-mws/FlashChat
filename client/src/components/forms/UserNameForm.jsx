@@ -2,8 +2,9 @@ import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import axios from 'axios';
 import useDebounce from '../../hooks/useDebounce';
-import { useAuth } from '../../hooks/AuthContext';
-import { useNotification } from '../../hooks/NotificationContext';
+import { useDispatch } from 'react-redux';
+import { setUser } from '../../redux/slices/authSlice';
+import { useNotification } from '../../hooks/useNotification';
 import { useNavigate } from 'react-router-dom';
 import { CHAT_ROUTES } from '../../../routes/routes';
 
@@ -21,7 +22,7 @@ export default function UserNameForm({ showForm, setShowForm, credentialResponse
   } = useForm();
 
   const [checkingUsername, setCheckingUsername] = useState(false);
-  const {setUser}  = useAuth();
+  const dispatch = useDispatch();
   const [usernameAvailable, setUsernameAvailable] = useState(null);
   const [username, setUsername] = useState("");
   const debouncedUsername = useDebounce(username, 500);
@@ -34,7 +35,7 @@ export default function UserNameForm({ showForm, setShowForm, credentialResponse
       if (response.status === 201) {
         // Actually 201 signs that the user is registered for the first time by Google Auth and also 
         // logged in (
-        setUser(response.data.user)
+        dispatch(setUser(response.data.user))
         navigate(CHAT_ROUTES.root)
         showNotification("success", "Login Successful!");
       }

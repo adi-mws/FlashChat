@@ -4,7 +4,6 @@ import { CHAT_ROUTES } from "../../routes/routes";
 import Conversation from "../components/chats/Conversation"
 import ChatList from "../components/chats/ChatList";
 export default function ChatLayout() {
-    const [isSidebarDragging, setIsSidebarDragging] = useState(false);
     const [sidebarWidth, setSidebarWidth] = useState(350);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 640);
 
@@ -17,32 +16,7 @@ export default function ChatLayout() {
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
-    useEffect(() => {
-        const handleMouseMove = (e) => {
-            if (!isSidebarDragging) return;
-            const newWidth = e.clientX;
-            if (newWidth > 250 && newWidth < 700) {
-                setSidebarWidth(newWidth);
-            }
-        };
-
-        const handleMouseUp = () => {
-            setIsSidebarDragging(false);
-            document.body.style.userSelect = "auto";
-        };
-
-        if (isSidebarDragging) {
-            document.body.style.userSelect = "none";
-            window.addEventListener("mousemove", handleMouseMove);
-            window.addEventListener("mouseup", handleMouseUp);
-        }
-
-        return () => {
-            window.removeEventListener("mousemove", handleMouseMove);
-            window.removeEventListener("mouseup", handleMouseUp);
-            document.body.style.userSelect = "auto";
-        };
-    }, [isSidebarDragging]);
+  
 
     // Show only the chat  without sidebar or resizer
     if (isMobile) {
@@ -69,13 +43,12 @@ export default function ChatLayout() {
             {/* Resizer */}
             <div
                 className="w-1 cursor-col-resize hover:bg-zinc-400 dark:hover:bg-zinc-700 bg-zinc-200 dark:bg-zinc-800"
-                onMouseDown={() => setIsSidebarDragging(true)}
             ></div>
 
             {/* Main Chat Area */}
             <div
                 className="chat-content overflow-hidden flex justify-center items-center"
-                style={{ width: `calc(100% - ${sidebarWidth}px)` }}
+                style={{width: sidebarWidth ? `calc(100% - ${sidebarWidth}px)` : "100%"}}
             >
                 <Conversation />
 

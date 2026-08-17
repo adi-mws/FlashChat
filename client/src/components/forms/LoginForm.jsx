@@ -1,14 +1,15 @@
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import axios from "axios";
-import { useNotification } from "../../hooks/NotificationContext";
+import { useNotification } from "../../hooks/useNotification";
 import { useNavigate, Link } from "react-router-dom";
-import { useAuth } from "../../hooks/AuthContext";
+import { useDispatch, useSelector } from "react-redux";
+import { setUser } from "../../redux/slices/authSlice";
+import { selectTheme } from "../../redux/slices/uiSlice";
 import { MARKETING_ROUTES, CHAT_ROUTES } from "../../../routes/routes";
 import { GoogleLogin } from "@react-oauth/google";
-import { useTheme } from "../../hooks/ThemeContext";
 import UserNameForm from "./UserNameForm";
-import { Flame } from "lucide-react";
+import { AlertCircle, CheckCircle2, Flame } from "lucide-react";
 
 export default function LoginForm() {
   const {
@@ -16,12 +17,21 @@ export default function LoginForm() {
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm({ mode: "onChange" });
-  const { theme } = useTheme();
+  const dispatch = useDispatch();
+  const theme = useSelector(selectTheme);
   const navigate = useNavigate();
   const [showUsernameForm, setShowUsernameForm] = useState(false);
   const [googleCredentialResponse, setGoogleCredentialResponse] = useState({});
   const { showNotification } = useNotification();
-  const { setUser, setLoading } = useAuth();
+  const [alertMessage, setAlertMessage] = useState({ show: false, message: "", type: "" });
+  const isSuccessAlert = alertMessage.type === "success";
+  const alertClasses = isSuccessAlert
+    ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300"
+    : "border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-500";
+
+  const handleAlert = (type, message) => {
+    setAlertMessage({ show: true, message, type });
+  }
 
   const manualLogin = async (data) => {
     try {
@@ -32,18 +42,17 @@ export default function LoginForm() {
       );
 
       if (response.status === 200) {
-        setUser(response.data.user);
-        setLoading(false);
+        dispatch(setUser(response.data.user));
         navigate(CHAT_ROUTES.root);
       }
     } catch (error) {
       console.error("Login failed:", error);
-      showNotification(
+      handleAlert(
         "error",
         error.response?.data?.message ?? "Internal Server Error"
       );
     }
-  };
+  };  
 
   const handleGoogleSuccess = async (credentialResponse) => {
     setGoogleCredentialResponse(credentialResponse);
@@ -60,23 +69,23 @@ export default function LoginForm() {
             );
 
             if (r.status === 200) {
-              const user = r.data.user;
-              setUser(user);
-              showNotification("success", "Login Successful!");
+              const userData = r.data.user;
+              dispatch(setUser(userData));
+              handleAlert("success", "Login Successful!");
               navigate(CHAT_ROUTES.root);
             } else {
-              showNotification("error", "Failed to login");
+              handleAlert("error", "Failed to login");
             }
           } catch (error) {
             console.error("Google Auth API Error:", error);
-            showNotification("error", "Authentication failed!");
+            handleAlert("error", "Authentication failed!");
           }
         } else {
           setShowUsernameForm(true);
         }
       }
     } catch (error) {
-      showNotification("error", "Something went wrong!");
+      handleAlert("error", "Something went wrong!");
     }
   };
 
@@ -88,6 +97,8 @@ export default function LoginForm() {
   const onSubmit = async (data) => {
     manualLogin(data);
   };
+
+
 
   return (
     <div className="mt-10 w-full flex items-center justify-center p-1 bg-slate-50/50 dark:bg-zinc-950/40">
@@ -103,6 +114,23 @@ export default function LoginForm() {
             Login and start chatting with your friends instantly
           </p>
         </div>
+
+        {/* Alert Message */}
+        {alertMessage.show && (
+          <div
+            className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-sm shadow-sm ${alertClasses}`}
+            role="alert"
+          >
+            {isSuccessAlert ? (
+              <CheckCircle2 className="h-4 w-4 shrink-0" />
+            ) : (
+              <AlertCircle className="h-4 w-4 shrink-0" />
+            )}
+            <div className="min-w-0">
+              <p className="mt-0.5 leading-5">{alertMessage.message}</p>
+            </div>
+          </div>
+        )}
 
         {/* Manual Login Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="">
