@@ -41,6 +41,21 @@ export default function ChatList() {
     navigate(CHAT_ROUTES.chat(chat._id));
   };
 
+  const sortedChats = [...chats].sort((a, b) => {
+    const aDraft = drafts.find((d) => d.chatId === a._id);
+    const bDraft = drafts.find((d) => d.chatId === b._id);
+
+    // Draft chats always come first
+    if (aDraft && !bDraft) return -1;
+    if (!aDraft && bDraft) return 1;
+
+    // Otherwise normal newest-message ordering
+    return (
+      new Date(b.lastMessage?.createdAt || 0) -
+      new Date(a.lastMessage?.createdAt || 0)
+    );
+  });
+
   useEffect(() => {
     const search = searchTerm.trim().toLowerCase();
     const filtered = chats.filter((chat) => {
@@ -50,6 +65,8 @@ export default function ChatList() {
     });
     setFilteredChats(filtered);
   }, [chats, searchTerm]);
+
+
 
   return (
     <div
@@ -97,9 +114,9 @@ export default function ChatList() {
           </div>
         )}
 
-        {filteredChats.length === 0 && searchTerm.trim() !== '' ? <NoChatsFound /> : null}
+        {sortedChats.length === 0 && searchTerm.trim() !== '' ? <NoChatsFound /> : null}
 
-        {!loading && Array.isArray(filteredChats) && filteredChats.map((chat) => {
+        {!loading && Array.isArray(sortedChats) && sortedChats.map((chat) => {
           const isSelected = selectedChat === chat._id;
           const time = chat.lastMessage ? new Date(chat.lastMessage.createdAt).toLocaleTimeString([], {
             hour: '2-digit',
