@@ -2,7 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 import { decryptMessage } from '../../lib/crypto';
 
-// --- Thunks ---
+// Thunks
 
 export const fetchChats = createAsyncThunk(
   'chats/fetchChats',
@@ -129,7 +129,7 @@ export const deleteContact = createAsyncThunk(
   }
 );
 
-// --- Slice ---
+// Slice 
 
 const chatsSlice = createSlice({
   name: 'chats',
@@ -141,6 +141,8 @@ const chatsSlice = createSlice({
     sendingMessages: [],       // optimistic messages
     drafts: [],
     loadingChats: false,
+    activeMessage: '',
+    activeAttachements: [],
     loadingMessages: false,
     error: null,
   },
@@ -154,7 +156,12 @@ const chatsSlice = createSlice({
     setOnlineUsers(state, action) {
       state.onlineUsers = action.payload;
     },
-
+    setActiveMessage(state, action ) {
+      state.activeMessage = action.payload;
+    },
+    setActiveAttachements(state, action) {
+      state.activeAttachements = action.payload; 
+    },
     saveDraft(state, action) {
       const { chatId, message, attachments } = action.payload;
 
@@ -222,11 +229,11 @@ const chatsSlice = createSlice({
         return chat;
       });
 
-      // Bubble the chat to the top
-      const updatedChat = state.chats.find((c) => c._id === chatId);
-      if (updatedChat) {
-        state.chats = [updatedChat, ...state.chats.filter((c) => c._id !== chatId)];
-      }
+      //! Bubble the chat to the top (DEPRECATED) // as now the timestamp based shorting of chats is done
+      // const updatedChat = state.chats.find((c) => c._id === chatId);
+      // if (updatedChat) {
+      //   state.chats = [updatedChat, ...state.chats.filter((c) => c._id !== chatId)];
+      // }
     },
     // Called when a message is seen by receiver
     receiverSeenMessage(state, action) {
@@ -350,10 +357,12 @@ export const {
   prependChat,
   removeChatById,
   updateChatLastMessage,
+  setActiveMessage, 
   saveDraft,
   getDraft,
   hasDraft,
   removeDraft,
+  setActiveAttachements,
 } = chatsSlice.actions;
 
 export default chatsSlice.reducer;
@@ -368,3 +377,5 @@ export const selectLoadingChats = (state) => state.chats.loadingChats;
 export const selectLoadingMessages = (state) => state.chats.loadingMessages;
 export const selectDrafts = (state) => state.chats.drafts;
 export const selectDraft = (state, chatId) => state.chats.drafts.find(draft => draft.chatId === chatId);
+export const selectActiveMessage = (state) => state.chats.activeMessage;
+export const selectActiveAttachements = (state) => state.chats.activeAttachements;

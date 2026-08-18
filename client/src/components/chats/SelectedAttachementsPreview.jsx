@@ -1,7 +1,6 @@
 import { X, File as FileIcon } from "lucide-react";
-import React from "react";
 
-export default function SelectedAttachepmentsPreview({
+export default function SelectedAttachementsPreview({
   show,
   onClose,
   selectedAttachements,
@@ -60,7 +59,7 @@ export default function SelectedAttachepmentsPreview({
               {/* File information */}
               <div className="flex flex-col flex-1 min-w-0">
                 <span className="text-sm truncate">
-                  {file?.name}
+                  {file?.name} 
                 </span>
 
                 <span className="text-xs text-zinc-500">

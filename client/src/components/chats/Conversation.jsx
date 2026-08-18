@@ -15,7 +15,6 @@ import {
   deleteAllMessages,
   selectDraft,
   deleteContact,
-  saveDraft,
   removeDraft
 } from "../../redux/slices/chatsSlice";
 import { selectUser } from "../../redux/slices/authSlice";
@@ -31,6 +30,7 @@ import { encryptMessage } from "../../lib/crypto";
 import AttachmentsMenu from "./AttachmentsMenu";
 import SelectedAttachementsPreview from "./SelectedAttachementsPreview.jsx";
 import { socket } from "../../lib/socket";
+import { selectActiveMessage, setActiveMessage, selectActiveAttachements, setActiveAttachements } from "../../redux/slices/chatsSlice";
 
 export default function Conversation() {
   const dispatch = useDispatch();
@@ -38,7 +38,7 @@ export default function Conversation() {
   const { showNotification } = useNotification();
   const { chatId } = useParams();
   const [isMobile] = useState(window.innerWidth < 640);
-
+  const message = useSelector(selectActiveMessage);
   const chats = useSelector(selectChats);
   const selectedChat = useSelector(selectSelectedChat);
   const onlineUsers = useSelector(selectOnlineUsers);
@@ -46,12 +46,9 @@ export default function Conversation() {
   const sendingMessages = useSelector(selectSendingMessages);
   const loadingMessages = useSelector(selectLoadingMessages);
   const user = useSelector(selectUser);
-
-  const [message, setMessage] = useState("");
   const navigate = useNavigate();
   const [showChatOptions, setShowChatOptions] = useState(false);
   const [showMessageOptions, setShowMessageOptions] = useState({ clientX: 0, clientY: 0, show: false, messageId: null });
-
   const messagesEndRef = useRef(null);
   const attachmentsButtonRef = useRef(null);
   const [showAttachementMenu, setShowAttachementMenu] = useState(false);
@@ -63,9 +60,11 @@ export default function Conversation() {
   const [selectedFile, setSelectedFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const selectedAttachementsRef = useRef(null);
-  const [selectedAttachements, setSelectedAttachements] = useState([]);
+  // const [selectedAttachements, setActiveAttachements] = useState([]);
   const [showSelectedAttachementsPreview, setShowSelectedAttachementsPreview] = useState(false);
-
+  
+  const selectedAttachements = useSelector(selectActiveAttachements); 
+  
   // Textarea ref
   const textareaRef = useRef(null);
 
@@ -74,24 +73,31 @@ export default function Conversation() {
   };
 
   const handleChange = (e) => {
-    setMessage(e.target.value);
+    dispatch(setActiveMessage((e.target.value)));
 
     const textarea = textareaRef.current;
     textarea.style.height = "auto";
     textarea.style.height = `${textarea.scrollHeight}px`;
   };
 
-  // Join chat room and set selected chat when chatId changes
-  useEffect(() => {
-    if (!chatId || chats.length === 0) return;
-    const chat = chats.find((c) => c._id === chatId);
-    if (chat) {
-      dispatch(setSelectedChat(chatId));
-      socket.emit("joinChat", { chatId, userId: user.id });
-    }
-  }, [chatId, chats, dispatch, user?.id]);
 
-  // Fetch messages when chat changes
+  // * Join chat room and set selected chat when chatId changes
+  useEffect(() => {
+    if (!chatId || chats.length === 0 || !user?.id) return;
+
+    const chat = chats.find((c) => c._id === chatId);
+    if (!chat) return;
+
+    dispatch(setSelectedChat(chatId));
+
+    socket.emit("joinChat", {
+      chatId,
+      userId: user.id,
+    });
+
+  }, [chatId, chats, user?.id, dispatch]);
+
+  // * Fetch messages when chat changes
   useEffect(() => {
     if (!chatId || !user) return;
     dispatch(fetchMessages({ chatId, user })).then((action) => {
@@ -114,29 +120,8 @@ export default function Conversation() {
     });
   }, [chatId, user, dispatch]);
 
-  // Saving the chat as draft
-  useEffect(() => {
-    if (!chatId) return;
 
-    if (message || selectedAttachements.length > 0) {
-      dispatch(
-        saveDraft({
-          chatId,
-          message,
-          attachments: selectedAttachements,
-        })
-      );
-    } else {
-      dispatch(removeDraft(chatId));
-    }
-  }, [
-    message,
-    selectedAttachements,
-    chatId,
-    dispatch,
-  ]);
-
-  // Loading the draft
+  // * Loading the draft
   const draft = useSelector(
     state => selectDraft(state, chatId)
   );
@@ -148,8 +133,8 @@ export default function Conversation() {
 
     isLoadingDraft.current = true;
 
-    setMessage(draft?.message || "");
-    setSelectedAttachements(draft?.attachments || []);
+    dispatch(setActiveMessage((draft?.message || "")));
+    dispatch(setActiveAttachements(draft?.attachments || []));
 
     // Allow the state updates above to finish before saving again
     setTimeout(() => {
@@ -160,10 +145,10 @@ export default function Conversation() {
 
   // * Auto focus
   useEffect(() => {
-  textareaRef.current?.focus();
-}, [chatId]);
+    textareaRef.current?.focus();
+  }, [chatId]);
 
-  
+
   // Scroll on new messages
   useEffect(() => {
     scrollToBottom();
@@ -209,7 +194,7 @@ export default function Conversation() {
             receiverId,
             encryption: encrypted.encryption,
           });
-          setMessage("");
+          dispatch(setActiveMessage(("")));
           dispatch(removeDraft(chatId));
           return;
         } catch (error) {
@@ -223,7 +208,7 @@ export default function Conversation() {
         receiverId,
         encryption: { isEncrypted: false },
       });
-      setMessage("");
+      dispatch(setActiveMessage(("")));
     }
   };
 
@@ -274,7 +259,7 @@ export default function Conversation() {
     const file = event.target.files?.[0];
     if (!file) return;
     setSelectedFile(file);
-    setSelectedAttachements((prev) => [...prev, file]);
+    dispatch(setActiveAttachements((prev) => [...prev, file]));
     setShowSelectedAttachementsPreview(true);
     if (file.type.startsWith("image/")) {
       setPreview(URL.createObjectURL(file));
@@ -414,7 +399,7 @@ export default function Conversation() {
           />
           <button
             type="submit"
-            disabled={!message.trim()}
+            disabled={!message?.trim()}
             className="flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-500 text-white disabled:bg-slate-200 disabled:text-slate-400 dark:disabled:bg-zinc-800 dark:disabled:text-zinc-700 hover:bg-indigo-600 transition flex-shrink-0 cursor-pointer"
           >
             <Send size={15} fill={message.trim() ? "white" : "none"} />

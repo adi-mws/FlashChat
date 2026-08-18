@@ -8,10 +8,16 @@ import {
   selectLoadingChats,
   setSelectedChat,
   markMessagesRead,
+  selectActiveMessage,
+  setActiveMessage,
   selectDrafts,
+  removeDraft,
+  selectActiveAttachements,
+  setActiveAttachements,
+  saveDraft,
 } from '../../redux/slices/chatsSlice';
 import { selectUser } from '../../redux/slices/authSlice';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { getImageUrl } from '../../lib/imageUtils';
 import { Search, Check, CheckCheck, Plus } from 'lucide-react';
 import { socket } from '../../lib/socket';
@@ -30,14 +36,34 @@ export default function ChatList() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredChats, setFilteredChats] = useState([]);
   const [selectedFilter, setSelectedFilter] = useState('all');
-
   const drafts = useSelector(selectDrafts);
+  const activeMessage = useSelector(selectActiveMessage);
+  const activeAttachements = useSelector(selectActiveAttachements);
+  const { chatId: currentChatId } = useParams();
 
   const handleChatClick = (chat) => {
     dispatch(setSelectedChat(chat._id));
     dispatch(markMessagesRead({ chatId: chat._id, userId: user.id }));
+    // save draft with message and attachements 
+    if (chat._id && (activeMessage.trim().length > 0 || activeAttachements.length > 0)) {
+
+      dispatch(saveDraft({
+        chatId: currentChatId,
+        message: activeMessage,
+        attachments: activeAttachements,
+      }))
+
+      dispatch(setActiveMessage(""));
+      dispatch(setActiveAttachements([]));
+    } else {
+      dispatch(removeDraft(currentChatId));
+    }
+
+
     // Emit seen messages via socket
     socket.emit('seenMessage', { chatId: chat._id, userId: user.id });
+
+    // moves to another chat page
     navigate(CHAT_ROUTES.chat(chat._id));
   };
 
