@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
+import axios from "axios";
 import {
   selectChats,
   selectSelectedChat,
@@ -10,6 +11,9 @@ import {
   selectLoadingMessages,
   setSelectedChat,
   addSendingMessage,
+  removeSendingMessage,
+  updateSendingMessageProgress,
+  markSendingMessageFailed,
   fetchMessages,
   deleteMessage,
   deleteAllMessages,
@@ -26,7 +30,7 @@ import SelectChat from "./SelectChat";
 import NoChatsFound from "./NoChatsFound";
 import { getImageUrl } from "../../lib/imageUtils";
 import MessageList from "../messages/MessageList";
-import { encryptMessage } from "../../lib/crypto";
+import { encryptMessage, encryptFile } from "../../lib/crypto";
 import AttachmentsMenu from "./AttachmentsMenu";
 import SelectedAttachementsPreview from "./SelectedAttachementsPreview.jsx";
 import { socket } from "../../lib/socket";
@@ -57,10 +61,6 @@ export default function Conversation() {
   const imageInputRef = useRef(null);
   const cameraInputRef = useRef(null);
   const fileInputRef = useRef(null);
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [preview, setPreview] = useState(null);
-  const selectedAttachementsRef = useRef(null);
-  // const [selectedAttachements, setActiveAttachements] = useState([]);
   const [showSelectedAttachementsPreview, setShowSelectedAttachementsPreview] = useState(false);
   
   const selectedAttachements = useSelector(selectActiveAttachements); 
@@ -256,16 +256,145 @@ export default function Conversation() {
   const handleFile = () => fileInputRef.current?.click();
 
   const handleFileSelect = (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    setSelectedFile(file);
-    dispatch(setActiveAttachements((prev) => [...prev, file]));
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+    const newItems = Array.from(files).map((f) => ({ file: f }));
+    dispatch(setActiveAttachements([...selectedAttachements, ...newItems]));
     setShowSelectedAttachementsPreview(true);
-    if (file.type.startsWith("image/")) {
-      setPreview(URL.createObjectURL(file));
-    }
     event.target.value = "";
   };
+
+  // Called by SelectedAttachementsPreview with ALL files at once.
+  // Closes the slider immediately then uploads each file in the background.
+  const handleSendAll = useCallback(
+    (items /* [{file, caption}] */) => {
+      // 1. Close slider & clear attachment queue
+      setShowSelectedAttachementsPreview(false);
+      dispatch(setActiveAttachements([]));
+      dispatch(removeDraft(chatId));
+
+      const receiverId = getReceiverId();
+      const chatObj = chats.find((c) => c._id === chatId);
+      const senderPublicKey = user?.publicKey;
+      const receiverPublicKey = chatObj?.participant?.publicKey;
+      const canEncrypt = !!(senderPublicKey && receiverPublicKey);
+
+      items.forEach(({ file, caption }) => {
+        const tempId = `temp-att-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        const msgType = file.type.startsWith("image/") ? "image" : "file";
+        // Local blob URL so the image shows instantly while uploading
+        const localBlobUrl = msgType === "image" ? URL.createObjectURL(file) : null;
+
+        // 2. Dispatch optimistic message → appears in chat immediately
+        dispatch(addSendingMessage({
+          _id: tempId,
+          chat: chatId,
+          type: msgType,
+          content: caption || "",
+          sender: { _id: user.id },
+          localBlobUrl,     // used by Message component for instant preview
+          fileName: file.name,
+          fileSize: file.size,
+          createdAt: new Date().toISOString(),
+          isSending: true,
+          readBy: [user.id],
+        }));
+
+        // 3. Background upload + socket emit
+        (async () => {
+          try {
+            let fileToUpload = file;
+            let attachmentEncryption = { isEncrypted: false };
+
+            if (canEncrypt) {
+              try {
+                dispatch(updateSendingMessageProgress({ tempId, progress: 2 }));
+                const result = await encryptFile(
+                  file, user.id, senderPublicKey, receiverId, receiverPublicKey
+                );
+                fileToUpload = new File(
+                  [result.encryptedBlob], file.name, { type: "application/octet-stream" }
+                );
+                attachmentEncryption = result.attachmentEncryption;
+              } catch (err) {
+                console.warn("File encryption failed, sending plaintext:", err);
+              }
+            }
+
+            const formData = new FormData();
+            formData.append("file", fileToUpload);
+            formData.append("originalName", file.name);
+            formData.append("chatId", chatId);
+
+            const uploadData = await new Promise((resolve, reject) => {
+              const xhr = new XMLHttpRequest();
+              xhr.withCredentials = true;
+
+              xhr.upload.onprogress = (e) => {
+                if (e.lengthComputable) {
+                  const pct = 5 + Math.round((e.loaded / e.total) * 83);
+                  dispatch(updateSendingMessageProgress({ tempId, progress: pct }));
+                }
+              };
+
+              xhr.onload = () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                  resolve(JSON.parse(xhr.responseText));
+                } else {
+                  reject(new Error(`Upload failed: ${xhr.statusText}`));
+                }
+              };
+              xhr.onerror = () => reject(new Error("Network error during upload"));
+
+              xhr.open("POST", `${import.meta.env.VITE_API_URL}/chats/upload-attachment`);
+              xhr.send(formData);
+            });
+
+            let captionPayload = caption || "";
+            let captionEncryption = { isEncrypted: false };
+
+            if (canEncrypt && caption?.trim()) {
+              try {
+                const enc = await encryptMessage(
+                  caption.trim(), user.id, senderPublicKey, receiverId, receiverPublicKey
+                );
+                captionPayload = enc.ciphertext;
+                captionEncryption = enc.encryption;
+              } catch (err) {
+                console.warn("Caption encryption failed:", err);
+              }
+            }
+
+            dispatch(updateSendingMessageProgress({ tempId, progress: 95 }));
+
+            socket.emit("sendMessage", {
+              chatId,
+              message: captionPayload,
+              receiverId,
+              encryption: captionEncryption,
+              type: msgType,
+              attachmentUrl: uploadData.url,
+              fileName: file.name,
+              fileSize: file.size,
+              attachmentEncryption,
+            });
+
+            dispatch(updateSendingMessageProgress({ tempId, progress: 100 }));
+            setTimeout(() => {
+              dispatch(removeSendingMessage(tempId));
+              if (localBlobUrl) URL.revokeObjectURL(localBlobUrl);
+            }, 1200);
+
+          } catch (err) {
+            console.error("Attachment upload failed:", err);
+            dispatch(markSendingMessageFailed(tempId));
+          }
+        })();
+      });
+    },
+    [chatId, chats, user, dispatch]
+  );
+
 
   const chat = chats.find((c) => c._id === chatId);
   if (!chat) return <NoChatsFound />;
@@ -420,15 +549,22 @@ export default function Conversation() {
       />
       <SelectedAttachementsPreview
         show={showSelectedAttachementsPreview}
-        onClose={() => setShowSelectedAttachementsPreview(false)}
+        onClose={() => {
+          setShowSelectedAttachementsPreview(false);
+          dispatch(setActiveAttachements([]));
+        }}
         selectedAttachements={selectedAttachements}
-        ref={selectedAttachementsRef}
+        setSelectedAttachements={(attachments) => {
+          dispatch(setActiveAttachements(attachments));
+          if (attachments.length === 0) setShowSelectedAttachementsPreview(false);
+        }}
+        onSend={handleSendAll}
       />
 
       {/* Hidden file inputs */}
-      <input ref={imageInputRef} type="file" accept="image/*" className="hidden" onChange={handleFileSelect} />
+      <input ref={imageInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
       <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileSelect} />
-      <input ref={fileInputRef} type="file" accept="pdf/*docx/*" className="hidden" onChange={handleFileSelect} />
+      <input ref={fileInputRef} type="file" accept="*/*" multiple className="hidden" onChange={handleFileSelect} />
     </div>
   );
 }

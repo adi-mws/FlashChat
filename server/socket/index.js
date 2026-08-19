@@ -74,14 +74,36 @@ export const initSocket = (server) => {
       console.log(`${socket.id} left chat room ${chatId}`);
     });
 
-    socket.on("sendMessage", async ({ chatId, message, receiverId, encryption }) => {
+    socket.on("sendMessage", async ({
+      chatId,
+      message,
+      receiverId,
+      encryption,
+      // attachment fields (optional)
+      type,
+      attachmentUrl,
+      fileName,
+      fileSize,
+      caption,
+      attachmentEncryption,
+    }) => {
       try {
+        const msgType = type || "text";
+
         const newMessage = await Message.create({
           chat: chatId,
           sender: socket.user.id,
-          content: message,
+          content: message || "",
+          type: msgType,
           readBy: [socket.user.id],
           encryption: encryption || { isEncrypted: false },
+          // attachment-specific
+          ...(msgType !== "text" && {
+            attachmentUrl: attachmentUrl || null,
+            fileName: fileName || null,
+            fileSize: fileSize || null,
+            attachmentEncryption: attachmentEncryption || { isEncrypted: false },
+          }),
         });
 
         await Chat.findByIdAndUpdate(chatId, { lastMessage: newMessage._id });

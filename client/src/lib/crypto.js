@@ -213,3 +213,104 @@ export async function decryptMessage(encryptedMsg, currentUserId, currentUsernam
     return "Error decrypting message";
   }
 }
+/**
+ * Encrypt a File / Blob with AES-GCM, wrap the AES key for both sender + receiver.
+ * Returns: { encryptedBlob: Blob, attachmentEncryption: { isEncrypted, iv, encryptedKeys } }
+ */
+export async function encryptFile(file, senderId, senderPublicKeyJwk, receiverId, receiverPublicKeyJwk) {
+  const aesKey = await window.crypto.subtle.generateKey(
+    { name: "AES-GCM", length: 256 },
+    true,
+    ["encrypt", "decrypt"]
+  );
+
+  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+  const fileBuffer = await file.arrayBuffer();
+
+  const encryptedBuffer = await window.crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    aesKey,
+    fileBuffer
+  );
+
+  const ivBase64 = arrayBufferToBase64(iv);
+  const rawAesKey = await window.crypto.subtle.exportKey("raw", aesKey);
+  const encryptedKeys = [];
+
+  if (senderPublicKeyJwk) {
+    const senderPubKey = await importPublicKey(senderPublicKeyJwk);
+    const senderEncryptedKey = await window.crypto.subtle.encrypt(
+      { name: "RSA-OAEP" },
+      senderPubKey,
+      rawAesKey
+    );
+    encryptedKeys.push({ userId: senderId, key: arrayBufferToBase64(senderEncryptedKey) });
+  }
+
+  if (receiverPublicKeyJwk && receiverId !== senderId) {
+    const receiverPubKey = await importPublicKey(receiverPublicKeyJwk);
+    const receiverEncryptedKey = await window.crypto.subtle.encrypt(
+      { name: "RSA-OAEP" },
+      receiverPubKey,
+      rawAesKey
+    );
+    encryptedKeys.push({ userId: receiverId, key: arrayBufferToBase64(receiverEncryptedKey) });
+  }
+
+  return {
+    encryptedBlob: new Blob([encryptedBuffer], { type: "application/octet-stream" }),
+    attachmentEncryption: {
+      isEncrypted: true,
+      iv: ivBase64,
+      encryptedKeys,
+    },
+  };
+}
+
+/**
+ * Fetch an encrypted attachment URL, decrypt it, and return an object URL for display.
+ * attachmentEncryption: { isEncrypted, iv, encryptedKeys }
+ */
+export async function decryptFile(url, attachmentEncryption, currentUserId, currentUsername, mimeType = "application/octet-stream") {
+  if (!attachmentEncryption?.isEncrypted) {
+    // Not encrypted — return URL as-is
+    return url;
+  }
+
+  const { iv: ivBase64, encryptedKeys } = attachmentEncryption;
+  const userKeyObj = encryptedKeys?.find(k => k.userId?.toString() === currentUserId?.toString());
+  if (!userKeyObj) throw new Error("No decryption key found for this user");
+
+  const localPrivateKeyName = `e2ee_private_key_${currentUsername}`;
+  const privateKeyJwkStr = localStorage.getItem(localPrivateKeyName);
+  if (!privateKeyJwkStr) throw new Error("Private key missing");
+
+  const privateKey = await importPrivateKey(privateKeyJwkStr);
+  const encryptedKeyBuffer = base64ToArrayBuffer(userKeyObj.key);
+  const rawAesKey = await window.crypto.subtle.decrypt(
+    { name: "RSA-OAEP" },
+    privateKey,
+    encryptedKeyBuffer
+  );
+
+  const aesKey = await window.crypto.subtle.importKey(
+    "raw",
+    rawAesKey,
+    { name: "AES-GCM" },
+    true,
+    ["decrypt"]
+  );
+
+  // Fetch the encrypted blob from the server
+  const response = await fetch(url, { credentials: "include" });
+  const encryptedBuffer = await response.arrayBuffer();
+
+  const iv = base64ToArrayBuffer(ivBase64);
+  const decryptedBuffer = await window.crypto.subtle.decrypt(
+    { name: "AES-GCM", iv },
+    aesKey,
+    encryptedBuffer
+  );
+
+  return URL.createObjectURL(new Blob([decryptedBuffer], { type: mimeType }));
+}

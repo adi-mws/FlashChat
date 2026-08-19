@@ -1,10 +1,54 @@
 
 import Chat from "../models/chat.js";
 import User from "../models/user.js";
-import { json } from "express";
 import { io } from "../socket/index.js";
 import Message from "../models/message.js";
 import mongoose from "mongoose";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+
+// ─── Multer config: store encrypted blobs as-is ───────────────────────────────
+const uploadDir = path.join(process.cwd(), "uploads", "attachments");
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, uploadDir),
+  filename: (_req, file, cb) => {
+    const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+    // Keep original extension so browsers can infer MIME on download
+    const ext = path.extname(file.originalname) || ".bin";
+    cb(null, `${unique}${ext}`);
+  },
+});
+
+export const multerUpload = multer({
+  storage,
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB per file
+});
+
+/**
+ * POST /api/chats/upload-attachment
+ * Accepts a single `file` field (multipart/form-data).
+ * The file bytes are already AES-GCM encrypted on the client side.
+ * Attachment encryption metadata is passed as JSON in the `attachmentEncryption` field.
+ */
+export const uploadAttachment = async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ message: "No file uploaded" });
+
+    const fileUrl = `/uploads/attachments/${req.file.filename}`;
+    return res.status(200).json({
+      url: fileUrl,
+      fileName: req.body.originalName || req.file.originalname,
+      fileSize: req.file.size,
+    });
+  } catch (err) {
+    console.error("uploadAttachment error:", err);
+    res.status(500).json({ message: "Upload failed", error: err.message });
+  }
+};
+
 
 export const showAllChatsOfUser = async (req, res) => {
     try {
@@ -21,7 +65,7 @@ export const showAllChatsOfUser = async (req, res) => {
             })
             .populate({
                 path: "lastMessage",
-                select: "content sender createdAt encryption readBy",
+                select: "content sender createdAt encryption readBy type attachmentUrl fileName",
                 populate: {
                     path: "sender",
                     select: "name"
@@ -146,6 +190,22 @@ export const readMessage = async (req, res) => {
 }
 
 
+const deleteAttachmentFile = (attachmentUrl) => {
+  if (!attachmentUrl) return;
+  try {
+    const relativePath = attachmentUrl.startsWith("http")
+      ? new URL(attachmentUrl).pathname
+      : attachmentUrl;
+    const filePath = path.join(process.cwd(), relativePath.replace(/^\//, ""));
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      console.log(`Successfully deleted file from disk: ${filePath}`);
+    }
+  } catch (err) {
+    console.error(`Failed to delete attachment file ${attachmentUrl}:`, err);
+  }
+};
+
 export const deleteMessage = async (req, res) => {
     try {
         const { id } = req.params;
@@ -161,10 +221,12 @@ export const deleteMessage = async (req, res) => {
             return res.status(403).json({ success: false, message: "You can only delete your own messages" });
         }
 
-
+        // Delete physical attachment file from disk if present
+        if (message.attachmentUrl) {
+            deleteAttachmentFile(message.attachmentUrl);
+        }
 
         await Message.findByIdAndDelete(id);
-
 
         // console.log(io)
         io.to(message.chat.toString()).emit("message-deleted", {
@@ -217,7 +279,13 @@ export const deleteContact = async (req, res) => {
       await currentUser.save();
       await contactUser.save();
   
-      // Step 4: Delete all messages from the chat
+      // Step 4: Clean up attachment files from disk, then delete messages from the chat
+      const messagesWithAttachments = await Message.find({
+        chat: chatId,
+        attachmentUrl: { $exists: true, $ne: null }
+      });
+      messagesWithAttachments.forEach((m) => deleteAttachmentFile(m.attachmentUrl));
+
       await Message.deleteMany({ chat: chatId });
   
       // Step 5: Delete the chat itself
@@ -238,6 +306,13 @@ export const deleteAllMessages = async (req, res) => {
   }
 
   try {
+    // Delete all attachment files from disk first
+    const messagesWithAttachments = await Message.find({
+      chat: chatId,
+      attachmentUrl: { $exists: true, $ne: null }
+    });
+    messagesWithAttachments.forEach((m) => deleteAttachmentFile(m.attachmentUrl));
+
     const deleted = await Message.deleteMany({ chat: chatId });
     res.status(200).json({ message: "All messages deleted.", count: deleted.deletedCount });
   } catch (error) {

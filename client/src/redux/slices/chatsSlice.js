@@ -198,10 +198,25 @@ const chatsSlice = createSlice({
       state.sendingMessages.push(action.payload);
     },
     removeSendingMessage(state, action) {
-      // Remove by content match (optimistic cleanup)
+      // Remove by _id (tempId)
       state.sendingMessages = state.sendingMessages.filter(
-        (m) => m.content !== action.payload
+        (m) => m._id !== action.payload
       );
+    },
+    updateSendingMessageProgress(state, action) {
+      const { tempId, progress } = action.payload;
+      const msg = state.sendingMessages.find((m) => m._id === tempId);
+      if (msg) {
+        msg.uploadProgress = progress;
+        msg.uploadFailed = false;
+      }
+    },
+    markSendingMessageFailed(state, action) {
+      const msg = state.sendingMessages.find((m) => m._id === action.payload);
+      if (msg) {
+        msg.uploadFailed = true;
+        msg.isSending = false;
+      }
     },
     // Called when socket receives a new message
     receiveNewMessage(state, action) {
@@ -211,9 +226,14 @@ const chatsSlice = createSlice({
       // Update messages list if this chat is open
       if (state.selectedChat === chatId) {
         state.messages.push(msg);
-        state.sendingMessages = state.sendingMessages.filter(
-          (m) => m.content !== msg.content
-        );
+        // Only match-clean text messages by content.
+        // Attachment sending messages are removed explicitly by tempId.
+        const msgType = msg.type || 'text';
+        if (msgType === 'text') {
+          state.sendingMessages = state.sendingMessages.filter(
+            (m) => m.content !== msg.content
+          );
+        }
       }
 
       // Update the chat list (unread count + last message)
@@ -351,13 +371,15 @@ export const {
   clearMessages,
   addSendingMessage,
   removeSendingMessage,
+  updateSendingMessageProgress,
+  markSendingMessageFailed,
   receiveNewMessage,
   receiverSeenMessage,
   removeMessageLocally,
   prependChat,
   removeChatById,
   updateChatLastMessage,
-  setActiveMessage, 
+  setActiveMessage,
   saveDraft,
   getDraft,
   hasDraft,
