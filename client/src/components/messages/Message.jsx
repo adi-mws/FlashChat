@@ -8,9 +8,7 @@ import ImageViewer from "./ImageViewer";
 
 const API_BASE = import.meta.env.VITE_BACKEND_URL || "";
 
-/* ─────────────────────────────────────────────────────────────
-   Helpers
-───────────────────────────────────────────────────────────── */
+//  Helpers
 function getFileExt(name = "") {
   const parts = name.split(".");
   return parts.length > 1 ? parts[parts.length - 1].toUpperCase() : "FILE";
@@ -29,10 +27,8 @@ function getAbsoluteUrl(url) {
   return `${API_BASE}${url}`;
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Hook: decrypt + cache a single attachment URL
-   Returns { blobUrl, error, loading }
-───────────────────────────────────────────────────────────── */
+//  Hook: decrypt + cache a single attachment URL
+//  Returns { blobUrl, error, loading }
 function useDecryptedAttachment(attachmentUrl, attachmentEncryption, mimeType, localBlobUrl) {
   const user = useSelector(selectUser);
   // If we have a local blob URL (optimistic send), use it directly
@@ -90,19 +86,16 @@ function useDecryptedAttachment(attachmentUrl, attachmentEncryption, mimeType, l
   return { blobUrl, loading, error };
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Time + Read badge
-───────────────────────────────────────────────────────────── */
+//  Time + Read badge
 function TimeBadge({ time, isSender, message, overlay = false }) {
   return (
     <span
-      className={`shrink-0 text-[9px] flex gap-0.5 items-center ${
-        overlay
-          ? "bg-black/40 px-1.5 py-0.5 rounded-full text-white/90"
-          : isSender
+      className={`shrink-0 text-[9px] flex gap-0.5 items-center ${overlay
+        ? "bg-black/40 px-1.5 py-0.5 rounded-full text-white/90"
+        : isSender
           ? "text-indigo-200"
           : "text-slate-400 dark:text-zinc-500"
-      }`}
+        }`}
     >
       {time}
       {isSender ? (
@@ -116,9 +109,7 @@ function TimeBadge({ time, isSender, message, overlay = false }) {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Type 1 — Plain text
-───────────────────────────────────────────────────────────── */
+//  Type 1 — Plain text
 function PlainTextMessage({ message, isSender, time, isMultiLine }) {
   const bubble = isSender
     ? "bg-primary-2 text-white rounded-br-none"
@@ -126,17 +117,15 @@ function PlainTextMessage({ message, isSender, time, isMultiLine }) {
 
   return (
     <div
-      className={`relative max-w-[80%] sm:max-w-[60%] rounded-2xl px-4 py-2.5 shadow-sm ${bubble} ${
-        message.isSending ? "opacity-60" : ""
-      }`}
+      className={`relative max-w-[80%] sm:max-w-[60%] rounded-2xl px-4 py-2.5 shadow-sm ${bubble} ${message.isSending ? "opacity-60" : ""
+        }`}
     >
       {isMultiLine ? (
         <>
           <div className="text-xs whitespace-pre-wrap break-words">{message.content}</div>
           <div
-            className={`mt-1 text-[9px] text-right flex items-center gap-0.5 ${
-              isSender ? "text-indigo-200 justify-end" : "text-slate-400 dark:text-zinc-500"
-            }`}
+            className={`mt-1 text-[9px] text-right flex items-center gap-0.5 ${isSender ? "text-indigo-200 justify-end" : "text-slate-400 dark:text-zinc-500"
+              }`}
           >
             <TimeBadge time={time} isSender={isSender} message={message} />
           </div>
@@ -151,9 +140,7 @@ function PlainTextMessage({ message, isSender, time, isMultiLine }) {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Type 2 — Image with optional caption (E2EE decrypted)
-───────────────────────────────────────────────────────────── */
+//  Type 2 — Image with optional caption (E2EE decrypted)
 function ImageMessage({ message, isSender, time }) {
   const { blobUrl, loading, error } = useDecryptedAttachment(
     message.attachmentUrl,
@@ -172,9 +159,8 @@ function ImageMessage({ message, isSender, time }) {
   return (
     <>
       <div
-        className={`relative max-w-[72%] sm:max-w-[52%] rounded-2xl overflow-hidden shadow-md ${bubble} ${
-          message.isSending ? "ring-2 ring-indigo-500/50" : ""
-        }`}
+        className={`relative max-w-[72%] sm:max-w-[52%] rounded-2xl overflow-hidden shadow-md ${bubble} ${message.isSending ? "ring-2 ring-indigo-500/50" : ""
+          }`}
       >
         {/* Image area */}
         <div
@@ -198,9 +184,8 @@ function ImageMessage({ message, isSender, time }) {
                 src={blobUrl}
                 alt={message.fileName || "Image"}
                 onClick={() => !message.isSending && setViewerOpen(true)}
-                className={`w-full object-cover block transition-opacity ${
-                  message.isSending ? "opacity-75 cursor-default" : "cursor-zoom-in active:opacity-90"
-                }`}
+                className={`w-full object-cover block transition-opacity ${message.isSending ? "opacity-75 cursor-default" : "cursor-zoom-in active:opacity-90"
+                  }`}
                 style={{ maxHeight: 320 }}
               />
               {/* Subtle expand hint */}
@@ -290,9 +275,7 @@ function ImageMessage({ message, isSender, time }) {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Type 3 — Non-image file (icon + ext + name, no preview)
-───────────────────────────────────────────────────────────── */
+// Non-image file (icon + ext + name, no preview)
 function FileMessage({ message, isSender, time }) {
   const { fileName, fileSize, attachmentUrl, attachmentEncryption } = message;
   const ext = getFileExt(fileName);
@@ -306,15 +289,15 @@ function FileMessage({ message, isSender, time }) {
   );
 
   const extColors = {
-    PDF:  "bg-red-500/20 text-red-400 border-red-500/30",
-    DOC:  "bg-blue-500/20 text-blue-400 border-blue-500/30",
+    PDF: "bg-red-500/20 text-red-400 border-red-500/30",
+    DOC: "bg-blue-500/20 text-blue-400 border-blue-500/30",
     DOCX: "bg-blue-500/20 text-blue-400 border-blue-500/30",
-    XLS:  "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
+    XLS: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
     XLSX: "bg-emerald-500/20 text-emerald-400 border-emerald-500/30",
-    ZIP:  "bg-amber-500/20 text-amber-400 border-amber-500/30",
-    RAR:  "bg-amber-500/20 text-amber-400 border-amber-500/30",
-    MP4:  "bg-violet-500/20 text-violet-400 border-violet-500/30",
-    MP3:  "bg-pink-500/20 text-pink-400 border-pink-500/30",
+    ZIP: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+    RAR: "bg-amber-500/20 text-amber-400 border-amber-500/30",
+    MP4: "bg-violet-500/20 text-violet-400 border-violet-500/30",
+    MP3: "bg-pink-500/20 text-pink-400 border-pink-500/30",
   };
   const extClass = extColors[ext] || "bg-zinc-500/20 text-zinc-400 border-zinc-500/30";
 
@@ -324,9 +307,8 @@ function FileMessage({ message, isSender, time }) {
 
   return (
     <div
-      className={`relative max-w-[75%] sm:max-w-[55%] rounded-2xl px-3 py-2.5 shadow-sm ${bubble} ${
-        message.isSending ? "opacity-90 ring-1 ring-indigo-400/50" : ""
-      }`}
+      className={`relative max-w-[75%] sm:max-w-[55%] rounded-2xl px-3 py-2.5 shadow-sm ${bubble} ${message.isSending ? "opacity-90 ring-1 ring-indigo-400/50" : ""
+        }`}
     >
       <div className="flex items-center gap-3">
         {/* File type icon */}
@@ -393,11 +375,9 @@ function FileMessage({ message, isSender, time }) {
   );
 }
 
-/* ─────────────────────────────────────────────────────────────
-   Wrapper — picks message type and adds options button
-───────────────────────────────────────────────────────────── */
+//  Wrapper — picks message type and adds options button
 export default function Message({ isSender, message, time, isMultiLine, handleShowMessageOptions }) {
-  const type = message.type || "text"; // 'text' | 'image' | 'file'
+  const type = message.type || "text";
 
   const OptionsBtn = ({ side }) => (
     <button

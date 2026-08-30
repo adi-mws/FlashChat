@@ -238,11 +238,10 @@ export default function SelectedAttachementsPreview({
               <div
                 key={i}
                 onClick={() => setActiveIndex(i)}
-                className={`relative flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden cursor-pointer transition-all duration-150 ${
-                  isActive
+                className={`relative flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden cursor-pointer transition-all duration-150 ${isActive
                     ? "ring-2 ring-indigo-500 ring-offset-1 ring-offset-zinc-900 scale-105"
                     : "opacity-60 hover:opacity-85"
-                }`}
+                  }`}
               >
                 {isImg && thumbUrl ? (
                   <img src={thumbUrl} alt={f?.name} className="w-full h-full object-cover" />

@@ -10,7 +10,7 @@ export default function MessageList({ loading, messages, messagesEndRef, handleS
         <div className="flex-1 overflow-y-auto overflow-x-hidden bg-slate-50/50 dark:bg-zinc-950 p-4 sm:p-6 space-y-2">
             {loading ? (
                 <div className="space-y-3">
-                    {[...Array(6)].map((_, i) => (
+                    {[...Array(8)].map((_, i) => (
                         <div
                             key={i}
                             className={`flex items-center gap-3 animate-pulse ${i % 2 === 0 ? "justify-end" : "justify-start"}`}

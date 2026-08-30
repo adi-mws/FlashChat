@@ -35,6 +35,7 @@ import AttachmentsMenu from "./AttachmentsMenu";
 import SelectedAttachementsPreview from "./SelectedAttachementsPreview.jsx";
 import { socket } from "../../lib/socket";
 import { selectActiveMessage, setActiveMessage, selectActiveAttachements, setActiveAttachements } from "../../redux/slices/chatsSlice";
+import CameraPreview from "./CameraPreview.jsx";
 
 export default function Conversation() {
   const dispatch = useDispatch();
@@ -56,15 +57,15 @@ export default function Conversation() {
   const messagesEndRef = useRef(null);
   const attachmentsButtonRef = useRef(null);
   const [showAttachementMenu, setShowAttachementMenu] = useState(false);
+  const [showCameraPreview, setShowCameraPreview] = useState(false);
 
   // Attachment refs and state
   const imageInputRef = useRef(null);
-  const cameraInputRef = useRef(null);
   const fileInputRef = useRef(null);
   const [showSelectedAttachementsPreview, setShowSelectedAttachementsPreview] = useState(false);
-  
-  const selectedAttachements = useSelector(selectActiveAttachements); 
-  
+
+  const selectedAttachements = useSelector(selectActiveAttachements);
+
   // Textarea ref
   const textareaRef = useRef(null);
 
@@ -252,7 +253,9 @@ export default function Conversation() {
 
   // Attachment handlers
   const handleImage = () => imageInputRef.current?.click();
-  const handleCamera = () => cameraInputRef.current?.click();
+  const handleCamera = async () => {
+    setShowCameraPreview(true);
+  }
   const handleFile = () => fileInputRef.current?.click();
 
   const handleFileSelect = (event) => {
@@ -561,9 +564,18 @@ export default function Conversation() {
         onSend={handleSendAll}
       />
 
+      <CameraPreview
+        show={showCameraPreview}
+        setAttachments={setActiveAttachements}
+        onClose={() => setShowCameraPreview(false)}
+        onCapture={() => {
+          setShowCameraPreview(false);
+          setShowSelectedAttachementsPreview(true);
+        }}
+      />
+
       {/* Hidden file inputs */}
       <input ref={imageInputRef} type="file" accept="image/*" multiple className="hidden" onChange={handleFileSelect} />
-      <input ref={cameraInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleFileSelect} />
       <input ref={fileInputRef} type="file" accept="*/*" multiple className="hidden" onChange={handleFileSelect} />
     </div>
   );
