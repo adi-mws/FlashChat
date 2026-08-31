@@ -171,7 +171,10 @@ export const loginUser = async (req, res) => {
         pfp: user.pfp,
         type: account.provider,
         showLastMessageInList: user.showLastMessageInList,
-        publicKey: user.publicKey
+        publicKey: user.publicKey,
+        encryptedPrivateKey: user.encryptedPrivateKey,
+        backupSalt: user.backupSalt,
+        backupIv: user.backupIv
       },
       token // Also send the token in response
     });
@@ -262,7 +265,10 @@ export const googleAuth = async (req, res) => {
           pfp: user.pfp,
           type: account.provider,
           showLastMessageInList: user.showLastMessageInList,
-          publicKey: user.publicKey
+          publicKey: user.publicKey,
+          encryptedPrivateKey: user.encryptedPrivateKey,
+          backupSalt: user.backupSalt,
+          backupIv: user.backupIv
         },
       });
     }
@@ -301,7 +307,10 @@ export const googleAuth = async (req, res) => {
             pfp: existingUserByEmail.pfp,
             type: 'google',
             showLastMessageInList: existingUserByEmail.showLastMessageInList,
-            publicKey: existingUserByEmail.publicKey
+            publicKey: existingUserByEmail.publicKey,
+            encryptedPrivateKey: existingUserByEmail.encryptedPrivateKey,
+            backupSalt: existingUserByEmail.backupSalt,
+            backupIv: existingUserByEmail.backupIv
           },
         });
       }
@@ -335,7 +344,10 @@ export const googleAuth = async (req, res) => {
           pfp: newUser.pfp,
           type: 'google',
           showLastMessageInList: newUser.showLastMessageInList,
-          publicKey: newUser.publicKey
+          publicKey: newUser.publicKey,
+          encryptedPrivateKey: newUser.encryptedPrivateKey,
+          backupSalt: newUser.backupSalt,
+          backupIv: newUser.backupIv
         },
       });
     }
@@ -473,6 +485,9 @@ export const verifyUserDetails = async (req, res) => {
             name: user.name,
             type: session.accountId?.provider || decoded.provider || 'credentials',
             publicKey: user.publicKey,
+            encryptedPrivateKey: user.encryptedPrivateKey,
+            backupSalt: user.backupSalt,
+            backupIv: user.backupIv,
           })
         }
       });

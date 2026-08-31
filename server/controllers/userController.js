@@ -385,6 +385,46 @@ export const updateUserPublicKey = async (req, res) => {
   }
 };
 
+export const updateUserBackupKey = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { encryptedPrivateKey, backupSalt, backupIv, clearBackup } = req.body;
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (clearBackup) {
+      user.encryptedPrivateKey = undefined;
+      user.backupSalt = undefined;
+      user.backupIv = undefined;
+    } else {
+      if (!encryptedPrivateKey || !backupSalt || !backupIv) {
+        return res.status(400).json({ message: "Backup key details are required." });
+      }
+      user.encryptedPrivateKey = encryptedPrivateKey;
+      user.backupSalt = backupSalt;
+      user.backupIv = backupIv;
+    }
+
+    user.updatedAt = Date.now();
+    await user.save();
+
+    res.status(200).json({
+      message: clearBackup ? "Backup key cleared successfully" : "Backup key registered successfully",
+      user: {
+        encryptedPrivateKey: user.encryptedPrivateKey || null,
+        backupSalt: user.backupSalt || null,
+        backupIv: user.backupIv || null
+      }
+    });
+  } catch (error) {
+    console.error("Error in updateUserBackupKey:", error);
+    res.status(500).json({ message: "Failed to update backup key", error: error.message });
+  }
+};
+
 export const getFriendsList = async (req, res) => {
   try {
     const userId = req.user.id;

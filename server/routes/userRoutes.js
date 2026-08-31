@@ -13,6 +13,7 @@ import {
   getFriendRequests,
   getSentRequests,
   updateUserPublicKey,
+  updateUserBackupKey,
   getFriendsList
  
 } from '../controllers/userController.js';
@@ -23,6 +24,7 @@ router.get('/get-users', authenticateJWT, searchUsers);
 router.get('/friends/list', authenticateJWT, getFriendsList);
 router.get('/:id', authenticateJWT, getUserById);
 router.put('/public-key', authenticateJWT, updateUserPublicKey);
+router.put('/backup-key', authenticateJWT, updateUserBackupKey);
 router.put('/:id', authenticateJWT, uploadPfp, updateUserProfile);
 
 router.post('/friends/request', authenticateJWT,  sendFriendRequest);

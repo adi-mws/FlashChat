@@ -314,3 +314,101 @@ export async function decryptFile(url, attachmentEncryption, currentUserId, curr
 
   return URL.createObjectURL(new Blob([decryptedBuffer], { type: mimeType }));
 }
+
+/**
+ * Encrypt the private key string using a PBKDF2 derived key from a passphrase.
+ * Returns { encryptedPrivateKey, backupSalt, backupIv } in base64.
+ */
+export async function encryptPrivateKeyWithPassphrase(privateKeyStr, passphrase) {
+  try {
+    const encoder = new TextEncoder();
+    const passphraseBytes = encoder.encode(passphrase);
+    
+    const keyMaterial = await window.crypto.subtle.importKey(
+      "raw",
+      passphraseBytes,
+      "PBKDF2",
+      false,
+      ["deriveKey"]
+    );
+    
+    const salt = window.crypto.getRandomValues(new Uint8Array(16));
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    
+    const aesKey = await window.crypto.subtle.deriveKey(
+      {
+        name: "PBKDF2",
+        salt: salt,
+        iterations: 100000,
+        hash: "SHA-256"
+      },
+      keyMaterial,
+      { name: "AES-GCM", length: 256 },
+      false,
+      ["encrypt"]
+    );
+    
+    const privateKeyBytes = encoder.encode(privateKeyStr);
+    const encryptedBuffer = await window.crypto.subtle.encrypt(
+      { name: "AES-GCM", iv: iv },
+      aesKey,
+      privateKeyBytes
+    );
+    
+    return {
+      encryptedPrivateKey: arrayBufferToBase64(encryptedBuffer),
+      backupSalt: arrayBufferToBase64(salt),
+      backupIv: arrayBufferToBase64(iv)
+    };
+  } catch (error) {
+    console.error("Failed to encrypt private key with passphrase:", error);
+    throw error;
+  }
+}
+
+/**
+ * Decrypt the private key string using PBKDF2 derived key from a passphrase.
+ * Returns the decrypted private key JWK string.
+ */
+export async function decryptPrivateKeyWithPassphrase(encryptedPrivateKeyBase64, passphrase, saltBase64, ivBase64) {
+  try {
+    const encoder = new TextEncoder();
+    const passphraseBytes = encoder.encode(passphrase);
+    
+    const keyMaterial = await window.crypto.subtle.importKey(
+      "raw",
+      passphraseBytes,
+      "PBKDF2",
+      false,
+      ["deriveKey"]
+    );
+    
+    const salt = base64ToArrayBuffer(saltBase64);
+    const iv = base64ToArrayBuffer(ivBase64);
+    
+    const aesKey = await window.crypto.subtle.deriveKey(
+      {
+        name: "PBKDF2",
+        salt: salt,
+        iterations: 100000,
+        hash: "SHA-256"
+      },
+      keyMaterial,
+      { name: "AES-GCM", length: 256 },
+      false,
+      ["decrypt"]
+    );
+    
+    const encryptedBuffer = base64ToArrayBuffer(encryptedPrivateKeyBase64);
+    const decryptedBuffer = await window.crypto.subtle.decrypt(
+      { name: "AES-GCM", iv: iv },
+      aesKey,
+      encryptedBuffer
+    );
+    
+    return new TextDecoder().decode(decryptedBuffer);
+  } catch (error) {
+    console.error("Failed to decrypt private key with passphrase:", error);
+    throw new Error("Incorrect passphrase or corrupt backup");
+  }
+}

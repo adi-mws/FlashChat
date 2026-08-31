@@ -27,6 +27,7 @@ import ChatInfo from "./components/chats/ChatInfo";
 import ChatsOverview from "./components/app/ChatsOverview";
 import DesktopLayout from "./layouts/DesktopLayout";
 import Conversation from "./components/chats/Conversation";
+import E2EESyncModal from "./components/global/E2EESyncModal";
 
 export default function AppRoutes() {
     const user = useSelector(selectUser);
@@ -41,6 +42,7 @@ export default function AppRoutes() {
 
     return (
         <LoadingScreen loading={loading} text="Initializing Server...">
+            <E2EESyncModal />
             <Routes>
                 {/* Public Routes */}
                 <Route path="/" element={<PublicRoutes><MarketingLayout /></PublicRoutes>}>

@@ -30,6 +30,18 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: false
   },
+  encryptedPrivateKey: {
+    type: String,
+    required: false
+  },
+  backupSalt: {
+    type: String,
+    required: false
+  },
+  backupIv: {
+    type: String,
+    required: false
+  },
   contacts: [
     {
       type: mongoose.Schema.Types.ObjectId,

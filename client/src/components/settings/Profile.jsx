@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { selectUser, updateUser } from '../../redux/slices/authSlice';
+import { selectUser, updateUser, backupE2EEKeys } from '../../redux/slices/authSlice';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { getImageUrl } from '../../lib/imageUtils';
 import { useNotification } from '../../hooks/useNotification';
-import { Pencil, X, Check, ArrowLeft, Camera, Calendar, Mail, User, Info, ShieldCheck, MonitorSmartphone, History } from 'lucide-react';
+import { Pencil, X, Check, ArrowLeft, Camera, Calendar, Mail, User, Info, ShieldCheck, MonitorSmartphone, History, CheckCircle2, ShieldAlert, Key, Lock, Eye, EyeOff, RefreshCw } from 'lucide-react';
 import { ACCOUNT_ROUTES, SETTINGS_ROUTES } from '../../../routes/routes';
 import AppHeader from '../layout/AppHeader';
 import Loading from '../global/Loading';
@@ -24,6 +24,10 @@ export default function Profile({ edit = false }) {
     const { showNotification } = useNotification();
     const [selectedImageFile, setSelectedImageFile] = useState(null);
     const [imagePreview, setImagePreview] = useState('');
+    const [backupPassphrase, setBackupPassphrase] = useState('');
+    const [showBackupPass, setShowBackupPass] = useState(false);
+    const [backingUp, setBackingUp] = useState(false);
+    const [showBackupForm, setShowBackupForm] = useState(false);
 
     const isOwnProfile = edit;
 
@@ -99,8 +103,28 @@ export default function Profile({ edit = false }) {
         }
     };
 
+    const handleCreateBackup = async (e) => {
+        e.preventDefault();
+        if (backupPassphrase.length < 6) {
+            showNotification('Passphrase must be at least 6 characters', 'error');
+            return;
+        }
+        try {
+            setBackingUp(true);
+            await dispatch(backupE2EEKeys({ passphrase: backupPassphrase, user })).unwrap();
+            showNotification('E2EE private key backed up successfully!', 'success');
+            setBackupPassphrase('');
+            setShowBackupForm(false);
+        } catch (err) {
+            console.error('Backup failed:', err);
+            showNotification(err || 'Failed to create E2EE key backup', 'error');
+        } finally {
+            setBackingUp(false);
+        }
+    };
+
     return (
-        <>
+        <div className="w-full h-full flex flex-col bg-slate-50/50 dark:bg-zinc-950/40 overflow-y-auto animate-fade-in">
             <AppHeader title={"Profile & Settings"}>
                 {isOwnProfile && !isEditing && (
                     <button
@@ -273,6 +297,104 @@ export default function Profile({ edit = false }) {
                         </div>
                     )}
 
+                    {/* E2EE Backup Card */}
+                    {isOwnProfile && (
+                        <div className="bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 rounded-2xl p-6 shadow-sm space-y-5">
+                            <h4 className="text-sm font-bold text-slate-800 dark:text-zinc-200 tracking-wide uppercase border-b border-slate-100 dark:border-zinc-800 pb-2">End-to-End Encryption Backup</h4>
+                            
+                            {user.encryptedPrivateKey ? (
+                                <div className="space-y-4">
+                                    <div className="flex items-start gap-3.5 p-4 rounded-xl border border-emerald-100 bg-emerald-50/50 dark:border-emerald-500/20 dark:bg-emerald-500/5 text-emerald-800 dark:text-emerald-400">
+                                        <div className="h-5 w-5 mt-0.5 flex-shrink-0 flex items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
+                                            <CheckCircle2 size={16} />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-xs font-bold text-slate-800 dark:text-zinc-200">Secure backup is active</p>
+                                            <p className="text-[11px] text-emerald-700/80 dark:text-emerald-400/80 leading-relaxed">
+                                                Your private E2EE key is encrypted and stored safely on the server. You can log in on secondary devices and sync your messages by entering your security passphrase.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Option to change passphrase */}
+                                    <div className="pt-2">
+                                        <button 
+                                            onClick={() => setShowBackupForm(!showBackupForm)}
+                                            className="text-xs font-semibold text-indigo-500 hover:text-indigo-600 transition cursor-pointer"
+                                        >
+                                            {showBackupForm ? "Hide Form" : "Change Passphrase / Update Backup"}
+                                        </button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="space-y-3">
+                                    <div className="flex items-start gap-3.5 p-4 rounded-xl border border-amber-100 bg-amber-50/50 dark:border-amber-500/20 dark:bg-amber-500/5 text-amber-800 dark:text-amber-400">
+                                        <div className="h-5 w-5 mt-0.5 flex-shrink-0 flex items-center justify-center rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
+                                            <ShieldAlert size={16} />
+                                        </div>
+                                        <div className="space-y-1">
+                                            <p className="text-xs font-bold text-slate-800 dark:text-zinc-200">Backup is missing</p>
+                                            <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80 leading-relaxed">
+                                                If you log in on another device (such as your phone), you will not be able to decrypt past messages because your private key only exists locally in this browser.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    
+                                    <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed">
+                                        Create a secure, zero-knowledge backup by setting a security passphrase. The server will never know your passphrase or your unencrypted private key.
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Backup Form */}
+                            {(showBackupForm || !user.encryptedPrivateKey) && (
+                                <form onSubmit={handleCreateBackup} className="space-y-4 pt-2 border-t border-slate-50 dark:border-zinc-800/40">
+                                    <div className="space-y-1.5">
+                                        <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400 flex items-center gap-1.5">
+                                            <Key size={13} /> Set Security Passphrase
+                                        </label>
+                                        <div className="relative">
+                                            <input
+                                                type={showBackupPass ? "text" : "password"}
+                                                placeholder="Choose a strong security passphrase"
+                                                value={backupPassphrase}
+                                                onChange={(e) => setBackupPassphrase(e.target.value)}
+                                                className="w-full pl-4 pr-10 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800/80 bg-slate-50 dark:bg-zinc-950 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-150 text-sm"
+                                                required
+                                                minLength={6}
+                                                disabled={backingUp}
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowBackupPass(!showBackupPass)}
+                                                className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 transition"
+                                            >
+                                                {showBackupPass ? <EyeOff size={18} /> : <Eye size={18} />}
+                                            </button>
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 dark:text-zinc-500 leading-normal">
+                                            Passphrase must be at least 6 characters. Store this securely; if lost, your backup is unrecoverable.
+                                        </p>
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        disabled={backingUp || backupPassphrase.length < 6}
+                                        className="w-full py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white font-semibold rounded-xl shadow-md shadow-indigo-500/15 active:scale-[0.98] transition-all duration-150 flex items-center justify-center text-sm disabled:opacity-50 cursor-pointer"
+                                    >
+                                        {backingUp ? (
+                                            <>
+                                                <RefreshCw className="animate-spin mr-2 h-4 w-4" /> Creating Backup...
+                                            </>
+                                        ) : (
+                                            user.encryptedPrivateKey ? "Update Secure Backup" : "Enable Secure Backup"
+                                        )}
+                                    </button>
+                                </form>
+                            )}
+                        </div>
+                    )}
+
                     {/* Edit Mode Actions */}
                     {isEditing && (
                         <div className="flex items-center justify-end gap-3 pt-4">
@@ -296,6 +418,6 @@ export default function Profile({ edit = false }) {
                     </div>
                 </div>
             )}
-        </>
+        </div>
     );
 }
