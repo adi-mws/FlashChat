@@ -14,6 +14,47 @@ const chatSchema = new mongoose.Schema({
     ref: 'Message',
     default: null
   },
+
+  // Group chat specific fields
+  isGroupChat: {
+    type: Boolean,
+    default: false
+  },
+  groupName: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  groupDescription: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  groupPhoto: {
+    type: String,
+    default: ''
+  },
+  // Array of admin User ObjectIds
+  groupAdmins: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
+  }],
+  // Invite link code (unique string token)
+  inviteCode: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+  // Invite permissions
+  allowMembersToInvite: {
+    type: Boolean,
+    default: true
+  },
+  // Maximum member limit
+  memberLimit: {
+    type: Number,
+    default: 100
+  },
   
   // Additional metadata
   createdAt: {
@@ -32,25 +73,7 @@ const chatSchema = new mongoose.Schema({
 chatSchema.index({ participants: 1 });
 chatSchema.index({ lastMessage: 1 });
 chatSchema.index({ updatedAt: -1 });
+chatSchema.index({ inviteCode: 1 });
 
 const Chat = mongoose.model('Chat', chatSchema);
 export default Chat;
-// Future Purpose
-
-  // For group chats
-  // isGroupChat: {
-  //   type: Boolean,
-  //   default: false
-  // },
-  // groupName: {
-  //   type: String,
-  //   trim: true
-  // },
-  // groupAdmin: {
-  //   type: mongoose.Schema.Types.ObjectId,
-  //   ref: 'User'
-  // },
-  // groupPhoto: {
-  //   type: String,
-  //   default: ''
-  // },

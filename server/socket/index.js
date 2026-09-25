@@ -106,12 +106,23 @@ export const initSocket = (server) => {
           }),
         });
 
-        await Chat.findByIdAndUpdate(chatId, { lastMessage: newMessage._id });
+        const chat = await Chat.findById(chatId);
+        if (chat) {
+          chat.updatedAt = Date.now();
+          chat.lastMessage = newMessage._id;
+          await chat.save();
+        }
 
         const populatedMsg = await newMessage.populate("sender", "_id name username pfp");
 
         let messageTarget = io.to(chatId).to(getUserRoom(socket.user.id));
-        if (receiverId) {
+        if (chat && chat.isGroupChat) {
+          chat.participants.forEach(pId => {
+            if (pId.toString() !== socket.user.id.toString()) {
+              messageTarget = messageTarget.to(getUserRoom(pId.toString()));
+            }
+          });
+        } else if (receiverId) {
           messageTarget = messageTarget.to(getUserRoom(receiverId));
         }
         messageTarget.emit("newMessage", populatedMsg);
