@@ -42,6 +42,15 @@ export const initSocket = (server) => {
 
     socket.on("joinChat", async ({ chatId }) => {
       try {
+        const chat = await Chat.exists({
+          _id: chatId,
+          participants: socket.user.id,
+        });
+        if (!chat) {
+          socket.emit("chatMessagesError", "Chat not found.");
+          return;
+        }
+
         socket.join(chatId);
         console.log(`${socket.id} joined chat room ${chatId}`);
 
@@ -77,7 +86,6 @@ export const initSocket = (server) => {
     socket.on("sendMessage", async ({
       chatId,
       message,
-      receiverId,
       encryption,
       // attachment fields (optional)
       type,
@@ -89,6 +97,15 @@ export const initSocket = (server) => {
     }) => {
       try {
         const msgType = type || "text";
+
+        const chat = await Chat.findOne({
+          _id: chatId,
+          participants: socket.user.id,
+        }).select("participants");
+        if (!chat) {
+          socket.emit("sendMessageError", { chatId, message: "Chat not found." });
+          return;
+        }
 
         const newMessage = await Message.create({
           chat: chatId,
@@ -110,24 +127,36 @@ export const initSocket = (server) => {
 
         const populatedMsg = await newMessage.populate("sender", "_id name username pfp");
 
-        let messageTarget = io.to(chatId).to(getUserRoom(socket.user.id));
-        if (receiverId) {
-          messageTarget = messageTarget.to(getUserRoom(receiverId));
+        // Derive recipients from the authorized chat instead of trusting the
+        // caller-provided receiverId. This works for both direct and group chats.
+        let messageTarget = io.to(chatId);
+        for (const participantId of chat.participants) {
+          messageTarget = messageTarget.to(getUserRoom(participantId));
         }
         messageTarget.emit("newMessage", populatedMsg);
       } catch (error) {
         console.error("sendMessage error:", error);
+        socket.emit("sendMessageError", { chatId, message: "Could not send message." });
       }
     });
 
-    socket.on("seenMessage", async ({ messageId, chatId, senderId }) => {
+    socket.on("seenMessage", async ({ messageId, chatId }) => {
       try {
-        await Message.findByIdAndUpdate(messageId, {
+        const chat = await Chat.exists({
+          _id: chatId,
+          participants: socket.user.id,
+        });
+        if (!chat) return;
+
+        const message = await Message.findOneAndUpdate({
+          _id: messageId,
+          chat: chatId,
+        }, {
           $addToSet: { readBy: socket.user.id },
         });
 
-        if (senderId) {
-          io.to(getUserRoom(senderId)).emit("receiverSeenMessage", {
+        if (message?.sender) {
+          io.to(getUserRoom(message.sender)).emit("receiverSeenMessage", {
             chatId,
             messageId,
             receiverId: socket.user.id,

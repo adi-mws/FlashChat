@@ -33,15 +33,8 @@ export default function SocketManager() {
       return;
     }
 
-    if (!socket.connected) {
-      socket.connect();
-      socket.emit('join', user.id);
-    }
-
-    // Fetch chats when user becomes available
-    dispatch(fetchChats(user));
-
     const handleOnlineUsers = (users) => dispatch(setOnlineUsers(users));
+    const handleConnect = () => socket.emit('join', user.id);
     const handleSessionRevoked = () => dispatch(logoutUser());
     const handleConnectError = (err) => {
       console.error('Socket error:', err.message);
@@ -50,11 +43,26 @@ export default function SocketManager() {
       }
     };
 
+    // Register listeners before connecting so the initial presence snapshot cannot
+    // arrive during the handshake before this component is ready to consume it.
+    socket.on('connect', handleConnect);
     socket.on('onlineUsers', handleOnlineUsers);
     socket.on('session_revoked', handleSessionRevoked);
     socket.on('connect_error', handleConnectError);
 
+    if (!socket.connected) {
+      socket.connect();
+    } else {
+      // The singleton may already be connected when the authenticated user is
+      // restored; rejoin to request a fresh presence broadcast in that case.
+      handleConnect();
+    }
+
+    // Fetch chats when user becomes available
+    dispatch(fetchChats(user));
+
     return () => {
+      socket.off('connect', handleConnect);
       socket.off('onlineUsers', handleOnlineUsers);
       socket.off('session_revoked', handleSessionRevoked);
       socket.off('connect_error', handleConnectError);

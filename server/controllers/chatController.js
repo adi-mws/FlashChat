@@ -52,7 +52,14 @@ export const uploadAttachment = async (req, res) => {
 
 export const showAllChatsOfUser = async (req, res) => {
     try {
-        const { id } = req.params;
+        const id = req.user.id;
+
+        // The user identity always comes from the verified session. Keep the
+        // route parameter for backwards compatibility, but never let it select
+        // another user's conversations.
+        if (req.params.id && req.params.id !== id) {
+            return res.status(403).json({ message: "Cannot access another user's chats" });
+        }
 
         // Find only 1-on-1 chats for this user (exactly 2 participants)
         const chats = await Chat.find({
@@ -117,8 +124,10 @@ export const getMessages = async (req, res) => {
     const { _id } = req.params; // This is the chat ID
 
     try {
-        // Optional: Check if chat exists
-        const chat = await Chat.findById(_id);
+        const chat = await Chat.findOne({
+            _id,
+            participants: req.user.id,
+        });
         if (!chat) {
             return res.status(404).json({ message: "Chat not found" });
         }
@@ -155,8 +164,12 @@ export const getMessages = async (req, res) => {
 
 
 export const readMessage = async (req, res) => {
-    const { chatId, userId } = req.body;
+    const { chatId } = req.body;
+    const userId = req.user.id;
     try {
+        const chat = await Chat.exists({ _id: chatId, participants: userId });
+        if (!chat) return res.status(404).json({ message: "Chat not found" });
+
         const messages = await Message.find({ chat: chatId });
         if (!messages) return res.status(400).json({ message: "No messages not found!" });
         const user = await User.findById(userId);
@@ -254,6 +267,10 @@ export const deleteContact = async (req, res) => {
       if (!chat || chat.participants.length !== 2) {
         return res.status(404).json({ message: "Chat not found or is not a 1-on-1 chat." });
       }
+
+      if (!chat.participants.some((id) => id.toString() === currentUserId.toString())) {
+        return res.status(404).json({ message: "Chat not found or is not a 1-on-1 chat." });
+      }
   
       // Step 2: Identify the contact's ID
       const contactId = chat.participants.find(id => id.toString() !== currentUserId);
@@ -306,6 +323,11 @@ export const deleteAllMessages = async (req, res) => {
   }
 
   try {
+    const chat = await Chat.exists({ _id: chatId, participants: req.user.id });
+    if (!chat) {
+      return res.status(404).json({ message: "Chat not found." });
+    }
+
     // Delete all attachment files from disk first
     const messagesWithAttachments = await Message.find({
       chat: chatId,
