@@ -88,14 +88,28 @@ export default function SocketManager() {
       dispatch(removeMessageLocally(messageId));
     };
 
+    const handleGroupUpdate = () => {
+      dispatch(fetchChats(user));
+    };
+
     socket.on('newMessage', handleNewMessage);
     socket.on('receiverSeenMessage', handleReceiverSeenMessage);
     socket.on('message-deleted', handleMessageDeleted);
+    socket.on('groupMemberJoined', handleGroupUpdate);
+    socket.on('groupSettingsUpdated', handleGroupUpdate);
+    socket.on('groupMemberLeft', handleGroupUpdate);
+    socket.on('kickedFromGroup', handleGroupUpdate);
+    socket.on('chatCreated', handleGroupUpdate);
 
     return () => {
       socket.off('newMessage', handleNewMessage);
       socket.off('receiverSeenMessage', handleReceiverSeenMessage);
       socket.off('message-deleted', handleMessageDeleted);
+      socket.off('groupMemberJoined', handleGroupUpdate);
+      socket.off('groupSettingsUpdated', handleGroupUpdate);
+      socket.off('groupMemberLeft', handleGroupUpdate);
+      socket.off('kickedFromGroup', handleGroupUpdate);
+      socket.off('chatCreated', handleGroupUpdate);
     };
   }, [user, selectedChat, dispatch]);
 

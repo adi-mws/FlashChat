@@ -88,8 +88,8 @@ export async function importPrivateKey(jwkString) {
   );
 }
 
-// Encrypt message content with hybrid RSA-OAEP + AES-GCM
-export async function encryptMessage(text, senderId, senderPublicKeyJwk, receiverId, receiverPublicKeyJwk) {
+// Encrypt message content with hybrid RSA-OAEP + AES-GCM (supports 1-on-1 and Group chats)
+export async function encryptMessage(text, senderId, senderPublicKeyJwk, receiverId, receiverPublicKeyJwk, groupParticipants = []) {
   try {
     // generate random AES symmetric key
     const aesKey = await window.crypto.subtle.generateKey(
@@ -129,8 +129,29 @@ export async function encryptMessage(text, senderId, senderPublicKeyJwk, receive
       });
     }
 
-    // Encrypting for receiver
-    if (receiverPublicKeyJwk && receiverId !== senderId) {
+    // Encrypting for group participants
+    if (groupParticipants && groupParticipants.length > 0) {
+      for (const p of groupParticipants) {
+        const pId = p._id || p.id;
+        if (p.publicKey && pId && pId.toString() !== senderId.toString()) {
+          try {
+            const pPubKey = await importPublicKey(p.publicKey);
+            const pEncryptedAesBuffer = await window.crypto.subtle.encrypt(
+              { name: "RSA-OAEP" },
+              pPubKey,
+              rawAesKey
+            );
+            encryptedKeys.push({
+              userId: pId.toString(),
+              key: arrayBufferToBase64(pEncryptedAesBuffer)
+            });
+          } catch (e) {
+            console.warn(`Failed to encrypt AES key for group member ${pId}:`, e);
+          }
+        }
+      }
+    } else if (receiverPublicKeyJwk && receiverId && receiverId !== senderId) {
+      // Encrypting for receiver (1-on-1 chat)
       const receiverPubKey = await importPublicKey(receiverPublicKeyJwk);
       const receiverEncryptedAesBuffer = await window.crypto.subtle.encrypt(
         { name: "RSA-OAEP" },
@@ -214,10 +235,10 @@ export async function decryptMessage(encryptedMsg, currentUserId, currentUsernam
   }
 }
 /**
- * Encrypt a File / Blob with AES-GCM, wrap the AES key for both sender + receiver.
+ * Encrypt a File / Blob with AES-GCM, wrap the AES key for sender + recipients (supports 1-on-1 and Group chats).
  * Returns: { encryptedBlob: Blob, attachmentEncryption: { isEncrypted, iv, encryptedKeys } }
  */
-export async function encryptFile(file, senderId, senderPublicKeyJwk, receiverId, receiverPublicKeyJwk) {
+export async function encryptFile(file, senderId, senderPublicKeyJwk, receiverId, receiverPublicKeyJwk, groupParticipants = []) {
   const aesKey = await window.crypto.subtle.generateKey(
     { name: "AES-GCM", length: 256 },
     true,
@@ -247,7 +268,24 @@ export async function encryptFile(file, senderId, senderPublicKeyJwk, receiverId
     encryptedKeys.push({ userId: senderId, key: arrayBufferToBase64(senderEncryptedKey) });
   }
 
-  if (receiverPublicKeyJwk && receiverId !== senderId) {
+  if (groupParticipants && groupParticipants.length > 0) {
+    for (const p of groupParticipants) {
+      const pId = p._id || p.id;
+      if (p.publicKey && pId && pId.toString() !== senderId.toString()) {
+        try {
+          const pPubKey = await importPublicKey(p.publicKey);
+          const pEncryptedKey = await window.crypto.subtle.encrypt(
+            { name: "RSA-OAEP" },
+            pPubKey,
+            rawAesKey
+          );
+          encryptedKeys.push({ userId: pId.toString(), key: arrayBufferToBase64(pEncryptedKey) });
+        } catch (e) {
+          console.warn(`Failed to encrypt AES key for group member ${pId}:`, e);
+        }
+      }
+    }
+  } else if (receiverPublicKeyJwk && receiverId && receiverId !== senderId) {
     const receiverPubKey = await importPublicKey(receiverPublicKeyJwk);
     const receiverEncryptedKey = await window.crypto.subtle.encrypt(
       { name: "RSA-OAEP" },

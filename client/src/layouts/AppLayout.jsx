@@ -14,15 +14,15 @@ export default function AppLayout() {
     }, []);
 
     return (
-        <div className="h-screen w-full bg-white dark:bg-zinc-950">
-            <Outlet />
+        <div className="h-screen w-full bg-white dark:bg-zinc-950 flex flex-col overflow-hidden">
+            <div className="flex-1 overflow-hidden min-h-0 relative">
+                <Outlet />
+            </div>
             {isMobile ? (
                 <MobileNavigationBar />
             ) : (
                 <NavigationBar />
             )}
-
-
         </div>
-    )
+    );
 }

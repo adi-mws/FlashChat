@@ -19,13 +19,14 @@ import {
   deleteAllMessages,
   selectDraft,
   deleteContact,
-  removeDraft
+  removeDraft,
+  removeGroupMember
 } from "../../redux/slices/chatsSlice";
 import { selectUser } from "../../redux/slices/authSlice";
 import { selectIsOnline } from "../../redux/slices/uiSlice";
 import { useNotification } from "../../hooks/useNotification";
 import { CHAT_ROUTES, INFO_ROUTES } from "../../../routes/routes";
-import { ArrowLeft, Trash, Send, EllipsisVertical, Lock, Paperclip } from "lucide-react";
+import { ArrowLeft, Trash, Send, EllipsisVertical, Lock, Paperclip, Users } from "lucide-react";
 import SelectChat from "./SelectChat";
 import NoChatsFound from "./NoChatsFound";
 import { getImageUrl } from "../../lib/imageUtils";
@@ -166,7 +167,9 @@ export default function Conversation() {
       return;
     }
     if (message.trim().length > 0 && selectedChat) {
-      const receiverId = getReceiverId();
+      const chatObj = chats.find((c) => c._id === chatId);
+      const isGroup = chatObj?.isGroupChat;
+      const receiverId = isGroup ? null : getReceiverId();
       const tempMessage = {
         chat: chatId,
         content: message.trim(),
@@ -176,18 +179,20 @@ export default function Conversation() {
       };
       dispatch(addSendingMessage(tempMessage));
 
-      const chatObj = chats.find((c) => c._id === chatId);
       const senderPublicKey = user?.publicKey;
-      const receiverPublicKey = chatObj?.participant?.publicKey;
+      const receiverPublicKey = isGroup ? null : chatObj?.participant?.publicKey;
+      const groupParticipants = isGroup ? chatObj?.participants : [];
+      const canEncrypt = isGroup ? (groupParticipants && groupParticipants.length > 0) : (senderPublicKey && receiverPublicKey);
 
-      if (senderPublicKey && receiverPublicKey) {
+      if (canEncrypt) {
         try {
           const encrypted = await encryptMessage(
             message.trim(),
             user.id,
             senderPublicKey,
             receiverId,
-            receiverPublicKey
+            receiverPublicKey,
+            groupParticipants
           );
           socket.emit("sendMessage", {
             chatId,
@@ -245,6 +250,18 @@ export default function Conversation() {
     }
   };
 
+  const handleLeaveGroup = async () => {
+    if (confirm("Are you sure you want to leave this group?")) {
+      try {
+        await dispatch(removeGroupMember({ chatId, targetUserId: user.id, currentUserId: user.id })).unwrap();
+        showNotification("info", "You left the group.");
+        navigate(CHAT_ROUTES.root);
+      } catch (err) {
+        showNotification("error", err || "Failed to leave group.");
+      }
+    }
+  };
+
   const handleShowMessageOptions = (e, type, id) => {
     const left = type === "sender" ? e.clientX - 160 : e.clientX;
     const top = e.clientY;
@@ -276,11 +293,13 @@ export default function Conversation() {
       dispatch(setActiveAttachements([]));
       dispatch(removeDraft(chatId));
 
-      const receiverId = getReceiverId();
       const chatObj = chats.find((c) => c._id === chatId);
+      const isGroup = chatObj?.isGroupChat;
+      const receiverId = isGroup ? null : getReceiverId();
       const senderPublicKey = user?.publicKey;
-      const receiverPublicKey = chatObj?.participant?.publicKey;
-      const canEncrypt = !!(senderPublicKey && receiverPublicKey);
+      const receiverPublicKey = isGroup ? null : chatObj?.participant?.publicKey;
+      const groupParticipants = isGroup ? chatObj?.participants : [];
+      const canEncrypt = isGroup ? (groupParticipants && groupParticipants.length > 0) : !!(senderPublicKey && receiverPublicKey);
 
       items.forEach(({ file, caption }) => {
         const tempId = `temp-att-${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -313,7 +332,7 @@ export default function Conversation() {
               try {
                 dispatch(updateSendingMessageProgress({ tempId, progress: 2 }));
                 const result = await encryptFile(
-                  file, user.id, senderPublicKey, receiverId, receiverPublicKey
+                  file, user.id, senderPublicKey, receiverId, receiverPublicKey, groupParticipants
                 );
                 fileToUpload = new File(
                   [result.encryptedBlob], file.name, { type: "application/octet-stream" }
@@ -432,17 +451,34 @@ export default function Conversation() {
         onClick={(e) => e.stopPropagation()}
       >
         <button
-          onClick={() => { handleDeleteAllMessages(); setShowChatOptions(false); }}
+          onClick={() => { navigate(chat.isGroupChat ? INFO_ROUTES.group(chatId) : INFO_ROUTES.chat(chatId)); setShowChatOptions(false); }}
           className="w-full text-left px-4 py-2.5 text-xs text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 flex items-center gap-2.5 transition"
         >
-          <Trash size={14} /> Clear Chat
+          <Users size={14} /> {chat.isGroupChat ? "Group Info" : "Contact Info"}
         </button>
-        <button
-          onClick={() => { handleDeleteContact(); setShowChatOptions(false); }}
-          className="w-full text-left px-4 py-2.5 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 flex items-center gap-2.5 transition border-t border-slate-100 dark:border-zinc-800/80"
-        >
-          <Trash size={14} /> Delete Contact
-        </button>
+        {!chat.isGroupChat && (
+          <button
+            onClick={() => { handleDeleteAllMessages(); setShowChatOptions(false); }}
+            className="w-full text-left px-4 py-2.5 text-xs text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 flex items-center gap-2.5 transition border-t border-slate-100 dark:border-zinc-800/80"
+          >
+            <Trash size={14} /> Clear Chat
+          </button>
+        )}
+        {chat.isGroupChat ? (
+          <button
+            onClick={() => { handleLeaveGroup(); setShowChatOptions(false); }}
+            className="w-full text-left px-4 py-2.5 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 flex items-center gap-2.5 transition border-t border-slate-100 dark:border-zinc-800/80"
+          >
+            <Trash size={14} /> Leave Group
+          </button>
+        ) : (
+          <button
+            onClick={() => { handleDeleteContact(); setShowChatOptions(false); }}
+            className="w-full text-left px-4 py-2.5 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/20 flex items-center gap-2.5 transition border-t border-slate-100 dark:border-zinc-800/80"
+          >
+            <Trash size={14} /> Delete Contact
+          </button>
+        )}
       </div>
     );
   };
@@ -456,27 +492,40 @@ export default function Conversation() {
       <div className="h-[64px] flex items-center px-4 sm:px-8 bg-white/95 dark:bg-zinc-950/95 border-b border-slate-200/50 dark:border-zinc-900/80 backdrop-blur-md z-10 flex-shrink-0 justify-between">
         <div className="flex gap-4 items-center min-w-0">
           <div className="flex gap-2 items-center flex-shrink-0">
-            <ArrowLeft className="w-5 h-5 text-slate-600 dark:text-zinc-400 sm:hidden cursor-pointer" onClick={() => navigate(-1)} />
-            <div className="relative cursor-pointer" onClick={(e) => { e.stopPropagation(); navigate(INFO_ROUTES.chat(chatId)); }}>
-              <img
-                src={getImageUrl(chat.participant?.pfp)}
-                alt={chat.participant?.name || "User"}
-                className="w-10 h-10 object-cover rounded-full border border-slate-100 dark:border-zinc-800"
-              />
-              {chat.participant?._id && onlineUsers.includes(chat.participant._id) && (
+            <ArrowLeft className="w-5 h-5 text-slate-600 dark:text-zinc-400 sm:hidden cursor-pointer" onClick={(e) => { e.stopPropagation(); navigate(-1); }} />
+            <div className="relative cursor-pointer" onClick={(e) => { e.stopPropagation(); navigate(chat.isGroupChat ? INFO_ROUTES.group(chatId) : INFO_ROUTES.chat(chatId)); }}>
+              {chat.isGroupChat && !chat.groupPhoto ? (
+                <div className="h-10 w-10 rounded-full flex items-center justify-center bg-indigo-500/10 text-indigo-500 dark:bg-indigo-500/20 dark:text-indigo-400 border border-slate-100 dark:border-zinc-800">
+                  <Users size={18} />
+                </div>
+              ) : (
+                <img
+                  src={getImageUrl(chat.isGroupChat ? chat.groupPhoto : chat.participant?.pfp)}
+                  alt={chat.isGroupChat ? chat.groupName : (chat.participant?.name || "User")}
+                  className="w-10 h-10 object-cover rounded-full border border-slate-100 dark:border-zinc-800"
+                />
+              )}
+              {!chat.isGroupChat && chat.participant?._id && onlineUsers.includes(chat.participant._id) && (
                 <span className="w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-zinc-950 absolute bottom-0 right-0 animate-pulse" />
               )}
             </div>
           </div>
-          <div className="flex flex-col min-w-0 gap-0.5">
-            <p className="text-slate-800 dark:text-zinc-100 text-xs truncate">{chat.participant?.name || "Deleted User"}</p>
+          <div className="flex flex-col min-w-0 gap-0.5 cursor-pointer" onClick={(e) => { e.stopPropagation(); navigate(chat.isGroupChat ? INFO_ROUTES.group(chatId) : INFO_ROUTES.chat(chatId)); }}>
+            <p className="text-slate-800 dark:text-zinc-100 text-xs font-semibold truncate">
+              {chat.isGroupChat ? chat.groupName : (chat.participant?.name || "Deleted User")}
+            </p>
             <div className="text-2xs text-slate-400 dark:text-zinc-500 truncate flex items-center gap-1.5">
-              {chat.participant?._id && onlineUsers.includes(chat.participant._id) ? (
+              {chat.isGroupChat ? (
+                <span className="font-medium text-slate-500 dark:text-zinc-400">
+                  {chat.participants?.length || 0} members
+                </span>
+              ) : chat.participant?._id && onlineUsers.includes(chat.participant._id) ? (
                 <span className="text-emerald-500 font-medium">Active now</span>
               ) : (
                 <span>Offline</span>
               )}
-              {user?.publicKey && chat.participant?.publicKey && (
+              {((chat.isGroupChat && chat.participants && chat.participants.length > 0) || 
+                (!chat.isGroupChat && user?.publicKey && chat.participant?.publicKey)) && (
                 <span className="text-emerald-600 dark:text-emerald-400/80 font-medium flex items-center gap-0.5" title="End-to-End Encrypted">
                   • <Lock size={10} className="inline" /> Encrypted
                 </span>
@@ -486,7 +535,7 @@ export default function Conversation() {
         </div>
         <button
           onClick={(e) => { e.stopPropagation(); setShowChatOptions(true); }}
-          className="p-2 rounded-xl text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-900"
+          className="p-2 rounded-xl text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-900 cursor-pointer"
         >
           <EllipsisVertical size={20} />
         </button>

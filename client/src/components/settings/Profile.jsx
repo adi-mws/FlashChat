@@ -10,7 +10,7 @@ import { ACCOUNT_ROUTES, SETTINGS_ROUTES } from '../../../routes/routes';
 import AppHeader from '../layout/AppHeader';
 import Loading from '../global/Loading';
 
-export default function Profile({ edit = false }) {
+export default function Profile({ edit = false, targetUserId }) {
     const dispatch = useDispatch();
     const [profile, setProfile] = useState({});
     const [editedProfile, setEditedProfile] = useState({});
@@ -29,13 +29,13 @@ export default function Profile({ edit = false }) {
     const [backingUp, setBackingUp] = useState(false);
     const [showBackupForm, setShowBackupForm] = useState(false);
 
-    const isOwnProfile = edit;
+    const isOwnProfile = edit || targetUserId === user?.id || (!targetUserId && chatId === user?.id);
 
     useEffect(() => {
         const fetchProfile = async () => {
             try {
                 setLoading(true);
-                const targetId = isOwnProfile ? user?.id : chatId;
+                const targetId = isOwnProfile ? user?.id : (targetUserId || chatId);
                 if (!targetId) return;
                 const path = `${import.meta.env.VITE_API_URL}/user/${targetId}`;
                 const res = await axios.get(path, { withCredentials: true });

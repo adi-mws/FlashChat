@@ -129,6 +129,102 @@ export const deleteContact = createAsyncThunk(
   }
 );
 
+export const createGroupChat = createAsyncThunk(
+  'chats/createGroupChat',
+  async ({ groupName, groupDescription, initialMembers }, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/chats/groups/create`,
+        { groupName, groupDescription, initialMembers },
+        { withCredentials: true }
+      );
+      return response.data.group;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  }
+);
+
+export const joinGroupByInviteCode = createAsyncThunk(
+  'chats/joinGroupByInviteCode',
+  async ({ inviteCode }, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/chats/groups/join`,
+        { inviteCode },
+        { withCredentials: true }
+      );
+      return response.data.group;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  }
+);
+
+export const generateGroupInviteLink = createAsyncThunk(
+  'chats/generateGroupInviteLink',
+  async ({ chatId }, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/chats/groups/invite-link`,
+        { chatId },
+        { withCredentials: true }
+      );
+      return { chatId, inviteCode: response.data.inviteCode };
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  }
+);
+
+export const updateGroupSettings = createAsyncThunk(
+  'chats/updateGroupSettings',
+  async ({ chatId, groupName, groupDescription, allowMembersToInvite, memberLimit }, { rejectWithValue }) => {
+    try {
+      const response = await axios.put(
+        `${import.meta.env.VITE_API_URL}/chats/groups/settings`,
+        { chatId, groupName, groupDescription, allowMembersToInvite, memberLimit },
+        { withCredentials: true }
+      );
+      return response.data.group;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  }
+);
+
+export const manageGroupAdmins = createAsyncThunk(
+  'chats/manageGroupAdmins',
+  async ({ chatId, targetUserId, action }, { rejectWithValue }) => {
+    try {
+      const response = await axios.put(
+        `${import.meta.env.VITE_API_URL}/chats/groups/admins`,
+        { chatId, targetUserId, action },
+        { withCredentials: true }
+      );
+      return response.data.group;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  }
+);
+
+export const removeGroupMember = createAsyncThunk(
+  'chats/removeGroupMember',
+  async ({ chatId, targetUserId, currentUserId }, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/chats/groups/remove-member`,
+        { chatId, targetUserId },
+        { withCredentials: true }
+      );
+      return { chatId, targetUserId, isSelf: targetUserId === currentUserId, group: response.data.group };
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  }
+);
+
 // Slice 
 
 const chatsSlice = createSlice({
@@ -360,6 +456,55 @@ const chatsSlice = createSlice({
         state.chats = state.chats.filter((c) => c._id !== action.payload);
         state.selectedChat = '';
         state.messages = [];
+      })
+      // createGroupChat
+      .addCase(createGroupChat.fulfilled, (state, action) => {
+        state.chats = [action.payload, ...state.chats];
+        state.selectedChat = action.payload._id;
+      })
+      // joinGroupByInviteCode
+      .addCase(joinGroupByInviteCode.fulfilled, (state, action) => {
+        const existing = state.chats.find(c => c._id === action.payload._id);
+        if (!existing) {
+          state.chats = [action.payload, ...state.chats];
+        }
+        state.selectedChat = action.payload._id;
+      })
+      // generateGroupInviteLink
+      .addCase(generateGroupInviteLink.fulfilled, (state, action) => {
+        const { chatId, inviteCode } = action.payload;
+        state.chats = state.chats.map(c =>
+          c._id === chatId ? { ...c, inviteCode } : c
+        );
+      })
+      // updateGroupSettings
+      .addCase(updateGroupSettings.fulfilled, (state, action) => {
+        const updated = action.payload;
+        state.chats = state.chats.map(c =>
+          c._id === updated._id ? { ...c, ...updated } : c
+        );
+      })
+      // manageGroupAdmins
+      .addCase(manageGroupAdmins.fulfilled, (state, action) => {
+        const updated = action.payload;
+        state.chats = state.chats.map(c =>
+          c._id === updated._id ? { ...c, ...updated } : c
+        );
+      })
+      // removeGroupMember
+      .addCase(removeGroupMember.fulfilled, (state, action) => {
+        const { chatId, isSelf, group } = action.payload;
+        if (!group || isSelf) {
+          state.chats = state.chats.filter((c) => c._id !== chatId);
+          if (state.selectedChat === chatId) {
+            state.selectedChat = '';
+            state.messages = [];
+          }
+        } else {
+          state.chats = state.chats.map((c) =>
+            c._id === chatId ? { ...c, ...group } : c
+          );
+        }
       });
   },
 });
