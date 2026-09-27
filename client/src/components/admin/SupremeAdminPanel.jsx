@@ -72,6 +72,11 @@ export default function SupremeAdminPanel() {
   const [loginPassword, setLoginPassword] = useState('');
   const [loggingIn, setLoggingIn] = useState(false);
 
+  // Bootstrap & Master Key states
+  const [isBootstrapped, setIsBootstrapped] = useState(null);
+  const [masterKey, setMasterKey] = useState('');
+  const [claimingAdmin, setClaimingAdmin] = useState(false);
+
   const isAdmin = user?.role === 'admin';
 
   // Fetch telemetry & metrics
@@ -239,13 +244,80 @@ export default function SupremeAdminPanel() {
     }
   };
 
-  // Vice versa: If a non-admin user navigates to /flsh-ad-pnl, redirect them immediately to user chat
+  // Fetch bootstrap status on component load
   useEffect(() => {
-    if (user && user.role !== 'admin') {
+    let isMounted = true;
+    axios
+      .get(`${import.meta.env.VITE_API_URL}/admin/bootstrap-status`)
+      .then((res) => {
+        if (isMounted && res.data?.success) {
+          setIsBootstrapped(res.data.isBootstrapped);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setIsBootstrapped(true);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Only redirect non-admins if an admin has ALREADY been bootstrapped
+  useEffect(() => {
+    if (isBootstrapped === true && user && user.role !== 'admin') {
       showNotification('Access restricted: Admins only. Redirecting to user chat...', 'error');
       navigate(CHAT_ROUTES.root, { replace: true });
     }
-  }, [user, navigate]);
+  }, [isBootstrapped, user, navigate]);
+
+  // Master Passkey Initial Bootstrap Claim
+  const handleClaimAdmin = async (e) => {
+    if (e) e.preventDefault();
+    if (!masterKey.trim()) {
+      showNotification('Please enter the Master Passkey.', 'error');
+      return;
+    }
+
+    try {
+      setClaimingAdmin(true);
+      const payload = {
+        masterKey: masterKey.trim(),
+      };
+
+      if (!user) {
+        if (!loginUsername.trim()) {
+          showNotification('Please enter your registered username or email.', 'error');
+          setClaimingAdmin(false);
+          return;
+        }
+        payload.username = loginUsername.trim();
+        payload.password = loginPassword;
+      }
+
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_URL}/admin/claim-admin`,
+        payload,
+        { withCredentials: true }
+      );
+
+      if (res.data.success) {
+        showNotification(res.data.message || 'Supreme Admin privileges granted successfully!', 'success');
+        if (res.data.user) {
+          dispatch(setUser(res.data.user));
+        } else if (user) {
+          dispatch(updateUser({ role: 'admin' }));
+        }
+        setIsBootstrapped(true);
+        setMasterKey('');
+        loadAll();
+      }
+    } catch (err) {
+      console.error(err);
+      showNotification(err.response?.data?.message || 'Failed to claim admin access. Verify Master Passkey.', 'error');
+    } finally {
+      setClaimingAdmin(false);
+    }
+  };
 
   // Direct Administrator Credentials Login
   const handleAdminDirectLogin = async (e) => {
@@ -279,25 +351,40 @@ export default function SupremeAdminPanel() {
 
   // If user is not authenticated at all
   if (!user) {
+    const isFirstTimeSetup = isBootstrapped === false;
+
     return (
       <div className="min-h-screen w-full bg-zinc-950 flex flex-col items-center justify-center p-4 sm:p-6 text-zinc-100 selection:bg-indigo-500 selection:text-white">
         <div className="max-w-md w-full p-6 sm:p-8 rounded-3xl bg-zinc-900/95 border border-zinc-800 shadow-2xl space-y-6 animate-scale-in backdrop-blur-xl">
           <div className="text-center space-y-2">
-            <div className="h-14 w-14 mx-auto rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shadow-lg shadow-indigo-500/10 mb-1">
-              <ShieldCheck size={28} />
+            <div className={`h-14 w-14 mx-auto rounded-2xl ${isFirstTimeSetup ? 'bg-amber-500/10 border-amber-500/30 text-amber-400 shadow-amber-500/10' : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400 shadow-indigo-500/10'} border flex items-center justify-center shadow-lg mb-1`}>
+              {isFirstTimeSetup ? <Key size={28} className="animate-pulse" /> : <ShieldCheck size={28} />}
             </div>
-            <h2 className="text-xl font-bold tracking-tight text-white">Supreme Admin Console</h2>
+            <h2 className="text-xl font-bold tracking-tight text-white">
+              {isFirstTimeSetup ? 'Initial Supreme Admin Setup' : 'Supreme Admin Console'}
+            </h2>
             <p className="text-xs text-zinc-400 leading-relaxed">
-              Route <span className="font-mono text-indigo-400 font-semibold">/flsh-ad-pnl</span> is restricted to verified system administrators.
+              {isFirstTimeSetup
+                ? 'No administrator has been initialized yet. Enter credentials & Master Passkey to initialize Supreme Admin authority.'
+                : 'Restricted to verified FlashChat system administrators.'}
             </p>
           </div>
 
-          <form onSubmit={handleAdminDirectLogin} className="space-y-4">
+          {isFirstTimeSetup && (
+            <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-300 leading-relaxed flex items-start gap-2">
+              <Sparkles size={16} className="text-amber-400 flex-shrink-0 mt-0.5" />
+              <span>
+                <strong>First-Time Production Bootstrap:</strong> The Master Passkey option is active. Once an admin is claimed, this option will be permanently disabled.
+              </span>
+            </div>
+          )}
+
+          <form onSubmit={isFirstTimeSetup ? handleClaimAdmin : handleAdminDirectLogin} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-zinc-400">Admin Username or Email</label>
+              <label className="text-xs font-semibold text-zinc-400">Username or Email</label>
               <input
                 type="text"
-                placeholder="Enter administrator username or email"
+                placeholder="Enter registered username or email"
                 value={loginUsername}
                 onChange={(e) => setLoginUsername(e.target.value)}
                 required
@@ -306,26 +393,49 @@ export default function SupremeAdminPanel() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-zinc-400">Admin Password</label>
+              <label className="text-xs font-semibold text-zinc-400">Password</label>
               <input
                 type="password"
-                placeholder="Enter administrator password"
+                placeholder="Enter account password"
                 value={loginPassword}
                 onChange={(e) => setLoginPassword(e.target.value)}
-                required
                 className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-600 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition"
               />
             </div>
 
+            {isFirstTimeSetup && (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-amber-400 flex items-center gap-1.5">
+                    <Key size={13} /> Master Passkey
+                  </label>
+                  <span className="text-[10px] text-amber-500/80 font-mono">One-Time Secret</span>
+                </div>
+                <input
+                  type="password"
+                  placeholder="Enter FLASHCHAT Master Passkey"
+                  value={masterKey}
+                  onChange={(e) => setMasterKey(e.target.value)}
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-amber-500/40 bg-zinc-950 text-zinc-100 font-mono placeholder-zinc-600 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 transition"
+                />
+              </div>
+            )}
+
             <button
               type="submit"
-              disabled={loggingIn || !loginUsername || !loginPassword}
-              className="w-full py-3 bg-indigo-500 hover:bg-indigo-600 font-semibold rounded-xl text-sm transition shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-1"
+              disabled={isFirstTimeSetup ? (claimingAdmin || !loginUsername || !masterKey) : (loggingIn || !loginUsername || !loginPassword)}
+              className={`w-full py-3 ${isFirstTimeSetup ? 'bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/20' : 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-indigo-500/20'} font-semibold rounded-xl text-sm transition shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-1`}
             >
-              {loggingIn ? (
+              {claimingAdmin || loggingIn ? (
                 <>
                   <RefreshCw className="animate-spin h-4 w-4" />
-                  <span>Verifying Credentials...</span>
+                  <span>{claimingAdmin ? 'Claiming Supreme Admin...' : 'Verifying Credentials...'}</span>
+                </>
+              ) : isFirstTimeSetup ? (
+                <>
+                  <Key size={16} />
+                  <span>Claim Supreme Admin Status</span>
                 </>
               ) : (
                 <>
@@ -352,6 +462,71 @@ export default function SupremeAdminPanel() {
 
   // If user is logged in but does not have the admin role
   if (!isAdmin) {
+    // If NO admin exists yet in the entire system, show the one-time claim screen!
+    if (isBootstrapped === false) {
+      return (
+        <div className="min-h-screen w-full bg-zinc-950 flex flex-col items-center justify-center p-4 sm:p-6 text-zinc-100 selection:bg-indigo-500 selection:text-white">
+          <div className="max-w-md w-full p-6 sm:p-8 rounded-3xl bg-zinc-900/95 border border-amber-500/40 shadow-2xl space-y-6 animate-scale-in backdrop-blur-xl">
+            <div className="text-center space-y-2">
+              <div className="h-16 w-16 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center shadow-lg shadow-amber-500/10 mb-1">
+                <Key size={32} className="animate-pulse" />
+              </div>
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-[10px] uppercase font-bold tracking-wider">
+                First-Time Setup
+              </span>
+              <h2 className="text-xl font-bold tracking-tight text-white">Claim Supreme Admin Access</h2>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                No administrator exists on this server yet. Enter the Master Passkey to upgrade account <strong className="text-zinc-200">@{user.username}</strong> ({user.name}) to Supreme Admin.
+              </p>
+            </div>
+
+            <form onSubmit={handleClaimAdmin} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-400">Master Passkey</label>
+                <input
+                  type="password"
+                  placeholder="Enter system master passkey"
+                  value={masterKey}
+                  onChange={(e) => setMasterKey(e.target.value)}
+                  required
+                  autoFocus
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-600 text-xs sm:text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/40 transition"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={claimingAdmin || !masterKey.trim()}
+                className="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold rounded-xl text-sm transition shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {claimingAdmin ? (
+                  <>
+                    <RefreshCw className="animate-spin h-4 w-4" />
+                    <span>Verifying Master Passkey...</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck size={16} />
+                    <span>Claim Supreme Admin Status</span>
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="text-center pt-2 border-t border-zinc-800/80">
+              <button
+                type="button"
+                onClick={() => navigate(CHAT_ROUTES.root)}
+                className="text-xs text-zinc-500 hover:text-zinc-300 transition cursor-pointer"
+              >
+                ← Back to Chats
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div className="min-h-screen w-full bg-zinc-950 flex flex-col items-center justify-center p-6 text-zinc-100">
         <div className="max-w-lg w-full p-8 rounded-3xl bg-zinc-900/90 border border-zinc-800 shadow-2xl text-center space-y-6">
@@ -373,7 +548,7 @@ export default function SupremeAdminPanel() {
               <Lock size={16} /> Sign In with Admin Account
             </button>
             <button
-              onClick={() => navigate('/')}
+              onClick={() => navigate(CHAT_ROUTES.root)}
               className="w-full py-2.5 rounded-xl border border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 text-xs font-semibold transition cursor-pointer"
             >
               Back to FlashChat
