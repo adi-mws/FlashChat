@@ -53,39 +53,36 @@ const getFileExt = (name = "") => {
   return parts.length > 1 ? parts[parts.length - 1].toUpperCase() : "FILE";
 };
 
-/* ─────────────────────────────────────────────────────────────
-   Main component
-
-   Props:
-     show                   — boolean
-     onClose                — () => void  (called to dismiss without sending)
-     selectedAttachements   — [{ file: File }]
-     setSelectedAttachements— (arr) => void
-     onSend                 — (items: [{file, caption}]) => void
-       Called once with ALL files. Parent handles upload + emit.
-       Panel closes immediately after calling this.
-───────────────────────────────────────────────────────────── */
-export default function SelectedAttachementsPreview({
+/**
+ * SelectedAttachmentsPreview
+ * Full-screen modal for reviewing, previewing, and captioning selected attachments before sending.
+ */
+export default function SelectedAttachmentsPreview({
   show,
   onClose,
-  selectedAttachements,
-  setSelectedAttachements,
+  selectedAttachments,
+  selectedAttachements, // backward compatibility
+  setSelectedAttachments,
+  setSelectedAttachements, // backward compatibility
   onSend,
 }) {
+  const attachmentsList = selectedAttachments || selectedAttachements || [];
+  const setAttachmentsList = setSelectedAttachments || setSelectedAttachements;
+
   const [activeIndex, setActiveIndex] = useState(0);
   const [captions, setCaptions] = useState({});
   const captionRef = useRef(null);
   const stripRef = useRef(null);
 
-  const urls = useObjectUrls(selectedAttachements);
+  const urls = useObjectUrls(attachmentsList);
 
   // Keep activeIndex in range when list shrinks
   useEffect(() => {
-    if (!selectedAttachements?.length) return;
-    if (activeIndex >= selectedAttachements.length) {
-      setActiveIndex(Math.max(0, selectedAttachements.length - 1));
+    if (!attachmentsList?.length) return;
+    if (activeIndex >= attachmentsList.length) {
+      setActiveIndex(Math.max(0, attachmentsList.length - 1));
     }
-  }, [selectedAttachements, activeIndex]);
+  }, [attachmentsList, activeIndex]);
 
   // Scroll active thumbnail into view
   useEffect(() => {
@@ -97,24 +94,27 @@ export default function SelectedAttachementsPreview({
   // Jump to the newest file when new ones are added
   const prevLengthRef = useRef(0);
   useEffect(() => {
-    const len = selectedAttachements?.length || 0;
+    const len = attachmentsList?.length || 0;
     if (len > prevLengthRef.current) {
       setActiveIndex(len - 1);
     }
     prevLengthRef.current = len;
-  }, [selectedAttachements?.length]);
+  }, [attachmentsList?.length]);
 
-  if (!show || !selectedAttachements?.length) return null;
+  if (!show || !attachmentsList?.length) return null;
 
-  const active = selectedAttachements[activeIndex];
+  const active = attachmentsList[activeIndex];
   const activeFile = active?.file;
   const isImage = activeFile?.type?.startsWith("image/");
   const previewUrl = urls[activeIndex];
 
   const removeAttachment = (index) => {
-    const next = selectedAttachements.filter((_, i) => i !== index);
-    if (next.length === 0) { onClose(); return; }
-    setSelectedAttachements(next);
+    const next = attachmentsList.filter((_, i) => i !== index);
+    if (next.length === 0) {
+      onClose();
+      return;
+    }
+    setAttachmentsList?.(next);
 
     // Re-key captions
     const rekeyed = {};
@@ -129,48 +129,58 @@ export default function SelectedAttachementsPreview({
   const handleCaption = (e) => {
     setCaptions((prev) => ({ ...prev, [activeIndex]: e.target.value }));
     const el = captionRef.current;
-    if (el) { el.style.height = "auto"; el.style.height = `${el.scrollHeight}px`; }
+    if (el) {
+      el.style.height = "auto";
+      el.style.height = `${el.scrollHeight}px`;
+    }
   };
 
   const goLeft = () => setActiveIndex((i) => Math.max(0, i - 1));
-  const goRight = () => setActiveIndex((i) => Math.min(selectedAttachements.length - 1, i + 1));
+  const goRight = () => setActiveIndex((i) => Math.min(attachmentsList.length - 1, i + 1));
 
   const handleSend = () => {
-    const items = selectedAttachements.map((att, i) => ({
+    const items = attachmentsList.map((att, i) => ({
       file: att.file,
       caption: captions[i] || "",
     }));
-    // Hand off everything to the parent; it closes the panel
     onSend(items);
   };
 
   return (
     <div className="absolute inset-0 z-[100000] flex flex-col bg-zinc-950 text-white select-none">
-      {/* ── Header ── */}
+      {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800/80 flex-shrink-0 bg-zinc-900/60 backdrop-blur">
         <button
+          type="button"
           onClick={onClose}
-          className="p-1.5 rounded-lg hover:bg-zinc-800 transition text-zinc-400 hover:text-white"
+          className="p-1.5 rounded-lg hover:bg-zinc-800 transition text-zinc-400 hover:text-white cursor-pointer"
         >
           <X size={18} />
         </button>
         <span className="text-xs text-zinc-400 font-medium tracking-wide">
-          {activeIndex + 1} / {selectedAttachements.length}
+          {activeIndex + 1} / {attachmentsList.length}
         </span>
         <div className="w-8" />
       </div>
 
-      {/* ── Main Preview Area ── */}
+      {/* Main Preview Area */}
       <div className="flex-1 flex flex-col items-center justify-center min-h-0 relative px-4 py-3">
-        {/* Prev / Next arrows */}
-        {selectedAttachements.length > 1 && (
+        {attachmentsList.length > 1 && (
           <>
-            <button onClick={goLeft} disabled={activeIndex === 0}
-              className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-zinc-800/80 hover:bg-zinc-700 disabled:opacity-20 transition z-10">
+            <button
+              type="button"
+              onClick={goLeft}
+              disabled={activeIndex === 0}
+              className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-zinc-800/80 hover:bg-zinc-700 disabled:opacity-20 transition z-10 cursor-pointer"
+            >
               <ChevronLeft size={20} />
             </button>
-            <button onClick={goRight} disabled={activeIndex === selectedAttachements.length - 1}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-zinc-800/80 hover:bg-zinc-700 disabled:opacity-20 transition z-10">
+            <button
+              type="button"
+              onClick={goRight}
+              disabled={activeIndex === attachmentsList.length - 1}
+              className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-zinc-800/80 hover:bg-zinc-700 disabled:opacity-20 transition z-10 cursor-pointer"
+            >
               <ChevronRight size={20} />
             </button>
           </>
@@ -220,15 +230,14 @@ export default function SelectedAttachementsPreview({
         </div>
       </div>
 
-      {/* ── Footer: thumbnail strip + send ── */}
+      {/* Footer: thumbnail strip + send */}
       <div className="flex-shrink-0 border-t border-zinc-800/80 bg-zinc-900/80 backdrop-blur px-3 py-2.5 flex items-center gap-3">
-        {/* Scrollable thumbnail strip */}
         <div
           ref={stripRef}
           className="flex-1 flex items-center gap-2 overflow-x-auto"
           style={{ scrollbarWidth: "none" }}
         >
-          {selectedAttachements.map((att, i) => {
+          {attachmentsList.map((att, i) => {
             const f = att.file;
             const isImg = f?.type?.startsWith("image/");
             const thumbUrl = urls[i];
@@ -238,10 +247,11 @@ export default function SelectedAttachementsPreview({
               <div
                 key={i}
                 onClick={() => setActiveIndex(i)}
-                className={`relative flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden cursor-pointer transition-all duration-150 ${isActive
+                className={`relative flex-shrink-0 w-14 h-14 rounded-lg overflow-hidden cursor-pointer transition-all duration-150 ${
+                  isActive
                     ? "ring-2 ring-indigo-500 ring-offset-1 ring-offset-zinc-900 scale-105"
                     : "opacity-60 hover:opacity-85"
-                  }`}
+                }`}
               >
                 {isImg && thumbUrl ? (
                   <img src={thumbUrl} alt={f?.name} className="w-full h-full object-cover" />
@@ -255,8 +265,12 @@ export default function SelectedAttachementsPreview({
                   <div className="absolute bottom-0 inset-x-0 h-1 bg-indigo-500/70 rounded-b" />
                 )}
                 <button
-                  onClick={(e) => { e.stopPropagation(); removeAttachment(i); }}
-                  className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/70 flex items-center justify-center hover:bg-red-600 transition z-10"
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    removeAttachment(i);
+                  }}
+                  className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/70 flex items-center justify-center hover:bg-red-600 transition z-10 cursor-pointer"
                 >
                   <X size={9} strokeWidth={3} />
                 </button>
@@ -265,10 +279,11 @@ export default function SelectedAttachementsPreview({
           })}
         </div>
 
-        {/* Send button */}
         <button
+          type="button"
           onClick={handleSend}
-          className="flex-shrink-0 flex items-center justify-center w-11 h-11 rounded-2xl bg-indigo-500 hover:bg-indigo-600 active:scale-95 transition-all shadow-lg"
+          className="flex-shrink-0 flex items-center justify-center w-11 h-11 rounded-2xl bg-indigo-500 hover:bg-indigo-600 active:scale-95 transition-all shadow-lg cursor-pointer"
+          title="Send attachments"
         >
           <Send size={17} fill="white" className="text-white" />
         </button>
@@ -276,3 +291,5 @@ export default function SelectedAttachementsPreview({
     </div>
   );
 }
+
+export const SelectedAttachementsPreview = SelectedAttachmentsPreview;

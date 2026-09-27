@@ -56,7 +56,6 @@ export default function AttachmentsMenu({
     },
   ];
 
- 
   return (
     <div
       ref={menuRef}
@@ -72,7 +71,6 @@ export default function AttachmentsMenu({
         ${show ? "block" : "hidden"}
       `}
     >
-
       <div className="flex flex-col">
         {attachmentActions.map(
           ({ label, icon: Icon, color, onClick }) => (
@@ -127,11 +125,6 @@ export default function AttachmentsMenu({
             </button>
           )
         )}
-
-
-      
-
-      
       </div>
     </div>
   );

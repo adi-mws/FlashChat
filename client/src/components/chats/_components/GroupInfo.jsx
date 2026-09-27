@@ -7,12 +7,12 @@ import {
   manageGroupAdmins,
   removeGroupMember,
   generateGroupInviteLink
-} from '../../redux/slices/chatsSlice';
-import { selectUser } from '../../redux/slices/authSlice';
-import { useNotification } from '../../hooks/useNotification';
-import { CHAT_ROUTES } from '../../../routes/routes';
-import AppHeader from '../layout/AppHeader';
-import { getImageUrl } from '../../lib/imageUtils';
+} from '../../../redux/slices/chatsSlice';
+import { selectUser } from '../../../redux/slices/authSlice';
+import { useNotification } from '../../../hooks/useNotification';
+import { CHAT_ROUTES } from '../../../../routes/routes';
+import AppHeader from '../../layout/AppHeader';
+import { getImageUrl } from '../../../lib/imageUtils';
 import {
   Users,
   Shield,
@@ -248,7 +248,7 @@ export default function GroupInfo() {
               <button
                 onClick={handleSaveName}
                 disabled={submitting}
-                className="p-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition shadow-sm active:scale-95 flex-shrink-0"
+                className="p-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition shadow-sm active:scale-95 flex-shrink-0 cursor-pointer"
               >
                 <Check size={16} />
               </button>
@@ -258,7 +258,7 @@ export default function GroupInfo() {
                   setIsEditingName(false);
                 }}
                 disabled={submitting}
-                className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-600 dark:text-zinc-400 rounded-xl transition active:scale-95 flex-shrink-0"
+                className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-600 dark:text-zinc-400 rounded-xl transition active:scale-95 flex-shrink-0 cursor-pointer"
               >
                 <X size={16} />
               </button>
@@ -271,7 +271,7 @@ export default function GroupInfo() {
               {isGroupAdmin && (
                 <button
                   onClick={() => setIsEditingName(true)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-800/80 transition"
+                  className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-800/80 transition cursor-pointer"
                   title="Edit Group Name"
                 >
                   <Pencil size={14} />
@@ -296,7 +296,7 @@ export default function GroupInfo() {
                   <button
                     onClick={handleSaveDesc}
                     disabled={submitting}
-                    className="p-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition shadow-sm active:scale-95"
+                    className="p-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition shadow-sm active:scale-95 cursor-pointer"
                   >
                     <Check size={14} />
                   </button>
@@ -306,7 +306,7 @@ export default function GroupInfo() {
                       setIsEditingDesc(false);
                     }}
                     disabled={submitting}
-                    className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-600 dark:text-zinc-400 rounded-xl transition active:scale-95"
+                    className="p-2 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-600 dark:text-zinc-400 rounded-xl transition active:scale-95 cursor-pointer"
                   >
                     <X size={14} />
                   </button>
@@ -320,7 +320,7 @@ export default function GroupInfo() {
                 {isGroupAdmin && (
                   <button
                     onClick={() => setIsEditingDesc(true)}
-                    className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-800/80 transition flex-shrink-0 mt-0.5"
+                    className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 hover:bg-slate-50 dark:hover:bg-zinc-800/80 transition flex-shrink-0 mt-0.5 cursor-pointer"
                     title="Edit Description"
                   >
                     <Pencil size={12} />
@@ -351,7 +351,7 @@ export default function GroupInfo() {
               </div>
               <button
                 onClick={handleCopyInviteLink}
-                className="p-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 rounded-xl transition active:scale-95 flex-shrink-0"
+                className="p-2.5 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-zinc-300 rounded-xl transition active:scale-95 flex-shrink-0 cursor-pointer"
                 title="Copy Link"
               >
                 <Copy size={16} />
@@ -360,7 +360,7 @@ export default function GroupInfo() {
                 <button
                   onClick={handleRegenerateInviteCode}
                   disabled={submitting}
-                  className="p-2.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:hover:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-xl transition active:scale-95 flex-shrink-0"
+                  className="p-2.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:hover:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 rounded-xl transition active:scale-95 flex-shrink-0 cursor-pointer"
                   title="Regenerate Link"
                 >
                   <RefreshCw size={16} className={submitting ? 'animate-spin' : ''} />
@@ -465,7 +465,7 @@ export default function GroupInfo() {
                       <button
                         onClick={() => handlePromoteDemote(member._id, isMemberAdmin)}
                         disabled={submitting}
-                        className={`p-1.5 rounded-lg transition active:scale-95 flex items-center gap-1 ${
+                        className={`p-1.5 rounded-lg transition active:scale-95 flex items-center gap-1 cursor-pointer ${
                           isMemberAdmin
                             ? 'text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950/20'
                             : 'text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/20'
@@ -477,7 +477,7 @@ export default function GroupInfo() {
                       <button
                         onClick={() => handleKickMember(member._id)}
                         disabled={submitting}
-                        className="p-1.5 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/20 rounded-lg transition active:scale-95"
+                        className="p-1.5 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/20 rounded-lg transition active:scale-95 cursor-pointer"
                         title="Remove from Group"
                       >
                         <UserX size={14} />
@@ -500,7 +500,7 @@ export default function GroupInfo() {
           <button
             onClick={handleLeaveGroupAction}
             disabled={submitting}
-            className="w-full flex items-center justify-center gap-2 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-xl shadow-sm hover:shadow transition active:scale-[0.98]"
+            className="w-full flex items-center justify-center gap-2 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-xl shadow-sm hover:shadow transition active:scale-[0.98] cursor-pointer"
           >
             <LogOut size={14} /> Leave Group
           </button>

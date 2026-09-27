@@ -1,10 +1,15 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import axios from 'axios';
 import {
-  initializeUserKeys,
+  initializeSessionKeys,
+  rekeySession,
+  generateE2EEKeyPair,
+  SESSION_KEY_STATUS,
   encryptPrivateKeyWithPassphrase,
-  decryptPrivateKeyWithPassphrase
-} from '../../lib/crypto';
+  decryptPrivateKeyWithPassphrase,
+  getSessionPrivateKey,
+  saveSessionPrivateKey,
+} from '../../lib/e2ee';
 
 // --- Thunks ---
 
@@ -37,34 +42,33 @@ export const logoutUser = createAsyncThunk(
 export const initE2EEKeys = createAsyncThunk(
   'auth/initE2EEKeys',
   async (user, { rejectWithValue, dispatch }) => {
-    if (!user) return rejectWithValue('No user');
-    const localPrivateKeyName = `e2ee_private_key_${user.username}`;
-    const hasLocalKey = localStorage.getItem(localPrivateKeyName);
-
-    if (!hasLocalKey) {
-      if (user.encryptedPrivateKey) {
-        // A backup exists on the server! We need the user to input their passphrase to restore it.
-        dispatch(setE2eeSyncRequired(true));
-        return rejectWithValue('Sync required');
-      } else {
-        // No backup exists. This is the first device or no backup was made.
-        // Generate new keys.
-        try {
-          localStorage.removeItem(`e2ee_public_key_${user.username}`);
-          const pubKey = await initializeUserKeys(user.username);
-          await axios.put(
-            `${import.meta.env.VITE_API_URL}/user/public-key`,
-            { publicKey: pubKey },
-            { withCredentials: true }
-          );
-          return pubKey;
-        } catch (error) {
-          console.error('Failed to initialize E2EE keys:', error);
-          return rejectWithValue(error.message);
-        }
+    if (!user || !user.sessionId) return rejectWithValue('No user or session');
+    try {
+      const result = await initializeSessionKeys(user.sessionId, user.sessionPublicKey);
+      if (result.status === SESSION_KEY_STATUS.REKEY_REQUIRED) {
+        console.warn('Session rekey required:', result.error);
+        dispatch(setE2eeSyncError('Private key missing for this session. Please rekey your session in settings.'));
+        return rejectWithValue(result.error);
       }
+      return result.publicKey;
+    } catch (error) {
+      console.error('Failed to initialize session E2EE keys:', error);
+      return rejectWithValue(error.message);
     }
-    return user.publicKey; // already initialized
+  }
+);
+
+export const rekeyE2EESession = createAsyncThunk(
+  'auth/rekeyE2EESession',
+  async (sessionId, { rejectWithValue, dispatch }) => {
+    try {
+      const result = await rekeySession(sessionId);
+      dispatch(setE2eeSyncError(null));
+      return result.publicKey;
+    } catch (error) {
+      console.error('Failed to rekey E2EE session:', error);
+      return rejectWithValue(error.message);
+    }
   }
 );
 
@@ -85,18 +89,23 @@ export const restoreE2EEKeys = createAsyncThunk(
         backupIv
       );
 
-      // Store in localStorage
+      // Store in session keyStore and localStorage
+      if (user.sessionId) {
+        saveSessionPrivateKey(user.sessionId, privateKeyStr);
+      }
       localStorage.setItem(`e2ee_private_key_${username}`, privateKeyStr);
-      localStorage.setItem(`e2ee_public_key_${username}`, user.publicKey);
+      if (user.sessionPublicKey) {
+        localStorage.setItem(`e2ee_public_key_${username}`, user.sessionPublicKey);
+      }
 
       // Reset the sync required state
       dispatch(setE2eeSyncRequired(false));
       dispatch(setE2eeSyncError(null));
 
-      return user.publicKey;
+      return user.sessionPublicKey || null;
     } catch (error) {
       console.error("Failed to restore E2EE keys:", error);
-      dispatch(setE2eeSyncError("Incorrect passphrase. Please try again."));
+      dispatch(setE2eeSyncError("Incorrect passphrase or recovery phrase. Please try again."));
       return rejectWithValue(error.message || "Failed to decrypt private key");
     }
   }
@@ -106,10 +115,12 @@ export const backupE2EEKeys = createAsyncThunk(
   'auth/backupE2EEKeys',
   async ({ passphrase, user }, { rejectWithValue }) => {
     try {
-      const localPrivateKeyName = `e2ee_private_key_${user.username}`;
-      const privateKeyStr = localStorage.getItem(localPrivateKeyName);
+      // Look for private key in session keyStore first, then fallback to username
+      const privateKeyStr = (user.sessionId && getSessionPrivateKey(user.sessionId)) ||
+        localStorage.getItem(`e2ee_private_key_${user.username}`);
+
       if (!privateKeyStr) {
-        throw new Error("Private key not found locally");
+        throw new Error("Private key not found locally on this device");
       }
 
       // Encrypt the private key
@@ -140,24 +151,29 @@ export const resetE2EEKeys = createAsyncThunk(
       localStorage.removeItem(`e2ee_private_key_${username}`);
       localStorage.removeItem(`e2ee_public_key_${username}`);
       
-      // 2. Generate a new key pair locally
-      const pubKey = await initializeUserKeys(username);
+      // 2. If active session exists, rekey it cleanly
+      let pubKey;
+      if (user.sessionId) {
+        const result = await rekeySession(user.sessionId);
+        pubKey = result.publicKey;
+      } else {
+        const keys = await generateE2EEKeyPair();
+        pubKey = keys.publicKeyString;
+        await axios.put(
+          `${import.meta.env.VITE_API_URL}/user/public-key`,
+          { publicKey: pubKey },
+          { withCredentials: true }
+        );
+      }
       
-      // 3. Update public key on server
-      await axios.put(
-        `${import.meta.env.VITE_API_URL}/user/public-key`,
-        { publicKey: pubKey },
-        { withCredentials: true }
-      );
-      
-      // 4. Clear backup details on server
+      // 3. Clear backup details on server
       await axios.put(
         `${import.meta.env.VITE_API_URL}/user/backup-key`,
         { clearBackup: true },
         { withCredentials: true }
       );
       
-      // 5. Reset sync states in store
+      // 4. Reset sync states in store
       dispatch(setE2eeSyncRequired(false));
       dispatch(setE2eeSyncError(null));
       
@@ -228,7 +244,13 @@ const authSlice = createSlice({
       // initE2EEKeys
       .addCase(initE2EEKeys.fulfilled, (state, action) => {
         if (state.user && action.payload) {
-          state.user.publicKey = action.payload;
+          state.user.sessionPublicKey = action.payload;
+        }
+      })
+      // rekeyE2EESession
+      .addCase(rekeyE2EESession.fulfilled, (state, action) => {
+        if (state.user && action.payload) {
+          state.user.sessionPublicKey = action.payload;
         }
       })
       // restoreE2EEKeys
@@ -236,7 +258,7 @@ const authSlice = createSlice({
         state.e2eeSyncRequired = false;
         state.e2eeSyncError = null;
         if (state.user && action.payload) {
-          state.user.publicKey = action.payload;
+          state.user.sessionPublicKey = action.payload;
         }
       })
       // backupE2EEKeys
@@ -252,7 +274,7 @@ const authSlice = createSlice({
         state.e2eeSyncRequired = false;
         state.e2eeSyncError = null;
         if (state.user) {
-          state.user.publicKey = action.payload;
+          state.user.sessionPublicKey = action.payload;
           state.user.encryptedPrivateKey = null;
           state.user.backupSalt = null;
           state.user.backupIv = null;

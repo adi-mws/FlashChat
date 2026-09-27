@@ -70,7 +70,7 @@ export default function SocketManager() {
 
       if (incomingMessage.encryption?.isEncrypted) {
         try {
-          const decryptedContent = await decryptMessage(incomingMessage, user.id, user.username);
+          const decryptedContent = await decryptMessage(incomingMessage, user.sessionId, user.id);
           msgToSet = { ...incomingMessage, content: decryptedContent };
         } catch (err) {
           console.error('Failed to decrypt incoming message:', err);

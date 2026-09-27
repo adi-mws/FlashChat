@@ -26,10 +26,6 @@ const userSchema = new mongoose.Schema({
     default: "FlashChat User", 
     required: false,
   },
-  publicKey: {
-    type: String,
-    required: false
-  },
   encryptedPrivateKey: {
     type: String,
     required: false

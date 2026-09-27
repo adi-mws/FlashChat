@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { CHAT_ROUTES } from "../../routes/routes";
-import Conversation from "../components/chats/Conversation"
-import ChatList from "../components/chats/ChatList";
+import Conversation from "../components/chats/conversation/Conversation";
+import ChatList from "../components/chats/chatlist/ChatList";
 export default function ChatLayout() {
     const [sidebarWidth, setSidebarWidth] = useState(350);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 640);

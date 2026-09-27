@@ -1,6 +1,7 @@
 
 import Chat from "../models/chat.js";
 import User from "../models/user.js";
+import Session from "../models/session.js";
 import { io } from "../socket/index.js";
 import crypto from "crypto";
 import Message from "../models/message.js";
@@ -61,7 +62,7 @@ export const showAllChatsOfUser = async (req, res) => {
         })
             .populate({
                 path: "participants",
-                select: "username name pfp publicKey"
+                select: "username name pfp"
             })
             .populate({
                 path: "groupAdmins",
@@ -386,7 +387,7 @@ export const createGroupChat = async (req, res) => {
         const populatedGroup = await Chat.findById(newGroup._id)
             .populate({
                 path: "participants",
-                select: "username name pfp publicKey"
+                select: "username name pfp"
             })
             .populate({
                 path: "groupAdmins",
@@ -476,7 +477,7 @@ export const joinGroupByInviteCode = async (req, res) => {
         const populatedGroup = await Chat.findById(group._id)
             .populate({
                 path: "participants",
-                select: "username name pfp publicKey"
+                select: "username name pfp"
             })
             .populate({
                 path: "groupAdmins",
@@ -595,7 +596,7 @@ export const updateGroupSettings = async (req, res) => {
         const populatedGroup = await Chat.findById(chatId)
             .populate({
                 path: "participants",
-                select: "username name pfp publicKey"
+                select: "username name pfp"
             })
             .populate({
                 path: "groupAdmins",
@@ -659,7 +660,7 @@ export const manageGroupAdmins = async (req, res) => {
         const populatedGroup = await Chat.findById(chatId)
             .populate({
                 path: "participants",
-                select: "username name pfp publicKey"
+                select: "username name pfp"
             })
             .populate({
                 path: "groupAdmins",
@@ -736,7 +737,7 @@ export const removeGroupMember = async (req, res) => {
         const populatedGroup = await Chat.findById(chatId)
             .populate({
                 path: "participants",
-                select: "username name pfp publicKey"
+                select: "username name pfp"
             })
             .populate({
                 path: "groupAdmins",
@@ -765,5 +766,54 @@ export const removeGroupMember = async (req, res) => {
     } catch (err) {
         console.error("removeGroupMember error:", err);
         res.status(500).json({ success: false, message: "Server error removing member", error: err.message });
+    }
+};
+
+/**
+ * GET /api/chats/:chatId/recipients
+ * Resolves all active, non-expired sessions of chat participants having an E2EE public key.
+ */
+export const getChatEncryptionRecipients = async (req, res) => {
+    try {
+        const { chatId } = req.params;
+        const userId = req.user.id;
+
+        if (!chatId) {
+            return res.status(400).json({ message: "Chat ID is required" });
+        }
+
+        const chat = await Chat.findById(chatId).select("participants isGroupChat");
+        if (!chat) {
+            return res.status(404).json({ message: "Chat not found" });
+        }
+
+        const isMember = chat.participants.some(p => p.toString() === userId.toString());
+        if (!isMember) {
+            return res.status(403).json({ message: "You are not a participant in this conversation" });
+        }
+
+        const now = new Date();
+        const activeSessions = await Session.find({
+            user: { $in: chat.participants },
+            expiresAt: { $gt: now },
+            publicKey: { $exists: true, $ne: null }
+        }).select("sessionId user publicKey");
+
+        const recipients = activeSessions
+            .filter(s => typeof s.publicKey === "string" && s.publicKey.trim().length > 0)
+            .map(s => ({
+                sessionId: s.sessionId,
+                userId: s.user.toString(),
+                publicKey: s.publicKey
+            }));
+
+        return res.status(200).json({
+            chatId,
+            isGroupChat: chat.isGroupChat,
+            recipients
+        });
+    } catch (error) {
+        console.error("Error in getChatEncryptionRecipients:", error);
+        return res.status(500).json({ message: "Failed to resolve encryption recipients", error: error.message });
     }
 };

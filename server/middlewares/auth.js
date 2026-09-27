@@ -35,13 +35,13 @@ const authenticateJWT = (req, res, next) => {
             if (decoded.accountId) {
                 sessionQuery.accountId = decoded.accountId;
             }
-
+            // Updates the lastSeenAt timestamp for the session and checks if the session is still valid
             const session = await Session.findOneAndUpdate(
                 sessionQuery,
                 { $set: { lastSeenAt: new Date() } },
                 { new: true }
             ).select("_id");
-
+            // Returns back 403 error if the session is not found or expired, indicating that the user has logged out or the session has expired
             if (!session) {
                 return res.status(403).json({ message: 'Session expired or logged out' });
             }

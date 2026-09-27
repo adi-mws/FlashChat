@@ -8,9 +8,8 @@ import ResetPassword from "./components/forms/ResetPassword";
 import ForgotPassword from "./components/forms/ForgotPassword";
 import ChatLayout from "./layouts/ChatLayout";
 import AppLayout from "./layouts/AppLayout";
-import SelectChat from "./components/chats/SelectChat";
+import SelectChat from "./components/chats/_components/SelectChat";
 import Profile from "./components/settings/Profile";
-import ChatList from "./components/chats/ChatList";
 import ContactsPage from "./components/contact/ContactsPage";
 import LinkedDevicesPage from "./components/settings/LinkedDevicesPage";
 import LoginForm from "./components/forms/LoginForm";
@@ -22,11 +21,11 @@ import { MARKETING_ROUTES, INFO_ROUTES, getIsMobile } from "../routes/routes";
 import Sparks from "./components/sparks/Sparks";
 import DetailsLayout from "./layouts/DetailsLayout";
 import Settings from "./components/settings/Settings";
-import GroupInfo from "./components/chats/GroupInfo";
-import ChatInfo from "./components/chats/ChatInfo";
+import GroupInfo from "./components/chats/_components/GroupInfo";
+import ChatInfo from "./components/chats/_components/ChatInfo";
 import ChatsOverview from "./components/app/ChatsOverview";
 import DesktopLayout from "./layouts/DesktopLayout";
-import Conversation from "./components/chats/Conversation";
+import Conversation from "./components/chats/conversation/Conversation";
 import E2EESyncModal from "./components/global/E2EESyncModal";
 
 export default function AppRoutes() {

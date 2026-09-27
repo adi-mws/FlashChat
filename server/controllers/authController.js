@@ -1,6 +1,7 @@
 import User from '../models/user.js';
 import Account from '../models/account.js';
 import Session from '../models/session.js';
+import CompanionPairing from '../models/companionPairing.js';
 import bcrypt, { hashSync } from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { fileURLToPath } from 'url';
@@ -30,15 +31,33 @@ const getCookieOptions = (maxAge = null) => {
 };
 
 const createAuthToken = async (user, account, req, extraPayload = {}) => {
+  // Reject new session if user already has 4 active sessions. Do not automatically remove any session.
+  const activeSessionsCount = await Session.countDocuments({
+    user: user._id,
+    expiresAt: { $gt: new Date() },
+  });
+
+  if (activeSessionsCount >= 4) {
+    const error = new Error("Maximum active sessions limit reached (4). Please log out from another session before signing in.");
+    error.statusCode = 403;
+    error.code = 'MAX_SESSIONS_REACHED';
+    throw error;
+  }
+
   const session = buildSession(req);
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-  await Session.create({
+  const createdSession = await Session.create({
     ...session,
     user: user._id,
     accountId: account._id,
     expiresAt,
   });
+
+  if (req) {
+    req.createdSessionId = session.sessionId;
+    req.createdSession = createdSession;
+  }
 
   return jwt.sign(
     {
@@ -171,7 +190,8 @@ export const loginUser = async (req, res) => {
         pfp: user.pfp,
         type: account.provider,
         showLastMessageInList: user.showLastMessageInList,
-        publicKey: user.publicKey,
+        sessionId: req.createdSessionId || null,
+        sessionPublicKey: null,
         encryptedPrivateKey: user.encryptedPrivateKey,
         backupSalt: user.backupSalt,
         backupIv: user.backupIv
@@ -181,6 +201,9 @@ export const loginUser = async (req, res) => {
 
   } catch (error) {
     console.error('Error during login:', error);
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({ message: error.message, code: error.code });
+    }
     res.status(500).json({ message: 'Error logging in user' });
   }
 };
@@ -265,7 +288,8 @@ export const googleAuth = async (req, res) => {
           pfp: user.pfp,
           type: account.provider,
           showLastMessageInList: user.showLastMessageInList,
-          publicKey: user.publicKey,
+          sessionId: req.createdSessionId || null,
+          sessionPublicKey: null,
           encryptedPrivateKey: user.encryptedPrivateKey,
           backupSalt: user.backupSalt,
           backupIv: user.backupIv
@@ -307,7 +331,8 @@ export const googleAuth = async (req, res) => {
             pfp: existingUserByEmail.pfp,
             type: 'google',
             showLastMessageInList: existingUserByEmail.showLastMessageInList,
-            publicKey: existingUserByEmail.publicKey,
+            sessionId: req.createdSessionId || null,
+            sessionPublicKey: null,
             encryptedPrivateKey: existingUserByEmail.encryptedPrivateKey,
             backupSalt: existingUserByEmail.backupSalt,
             backupIv: existingUserByEmail.backupIv
@@ -344,7 +369,8 @@ export const googleAuth = async (req, res) => {
           pfp: newUser.pfp,
           type: 'google',
           showLastMessageInList: newUser.showLastMessageInList,
-          publicKey: newUser.publicKey,
+          sessionId: req.createdSessionId || null,
+          sessionPublicKey: null,
           encryptedPrivateKey: newUser.encryptedPrivateKey,
           backupSalt: newUser.backupSalt,
           backupIv: newUser.backupIv
@@ -358,6 +384,10 @@ export const googleAuth = async (req, res) => {
 
   } catch (error) {
     console.error('Google Auth Error:', error);
+
+    if (error.statusCode) {
+      return res.status(error.statusCode).json({ message: error.message, code: error.code });
+    }
 
     if (error.code === 11000) {
       return res.status(409).json({ message: 'Duplicate field error (username/email already exists)' });
@@ -484,7 +514,8 @@ export const verifyUserDetails = async (req, res) => {
             pfp: user.pfp,
             name: user.name,
             type: session.accountId?.provider || decoded.provider || 'credentials',
-            publicKey: user.publicKey,
+            sessionId: session.sessionId,
+            sessionPublicKey: session.publicKey || null,
             encryptedPrivateKey: user.encryptedPrivateKey,
             backupSalt: user.backupSalt,
             backupIv: user.backupIv,
@@ -522,6 +553,8 @@ export const getLoggedInDevices = async (req, res) => {
       expiresAt: session.expiresAt,
       isCurrent: session.sessionId === req.sessionId,
       isOnline: isSessionOnline(req.user.id, session.sessionId),
+      publicKey: session.publicKey || null,
+      hasE2EEKey: !!session.publicKey,
     }));
 
     return res.status(200).json({ devices });
@@ -552,6 +585,57 @@ export const revokeSession = async (req, res) => {
   } catch (error) {
     console.error('Failed to revoke session:', error);
     return res.status(500).json({ message: 'Failed to revoke session' });
+  }
+};
+
+export const updateSessionPublicKey = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const sessionId = req.sessionId;
+    const { publicKey, forceRekey = false } = req.body;
+
+    if (!publicKey || typeof publicKey !== 'string') {
+      return res.status(400).json({ message: "A valid public key string is required." });
+    }
+
+    try {
+      const parsed = JSON.parse(publicKey);
+      if (!parsed.kty || parsed.kty !== "RSA") {
+        return res.status(400).json({ message: "Invalid public key format: expected RSA JWK." });
+      }
+    } catch (e) {
+      return res.status(400).json({ message: "Invalid public key format: not valid JSON." });
+    }
+
+    const session = await Session.findOne({
+      sessionId,
+      user: userId,
+      expiresAt: { $gt: new Date() }
+    });
+
+    if (!session) {
+      return res.status(404).json({ message: "Active session not found" });
+    }
+
+    if (session.publicKey && session.publicKey !== publicKey && !forceRekey) {
+      return res.status(409).json({
+        message: "A public key is already registered for this session. Set forceRekey: true to replace.",
+        existingKey: true
+      });
+    }
+
+    session.publicKey = publicKey;
+    session.lastSeenAt = new Date();
+    await session.save();
+
+    return res.status(200).json({
+      message: "Session public key registered successfully",
+      sessionId: session.sessionId,
+      publicKey: session.publicKey
+    });
+  } catch (error) {
+    console.error("Error in updateSessionPublicKey:", error);
+    return res.status(500).json({ message: "Failed to update session public key", error: error.message });
   }
 };
 
@@ -649,3 +733,203 @@ export const resetPassword = async (req, res) => {
     res.status(500).json({ message: 'Something went wrong during password reset.' });
   }
 };
+
+/**
+ * POST /api/auth/companion/init
+ * Called by a new browser / companion device to initiate QR pairing.
+ */
+export const initCompanionPairing = async (req, res) => {
+  try {
+    const { publicKey, os, browser } = req.body;
+
+    if (!publicKey || typeof publicKey !== 'string') {
+      return res.status(400).json({ message: "Valid public key string is required for pairing." });
+    }
+
+    const pairingId = crypto.randomUUID();
+    // Human-friendly 6-character code e.g. FC-8492
+    const randomDigits = Math.floor(1000 + Math.random() * 9000);
+    const pairingCode = `FC-${randomDigits}`;
+    const expiresAt = new Date(Date.now() + 3 * 60 * 1000); // 3 minutes
+
+    const clientIp = req.headers['x-forwarded-for']?.split(',')[0]?.trim() || req.socket.remoteAddress || '';
+
+    await CompanionPairing.create({
+      pairingId,
+      pairingCode,
+      publicKey,
+      os: os || "Unknown",
+      browser: browser || "Unknown",
+      ip: clientIp,
+      status: "pending",
+      expiresAt,
+    });
+
+    res.status(201).json({
+      pairingId,
+      pairingCode,
+      expiresAt,
+    });
+  } catch (error) {
+    console.error("Error in initCompanionPairing:", error);
+    res.status(500).json({ message: "Failed to initialize companion pairing", error: error.message });
+  }
+};
+
+/**
+ * GET /api/auth/companion/status/:pairingId
+ * Polls pairing status if websocket is disconnected.
+ */
+export const getCompanionPairingStatus = async (req, res) => {
+  try {
+    const { pairingId } = req.params;
+    const pairing = await CompanionPairing.findOne({ pairingId });
+
+    if (!pairing) {
+      return res.status(404).json({ status: "not_found", message: "Pairing session not found or expired." });
+    }
+
+    if (pairing.expiresAt < new Date()) {
+      return res.status(410).json({ status: "expired", message: "Pairing session has expired." });
+    }
+
+    if (pairing.status === "approved") {
+      // Set the token cookie on companion device as well!
+      res.cookie('token', pairing.token, getCookieOptions(7 * 24 * 60 * 60 * 1000));
+      return res.status(200).json({
+        status: "approved",
+        token: pairing.token,
+        user: pairing.userPayload,
+      });
+    }
+
+    return res.status(200).json({
+      status: pairing.status,
+      pairingCode: pairing.pairingCode,
+      expiresAt: pairing.expiresAt,
+    });
+  } catch (error) {
+    console.error("Error in getCompanionPairingStatus:", error);
+    res.status(500).json({ message: "Failed to fetch companion pairing status", error: error.message });
+  }
+};
+
+/**
+ * POST /api/auth/companion/approve
+ * Authenticated endpoint: called by the logged-in device to authorize the new companion device.
+ */
+export const approveCompanionPairing = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { pairingId, pairingCode, keyPayload } = req.body;
+
+    if (!pairingId && !pairingCode) {
+      return res.status(400).json({ message: "pairingId or pairingCode is required." });
+    }
+
+    const query = {
+      status: "pending",
+      expiresAt: { $gt: new Date() },
+    };
+    if (pairingId) query.pairingId = pairingId;
+    if (pairingCode) query.pairingCode = pairingCode.trim().toUpperCase();
+
+    const pairing = await CompanionPairing.findOne(query);
+
+    if (!pairing) {
+      return res.status(404).json({ message: "No active pending pairing request found with this code." });
+    }
+
+    // Check active sessions limit (max 4)
+    const activeSessionsCount = await Session.countDocuments({
+      user: userId,
+      expiresAt: { $gt: new Date() },
+    });
+
+    if (activeSessionsCount >= 4) {
+      return res.status(403).json({
+        message: "Maximum active sessions limit reached (4). Please revoke another session first.",
+        code: "MAX_SESSIONS_REACHED"
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
+    }
+
+    const account = await Account.findOne({ user: userId }) || { _id: user._id, provider: 'credentials' };
+
+    // Create the new session for Companion Device B
+    const newSessionId = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+    const newSession = await Session.create({
+      sessionId: newSessionId,
+      user: user._id,
+      accountId: account._id,
+      ip: pairing.ip || req.ip || "",
+      os: pairing.os || "Unknown",
+      browser: pairing.browser || "Unknown",
+      publicKey: pairing.publicKey,
+      expiresAt,
+    });
+
+    // Sign JWT token for the companion device
+    const jwtToken = jwt.sign(
+      {
+        id: user._id,
+        email: user.email,
+        sessionId: newSession.sessionId,
+        accountId: account._id,
+        provider: account.provider,
+        name: user.name,
+        pfp: user.pfp,
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    );
+
+    const userPayload = {
+      id: user._id,
+      name: user.name,
+      username: user.username,
+      email: user.email,
+      pfp: user.pfp,
+      type: account.provider || 'credentials',
+      showLastMessageInList: user.showLastMessageInList,
+      sessionId: newSession.sessionId,
+      sessionPublicKey: newSession.publicKey,
+      encryptedPrivateKey: user.encryptedPrivateKey,
+      backupSalt: user.backupSalt,
+      backupIv: user.backupIv,
+      transferredKeyPayload: keyPayload || null,
+    };
+
+    // Update pairing record
+    pairing.status = "approved";
+    pairing.userId = user._id;
+    pairing.token = jwtToken;
+    pairing.userPayload = userPayload;
+    await pairing.save();
+
+    // Notify Companion Device B via Socket.IO
+    io?.to(`pairing:${pairing.pairingId}`).emit("companion_approved", {
+      token: jwtToken,
+      user: userPayload,
+    });
+
+    res.status(200).json({
+      message: "Device linked successfully!",
+      device: {
+        os: pairing.os,
+        browser: pairing.browser,
+        sessionId: newSession.sessionId
+      }
+    });
+  } catch (error) {
+    console.error("Error in approveCompanionPairing:", error);
+    res.status(500).json({ message: "Failed to approve companion pairing", error: error.message });
+  }
+};
+

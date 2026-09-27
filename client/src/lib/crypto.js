@@ -1,452 +1,164 @@
-// Base64 helper functions
-export function arrayBufferToBase64(buffer) {
-  let binary = '';
-  const bytes = new Uint8Array(buffer);
-  const len = bytes.byteLength;
-  for (let i = 0; i < len; i++) {
-    binary += String.fromCharCode(bytes[i]);
-  }
-  return window.btoa(binary);
-}
+/**
+ * FlashChat E2EE Cryptographic Library.
+ * 
+ * NOTE: Legacy user-level single-key functions have been migrated to the
+ * modular session-based E2EE subsystem located at `./e2ee/`.
+ * 
+ * This file re-exports modern session-based E2EE APIs and provides backward-compatible
+ * adapters for legacy call sites.
+ */
 
-export function base64ToArrayBuffer(base64) {
-  const binaryString = window.atob(base64);
-  const len = binaryString.length;
-  const bytes = new Uint8Array(len);
-  for (let i = 0; i < len; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  return bytes.buffer;
-}
+export * from './e2ee/index.js';
 
-// Generate RSA-OAEP Key Pair for E2EE
-export async function generateE2EEKeyPair() {
-  try {
-    const keyPair = await window.crypto.subtle.generateKey(
-      {
-        name: "RSA-OAEP",
-        modulusLength: 2048,
-        publicExponent: new Uint8Array([1, 0, 1]),
-        hash: "SHA-256",
-      },
-      true,
-      ["encrypt", "decrypt"]
-    );
+import {
+  generateE2EEKeyPair,
+  arrayBufferToBase64,
+  base64ToArrayBuffer,
+} from './e2ee/keys.js';
+import {
+  encryptMessage as sessionEncryptMessage,
+  decryptMessage as sessionDecryptMessage,
+} from './e2ee/messages.js';
+import {
+  encryptFile as sessionEncryptFile,
+  decryptFile as sessionDecryptFile,
+} from './e2ee/files.js';
 
-    const exportedPublic = await window.crypto.subtle.exportKey("jwk", keyPair.publicKey);
-    const exportedPrivate = await window.crypto.subtle.exportKey("jwk", keyPair.privateKey);
-
-    return {
-      publicKeyString: JSON.stringify(exportedPublic),
-      privateKeyString: JSON.stringify(exportedPrivate)
-    };
-  } catch (error) {
-    console.error("Failed to generate E2EE key pair:", error);
-    throw error;
-  }
-}
-
-// Initialize user's keys locally and return the public key string if registered/generated
+/**
+ * @deprecated Use initializeSessionKeys(sessionId, serverPublicKey) instead.
+ */
 export async function initializeUserKeys(username) {
-  const localPrivateKeyName = `e2ee_private_key_${username}`;
-  const localPublicKeyName = `e2ee_public_key_${username}`;
-
-  let privateKeyStr = localStorage.getItem(localPrivateKeyName);
-  let publicKeyStr = localStorage.getItem(localPublicKeyName);
-
-  if (!privateKeyStr || !publicKeyStr) {
-    const keys = await generateE2EEKeyPair();
-    localStorage.setItem(localPrivateKeyName, keys.privateKeyString);
-    localStorage.setItem(localPublicKeyName, keys.publicKeyString);
-    publicKeyStr = keys.publicKeyString;
-  }
-
-  return publicKeyStr;
+  console.warn("[DEPRECATION] initializeUserKeys(username) is deprecated. Use initializeSessionKeys(sessionId) instead.");
+  const legacyKey = localStorage.getItem(`e2ee_public_key_${username}`);
+  if (legacyKey) return legacyKey;
+  const keys = await generateE2EEKeyPair();
+  localStorage.setItem(`e2ee_private_key_${username}`, keys.privateKeyString);
+  localStorage.setItem(`e2ee_public_key_${username}`, keys.publicKeyString);
+  return keys.publicKeyString;
 }
 
-// Import public key string
-export async function importPublicKey(jwkString) {
-  const jwk = JSON.parse(jwkString);
-  return await window.crypto.subtle.importKey(
-    "jwk",
-    jwk,
-    { name: "RSA-OAEP", hash: "SHA-256" },
-    true,
+/**
+ * Encrypt a text message for a list of active recipient sessions.
+ * @param {string} text Plaintext message
+ * @param {Array<{ sessionId: string, publicKey: string, userId?: string }>} recipients
+ */
+export async function encryptMessage(text, recipients = []) {
+  if (Array.isArray(recipients)) {
+    return await sessionEncryptMessage(text, recipients);
+  }
+  return await sessionEncryptMessage(text, []);
+}
+
+/**
+ * Decrypt a received message using the active session private key.
+ */
+export async function decryptMessage(encryptedMsg, currentSessionOrUserId, currentUsernameOrUserId = null) {
+  return await sessionDecryptMessage(encryptedMsg, currentSessionOrUserId, currentUsernameOrUserId);
+}
+
+/**
+ * Encrypt a file/attachment for a list of active recipient sessions.
+ * @param {File|Blob} file File to encrypt
+ * @param {Array<{ sessionId: string, publicKey: string, userId?: string }>} recipients
+ */
+export async function encryptFile(file, recipients = []) {
+  if (Array.isArray(recipients)) {
+    return await sessionEncryptFile(file, recipients);
+  }
+  return await sessionEncryptFile(file, []);
+}
+
+/**
+ * Backward-compatible adapter for decryptFile.
+ */
+export async function decryptFile(url, attachmentEncryption, currentSessionOrUserId, mimeType = "application/octet-stream", currentUsernameOrUserId = null) {
+  return await sessionDecryptFile(url, attachmentEncryption, currentSessionOrUserId, mimeType, currentUsernameOrUserId);
+}
+
+/**
+ * @deprecated Legacy Passphrase Backup: preserved for backward-compatibility only.
+ */
+export async function encryptPrivateKeyWithPassphrase(privateKeyStr, passphrase) {
+  console.warn("[DEPRECATION] encryptPrivateKeyWithPassphrase is deprecated under multi-session E2EE.");
+  const encoder = new TextEncoder();
+  const passphraseBytes = encoder.encode(passphrase);
+  
+  const keyMaterial = await window.crypto.subtle.importKey(
+    "raw",
+    passphraseBytes,
+    "PBKDF2",
+    false,
+    ["deriveKey"]
+  );
+  
+  const salt = window.crypto.getRandomValues(new Uint8Array(16));
+  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+  
+  const aesKey = await window.crypto.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      salt: salt,
+      iterations: 100000,
+      hash: "SHA-256"
+    },
+    keyMaterial,
+    { name: "AES-GCM", length: 256 },
+    false,
     ["encrypt"]
   );
-}
-
-// Import private key string
-export async function importPrivateKey(jwkString) {
-  const jwk = JSON.parse(jwkString);
-  return await window.crypto.subtle.importKey(
-    "jwk",
-    jwk,
-    { name: "RSA-OAEP", hash: "SHA-256" },
-    true,
-    ["decrypt"]
-  );
-}
-
-// Encrypt message content with hybrid RSA-OAEP + AES-GCM (supports 1-on-1 and Group chats)
-export async function encryptMessage(text, senderId, senderPublicKeyJwk, receiverId, receiverPublicKeyJwk, groupParticipants = []) {
-  try {
-    // generate random AES symmetric key
-    const aesKey = await window.crypto.subtle.generateKey(
-      { name: "AES-GCM", length: 256 },
-      true,
-      ["encrypt", "decrypt"]
-    );
-
-    // encrypting text using AES-GCM
-    const iv = window.crypto.getRandomValues(new Uint8Array(12));
-    const encodedText = new TextEncoder().encode(text);
-    const encryptedContentBuffer = await window.crypto.subtle.encrypt(
-      { name: "AES-GCM", iv },
-      aesKey,
-      encodedText
-    );
-
-    const ciphertextBase64 = arrayBufferToBase64(encryptedContentBuffer);
-    const ivBase64 = arrayBufferToBase64(iv);
-
-    // exporting raw AES key to encrypt it with recipients' RSA public keys
-    const rawAesKey = await window.crypto.subtle.exportKey("raw", aesKey);
-
-    const encryptedKeys = [];
-
-    // Encrypting for sender
-    if (senderPublicKeyJwk) {
-      const senderPubKey = await importPublicKey(senderPublicKeyJwk);
-      const senderEncryptedAesBuffer = await window.crypto.subtle.encrypt(
-        { name: "RSA-OAEP" },
-        senderPubKey,
-        rawAesKey
-      );
-      encryptedKeys.push({
-        userId: senderId,
-        key: arrayBufferToBase64(senderEncryptedAesBuffer)
-      });
-    }
-
-    // Encrypting for group participants
-    if (groupParticipants && groupParticipants.length > 0) {
-      for (const p of groupParticipants) {
-        const pId = p._id || p.id;
-        if (p.publicKey && pId && pId.toString() !== senderId.toString()) {
-          try {
-            const pPubKey = await importPublicKey(p.publicKey);
-            const pEncryptedAesBuffer = await window.crypto.subtle.encrypt(
-              { name: "RSA-OAEP" },
-              pPubKey,
-              rawAesKey
-            );
-            encryptedKeys.push({
-              userId: pId.toString(),
-              key: arrayBufferToBase64(pEncryptedAesBuffer)
-            });
-          } catch (e) {
-            console.warn(`Failed to encrypt AES key for group member ${pId}:`, e);
-          }
-        }
-      }
-    } else if (receiverPublicKeyJwk && receiverId && receiverId !== senderId) {
-      // Encrypting for receiver (1-on-1 chat)
-      const receiverPubKey = await importPublicKey(receiverPublicKeyJwk);
-      const receiverEncryptedAesBuffer = await window.crypto.subtle.encrypt(
-        { name: "RSA-OAEP" },
-        receiverPubKey,
-        rawAesKey
-      );
-      encryptedKeys.push({
-        userId: receiverId,
-        key: arrayBufferToBase64(receiverEncryptedAesBuffer)
-      });
-    }
-
-    return {
-      ciphertext: ciphertextBase64,
-      encryption: {
-        isEncrypted: true,
-        iv: ivBase64,
-        encryptedKeys
-      }
-    };
-  } catch (error) {
-    console.error("Message encryption failed:", error);
-    throw error;
-  }
-}
-
-// Decrypting message content using user's private key
-export async function decryptMessage(encryptedMsg, currentUserId, currentUsername) {
-  try {
-    if (!encryptedMsg.encryption || !encryptedMsg.encryption.isEncrypted) {
-      return encryptedMsg.content; // Not encrypted
-    }
-
-    const { iv: ivBase64, encryptedKeys } = encryptedMsg.encryption;
-    const userKeyObj = encryptedKeys.find(k => k.userId?.toString() === currentUserId?.toString());
-
-    if (!userKeyObj) {
-      return "Decryption key not available for this session";
-    }
-
-    const localPrivateKeyName = `e2ee_private_key_${currentUsername}`;
-    const privateKeyJwkStr = localStorage.getItem(localPrivateKeyName);
-
-    if (!privateKeyJwkStr) {
-      return "Private key missing (cannot decrypt)";
-    }
-
-    // 1. Import local private key
-    const privateKey = await importPrivateKey(privateKeyJwkStr);
-
-    // 2. Decrypt AES raw key
-    const encryptedKeyBuffer = base64ToArrayBuffer(userKeyObj.key);
-    const rawAesKey = await window.crypto.subtle.decrypt(
-      { name: "RSA-OAEP" },
-      privateKey,
-      encryptedKeyBuffer
-    );
-
-    // 3. Import AES key
-    const aesKey = await window.crypto.subtle.importKey(
-      "raw",
-      rawAesKey,
-      { name: "AES-GCM" },
-      true,
-      ["decrypt"]
-    );
-
-    // 4. Decrypt content
-    const iv = base64ToArrayBuffer(ivBase64);
-    const ciphertext = base64ToArrayBuffer(encryptedMsg.content);
-    const decryptedBuffer = await window.crypto.subtle.decrypt(
-      { name: "AES-GCM", iv },
-      aesKey,
-      ciphertext
-    );
-
-    return new TextDecoder().decode(decryptedBuffer);
-  } catch (error) {
-    console.error("Message decryption failed:", error);
-    return "Error decrypting message";
-  }
-}
-/**
- * Encrypt a File / Blob with AES-GCM, wrap the AES key for sender + recipients (supports 1-on-1 and Group chats).
- * Returns: { encryptedBlob: Blob, attachmentEncryption: { isEncrypted, iv, encryptedKeys } }
- */
-export async function encryptFile(file, senderId, senderPublicKeyJwk, receiverId, receiverPublicKeyJwk, groupParticipants = []) {
-  const aesKey = await window.crypto.subtle.generateKey(
-    { name: "AES-GCM", length: 256 },
-    true,
-    ["encrypt", "decrypt"]
-  );
-
-  const iv = window.crypto.getRandomValues(new Uint8Array(12));
-  const fileBuffer = await file.arrayBuffer();
-
+  
+  const privateKeyBytes = encoder.encode(privateKeyStr);
   const encryptedBuffer = await window.crypto.subtle.encrypt(
-    { name: "AES-GCM", iv },
+    { name: "AES-GCM", iv: iv },
     aesKey,
-    fileBuffer
+    privateKeyBytes
   );
-
-  const ivBase64 = arrayBufferToBase64(iv);
-  const rawAesKey = await window.crypto.subtle.exportKey("raw", aesKey);
-  const encryptedKeys = [];
-
-  if (senderPublicKeyJwk) {
-    const senderPubKey = await importPublicKey(senderPublicKeyJwk);
-    const senderEncryptedKey = await window.crypto.subtle.encrypt(
-      { name: "RSA-OAEP" },
-      senderPubKey,
-      rawAesKey
-    );
-    encryptedKeys.push({ userId: senderId, key: arrayBufferToBase64(senderEncryptedKey) });
-  }
-
-  if (groupParticipants && groupParticipants.length > 0) {
-    for (const p of groupParticipants) {
-      const pId = p._id || p.id;
-      if (p.publicKey && pId && pId.toString() !== senderId.toString()) {
-        try {
-          const pPubKey = await importPublicKey(p.publicKey);
-          const pEncryptedKey = await window.crypto.subtle.encrypt(
-            { name: "RSA-OAEP" },
-            pPubKey,
-            rawAesKey
-          );
-          encryptedKeys.push({ userId: pId.toString(), key: arrayBufferToBase64(pEncryptedKey) });
-        } catch (e) {
-          console.warn(`Failed to encrypt AES key for group member ${pId}:`, e);
-        }
-      }
-    }
-  } else if (receiverPublicKeyJwk && receiverId && receiverId !== senderId) {
-    const receiverPubKey = await importPublicKey(receiverPublicKeyJwk);
-    const receiverEncryptedKey = await window.crypto.subtle.encrypt(
-      { name: "RSA-OAEP" },
-      receiverPubKey,
-      rawAesKey
-    );
-    encryptedKeys.push({ userId: receiverId, key: arrayBufferToBase64(receiverEncryptedKey) });
-  }
-
+  
   return {
-    encryptedBlob: new Blob([encryptedBuffer], { type: "application/octet-stream" }),
-    attachmentEncryption: {
-      isEncrypted: true,
-      iv: ivBase64,
-      encryptedKeys,
-    },
+    encryptedPrivateKey: arrayBufferToBase64(encryptedBuffer),
+    backupSalt: arrayBufferToBase64(salt),
+    backupIv: arrayBufferToBase64(iv)
   };
 }
 
 /**
- * Fetch an encrypted attachment URL, decrypt it, and return an object URL for display.
- * attachmentEncryption: { isEncrypted, iv, encryptedKeys }
+ * @deprecated Legacy Passphrase Restore: preserved for backward-compatibility only.
  */
-export async function decryptFile(url, attachmentEncryption, currentUserId, currentUsername, mimeType = "application/octet-stream") {
-  if (!attachmentEncryption?.isEncrypted) {
-    // Not encrypted — return URL as-is
-    return url;
-  }
-
-  const { iv: ivBase64, encryptedKeys } = attachmentEncryption;
-  const userKeyObj = encryptedKeys?.find(k => k.userId?.toString() === currentUserId?.toString());
-  if (!userKeyObj) throw new Error("No decryption key found for this user");
-
-  const localPrivateKeyName = `e2ee_private_key_${currentUsername}`;
-  const privateKeyJwkStr = localStorage.getItem(localPrivateKeyName);
-  if (!privateKeyJwkStr) throw new Error("Private key missing");
-
-  const privateKey = await importPrivateKey(privateKeyJwkStr);
-  const encryptedKeyBuffer = base64ToArrayBuffer(userKeyObj.key);
-  const rawAesKey = await window.crypto.subtle.decrypt(
-    { name: "RSA-OAEP" },
-    privateKey,
-    encryptedKeyBuffer
-  );
-
-  const aesKey = await window.crypto.subtle.importKey(
+export async function decryptPrivateKeyWithPassphrase(encryptedPrivateKeyBase64, passphrase, saltBase64, ivBase64) {
+  console.warn("[DEPRECATION] decryptPrivateKeyWithPassphrase is deprecated under multi-session E2EE.");
+  const encoder = new TextEncoder();
+  const passphraseBytes = encoder.encode(passphrase);
+  
+  const keyMaterial = await window.crypto.subtle.importKey(
     "raw",
-    rawAesKey,
-    { name: "AES-GCM" },
-    true,
+    passphraseBytes,
+    "PBKDF2",
+    false,
+    ["deriveKey"]
+  );
+  
+  const salt = base64ToArrayBuffer(saltBase64);
+  const iv = base64ToArrayBuffer(ivBase64);
+  
+  const aesKey = await window.crypto.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      salt: salt,
+      iterations: 100000,
+      hash: "SHA-256"
+    },
+    keyMaterial,
+    { name: "AES-GCM", length: 256 },
+    false,
     ["decrypt"]
   );
-
-  // Fetch the encrypted blob from the server
-  const response = await fetch(url, { credentials: "include" });
-  const encryptedBuffer = await response.arrayBuffer();
-
-  const iv = base64ToArrayBuffer(ivBase64);
+  
+  const encryptedBuffer = base64ToArrayBuffer(encryptedPrivateKeyBase64);
   const decryptedBuffer = await window.crypto.subtle.decrypt(
-    { name: "AES-GCM", iv },
+    { name: "AES-GCM", iv: iv },
     aesKey,
     encryptedBuffer
   );
-
-  return URL.createObjectURL(new Blob([decryptedBuffer], { type: mimeType }));
-}
-
-/**
- * Encrypt the private key string using a PBKDF2 derived key from a passphrase.
- * Returns { encryptedPrivateKey, backupSalt, backupIv } in base64.
- */
-export async function encryptPrivateKeyWithPassphrase(privateKeyStr, passphrase) {
-  try {
-    const encoder = new TextEncoder();
-    const passphraseBytes = encoder.encode(passphrase);
-    
-    const keyMaterial = await window.crypto.subtle.importKey(
-      "raw",
-      passphraseBytes,
-      "PBKDF2",
-      false,
-      ["deriveKey"]
-    );
-    
-    const salt = window.crypto.getRandomValues(new Uint8Array(16));
-    const iv = window.crypto.getRandomValues(new Uint8Array(12));
-    
-    const aesKey = await window.crypto.subtle.deriveKey(
-      {
-        name: "PBKDF2",
-        salt: salt,
-        iterations: 100000,
-        hash: "SHA-256"
-      },
-      keyMaterial,
-      { name: "AES-GCM", length: 256 },
-      false,
-      ["encrypt"]
-    );
-    
-    const privateKeyBytes = encoder.encode(privateKeyStr);
-    const encryptedBuffer = await window.crypto.subtle.encrypt(
-      { name: "AES-GCM", iv: iv },
-      aesKey,
-      privateKeyBytes
-    );
-    
-    return {
-      encryptedPrivateKey: arrayBufferToBase64(encryptedBuffer),
-      backupSalt: arrayBufferToBase64(salt),
-      backupIv: arrayBufferToBase64(iv)
-    };
-  } catch (error) {
-    console.error("Failed to encrypt private key with passphrase:", error);
-    throw error;
-  }
-}
-
-/**
- * Decrypt the private key string using PBKDF2 derived key from a passphrase.
- * Returns the decrypted private key JWK string.
- */
-export async function decryptPrivateKeyWithPassphrase(encryptedPrivateKeyBase64, passphrase, saltBase64, ivBase64) {
-  try {
-    const encoder = new TextEncoder();
-    const passphraseBytes = encoder.encode(passphrase);
-    
-    const keyMaterial = await window.crypto.subtle.importKey(
-      "raw",
-      passphraseBytes,
-      "PBKDF2",
-      false,
-      ["deriveKey"]
-    );
-    
-    const salt = base64ToArrayBuffer(saltBase64);
-    const iv = base64ToArrayBuffer(ivBase64);
-    
-    const aesKey = await window.crypto.subtle.deriveKey(
-      {
-        name: "PBKDF2",
-        salt: salt,
-        iterations: 100000,
-        hash: "SHA-256"
-      },
-      keyMaterial,
-      { name: "AES-GCM", length: 256 },
-      false,
-      ["decrypt"]
-    );
-    
-    const encryptedBuffer = base64ToArrayBuffer(encryptedPrivateKeyBase64);
-    const decryptedBuffer = await window.crypto.subtle.decrypt(
-      { name: "AES-GCM", iv: iv },
-      aesKey,
-      encryptedBuffer
-    );
-    
-    return new TextDecoder().decode(decryptedBuffer);
-  } catch (error) {
-    console.error("Failed to decrypt private key with passphrase:", error);
-    throw new Error("Incorrect passphrase or corrupt backup");
-  }
+  
+  return new TextDecoder().decode(decryptedBuffer);
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Outlet } from "react-router-dom";
-import ChatList from "../components/chats/ChatList";
+import ChatList from "../components/chats/chatlist/ChatList";
 import NavigationBar from "../components/layout/NavigationBar";
 
 export default function DesktopLayout() {

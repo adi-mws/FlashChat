@@ -11,6 +11,7 @@ import {
   deleteAllMessages,
   uploadAttachment,
   multerUpload,
+  getChatEncryptionRecipients,
   createGroupChat,
   joinGroupByInviteCode,
   generateGroupInviteLink,
@@ -19,6 +20,7 @@ import {
   removeGroupMember,
 } from '../controllers/chatController.js';
 
+router.get('/:chatId/recipients',   authenticateJWT, getChatEncryptionRecipients);
 router.get('/get-all/:id',          authenticateJWT, showAllChatsOfUser);
 router.get('/get-messages/:_id',    authenticateJWT, getMessages);
 router.post('/message-read',        authenticateJWT, readMessage);

@@ -18,7 +18,7 @@ export const addUser = (userId, sessionId, socketId) => {
   if (!sessions.has(normalizedSessionId)) {
     sessions.set(normalizedSessionId, new Set());
   }
-
+// adding socket id to sessions 
   sessions.get(normalizedSessionId).add(socketId);
   socketUserMap.set(socketId, {
     userId: normalizedUserId,

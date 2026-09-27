@@ -23,6 +23,13 @@ export const initSocket = (server) => {
     const userId = socket.user?.id?.toString();
     const sessionId = socket.user?.sessionId?.toString();
 
+    if (socket.isPairingSocket && socket.pairingId) {
+      const room = `pairing:${socket.pairingId}`;
+      socket.join(room);
+      console.log(`Companion device socket ${socket.id} joined ${room}`);
+      return;
+    }
+
     if (userId && sessionId) {
       addUser(userId, sessionId, socket.id);
       socket.join(getUserRoom(userId));
@@ -88,7 +95,79 @@ export const initSocket = (server) => {
       attachmentEncryption,
     }) => {
       try {
+        const chat = await Chat.findById(chatId);
+        if (!chat) {
+          return socket.emit("messageError", { message: "Chat not found" });
+        }
+
+        const isParticipant = chat.participants.some(p => p.toString() === socket.user.id.toString());
+        if (!isParticipant) {
+          return socket.emit("messageError", { message: "Unauthorized: not a participant of this chat" });
+        }
+
         const msgType = type || "text";
+
+        // Validate session-based message encryption payload
+        let validatedEncryption = { isEncrypted: false };
+        if (encryption && encryption.isEncrypted) {
+          if (!encryption.iv || typeof encryption.iv !== "string") {
+            return socket.emit("messageError", { message: "Invalid encryption payload: missing IV" });
+          }
+          if (!Array.isArray(encryption.encryptedKeys) || encryption.encryptedKeys.length === 0) {
+            return socket.emit("messageError", { message: "Invalid encryption payload: missing encryptedKeys" });
+          }
+
+          const seenSessions = new Set();
+          const validKeys = [];
+          for (const entry of encryption.encryptedKeys) {
+            const sId = entry.sessionId?.toString();
+            if (!sId || !entry.key || typeof entry.key !== "string") continue;
+            if (!seenSessions.has(sId)) {
+              seenSessions.add(sId);
+              validKeys.push({
+                sessionId: sId,
+                userId: entry.userId || undefined,
+                key: entry.key
+              });
+            }
+          }
+
+          if (validKeys.length === 0) {
+            return socket.emit("messageError", { message: "Invalid encryption payload: no valid session envelopes" });
+          }
+
+          validatedEncryption = {
+            isEncrypted: true,
+            iv: encryption.iv,
+            encryptedKeys: validKeys
+          };
+        }
+
+        // Validate session-based attachment encryption payload
+        let validatedAttachmentEncryption = { isEncrypted: false };
+        if (attachmentEncryption && attachmentEncryption.isEncrypted) {
+          if (attachmentEncryption.iv && Array.isArray(attachmentEncryption.encryptedKeys)) {
+            const seenSessions = new Set();
+            const validKeys = [];
+            for (const entry of attachmentEncryption.encryptedKeys) {
+              const sId = entry.sessionId?.toString();
+              if (!sId || !entry.key || typeof entry.key !== "string") continue;
+              if (!seenSessions.has(sId)) {
+                seenSessions.add(sId);
+                validKeys.push({
+                  sessionId: sId,
+                  userId: entry.userId || undefined,
+                  key: entry.key
+                });
+              }
+            }
+            validatedAttachmentEncryption = {
+              isEncrypted: true,
+              iv: attachmentEncryption.iv,
+              encryptedKeys: validKeys
+            };
+          }
+        }
 
         const newMessage = await Message.create({
           chat: chatId,
@@ -96,22 +175,19 @@ export const initSocket = (server) => {
           content: message || "",
           type: msgType,
           readBy: [socket.user.id],
-          encryption: encryption || { isEncrypted: false },
+          encryption: validatedEncryption,
           // attachment-specific
           ...(msgType !== "text" && {
             attachmentUrl: attachmentUrl || null,
             fileName: fileName || null,
             fileSize: fileSize || null,
-            attachmentEncryption: attachmentEncryption || { isEncrypted: false },
+            attachmentEncryption: validatedAttachmentEncryption,
           }),
         });
 
-        const chat = await Chat.findById(chatId);
-        if (chat) {
-          chat.updatedAt = Date.now();
-          chat.lastMessage = newMessage._id;
-          await chat.save();
-        }
+        chat.updatedAt = Date.now();
+        chat.lastMessage = newMessage._id;
+        await chat.save();
 
         const populatedMsg = await newMessage.populate("sender", "_id name username pfp");
 

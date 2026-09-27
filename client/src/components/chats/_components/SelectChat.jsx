@@ -1,5 +1,5 @@
-import React from 'react';
-import { Flame, MessageSquare } from 'lucide-react';
+import React from "react";
+import { Flame } from "lucide-react";
 
 export default function SelectChat() {
   return (
@@ -20,11 +20,6 @@ export default function SelectChat() {
       <p className="mt-2 text-slate-500 dark:text-zinc-400 max-w-sm text-sm">
         Select a conversation from the sidebar or find a contact to start messaging instantly.
       </p>
-
-      {/* Decorative details
-      <div className="mt-12 flex items-center gap-6 text-xs text-slate-400 dark:text-zinc-600">
-        
-      </div> */}
     </div>
   );
 }

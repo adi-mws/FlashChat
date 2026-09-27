@@ -33,8 +33,9 @@ const messageSchema = new mongoose.Schema({
     iv: { type: String },
     encryptedKeys: [
       {
-        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-        key: { type: String }
+        sessionId: { type: String, required: true },
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false },
+        key: { type: String, required: true }
       }
     ]
   },
@@ -48,10 +49,11 @@ const messageSchema = new mongoose.Schema({
   attachmentEncryption: {
     isEncrypted: { type: Boolean, default: false },
     iv:          { type: String },                  // base64 AES-GCM IV
-    encryptedKeys: [                               // RSA-wrapped AES keys per user
+    encryptedKeys: [                               // RSA-wrapped AES keys per session
       {
-        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-        key:    { type: String }
+        sessionId: { type: String, required: true },
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false },
+        key:    { type: String, required: true }
       }
     ]
   },

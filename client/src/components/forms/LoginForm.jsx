@@ -9,7 +9,8 @@ import { selectTheme } from "../../redux/slices/uiSlice";
 import { MARKETING_ROUTES, CHAT_ROUTES } from "../../../routes/routes";
 import { GoogleLogin } from "@react-oauth/google";
 import UserNameForm from "./UserNameForm";
-import { AlertCircle, CheckCircle2, Flame } from "lucide-react";
+import CompanionQRLoginModal from "../auth/CompanionQRLoginModal";
+import { AlertCircle, CheckCircle2, Flame, QrCode } from "lucide-react";
 
 export default function LoginForm() {
   const {
@@ -21,6 +22,7 @@ export default function LoginForm() {
   const theme = useSelector(selectTheme);
   const navigate = useNavigate();
   const [showUsernameForm, setShowUsernameForm] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
   const [googleCredentialResponse, setGoogleCredentialResponse] = useState({});
   const { showNotification } = useNotification();
   const [alertMessage, setAlertMessage] = useState({ show: false, message: "", type: "" });
@@ -207,6 +209,16 @@ export default function LoginForm() {
           </div>
         </div>
 
+        {/* QR Companion Login Button */}
+        <button
+          type="button"
+          onClick={() => setShowQRModal(true)}
+          className="w-full mt-3 py-2.5 px-4 bg-slate-100 hover:bg-slate-200/80 dark:bg-zinc-800/80 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-200 font-semibold rounded-xl transition-all duration-150 flex items-center justify-center gap-2 text-sm cursor-pointer border border-slate-200/60 dark:border-zinc-700/60"
+        >
+          <QrCode size={16} className="text-indigo-500" />
+          <span>Log In with QR Code</span>
+        </button>
+
         {/* Footer Redirect */}
         <p className="text-center text-xs text-slate-500 dark:text-zinc-400 mt-4">
           New to FlashChat?{" "}
@@ -218,6 +230,7 @@ export default function LoginForm() {
           </Link>
         </p>
 
+        <CompanionQRLoginModal isOpen={showQRModal} onClose={() => setShowQRModal(false)} />
         <UserNameForm setShowForm={setShowUsernameForm} showForm={showUsernameForm} credentialResponse={googleCredentialResponse} />
       </div>
     </div>

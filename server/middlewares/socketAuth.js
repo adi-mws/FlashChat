@@ -4,6 +4,13 @@ import Session from '../models/session.js';
 
 const authenticateSocket = async (socket, next) => {
   try {
+    // Allow unauthenticated sockets specifically for QR companion pairing handshake
+    if (socket.handshake.query?.pairingId) {
+      socket.isPairingSocket = true;
+      socket.pairingId = socket.handshake.query.pairingId;
+      return next();
+    }
+
     const cookies = cookie.parse(socket.handshake.headers.cookie || "");
     const token = cookies.token || cookies.googleToken; // handles both googleToken and normal Token (Both Auth Mechanisms)
     if (!token) throw new Error("No token");
@@ -31,7 +38,7 @@ const authenticateSocket = async (socket, next) => {
     socket.user = decoded; // Attached the user to the socket
     next();
   } catch (err) {
-    // console.log("Socket auth error:", err.message);
+    console.log("Socket auth error:", err.message);
     next(new Error("Authentication error"));
   }
 };

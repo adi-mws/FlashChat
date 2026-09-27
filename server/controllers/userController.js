@@ -62,7 +62,7 @@ const formatUser = (user) => ({
   name: user.name,
   email: user.email,
   about: user.about,
-  pfp: user.pfp, publicKey: user.publicKey,
+  pfp: user.pfp,
   lastOnline: user.lastOnline,
   showLastMessageInList: user.showLastMessageInList,
   createdAt: user.createdAt,
@@ -235,7 +235,7 @@ export const acceptFriendRequest = async (req, res) => {
     await chat.populate([
       {
         path: 'participants',
-        select: 'username name pfp publicKey',
+        select: 'username name pfp',
       },
       {
         path: 'lastMessage',
@@ -363,22 +363,47 @@ export const getSentRequests = async (req, res) => {
 export const updateUserPublicKey = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { publicKey } = req.body;
+    const sessionId = req.sessionId;
+    const { publicKey, forceRekey = false } = req.body;
 
-    if (!publicKey) {
-      return res.status(400).json({ message: "Public key is required." });
+    if (!publicKey || typeof publicKey !== 'string') {
+      return res.status(400).json({ message: "A valid public key string is required." });
     }
 
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+    try {
+      const parsed = JSON.parse(publicKey);
+      if (!parsed.kty || parsed.kty !== "RSA") {
+        return res.status(400).json({ message: "Invalid public key format: expected RSA JWK." });
+      }
+    } catch (e) {
+      return res.status(400).json({ message: "Invalid public key format: not valid JSON." });
     }
 
-    user.publicKey = publicKey;
-    user.updatedAt = Date.now();
-    await user.save();
+    // Update Session if sessionId is available
+    if (sessionId) {
+      const session = await Session.findOne({
+        sessionId,
+        user: userId,
+        expiresAt: { $gt: new Date() }
+      });
+      if (session) {
+        if (session.publicKey && session.publicKey !== publicKey && !forceRekey) {
+          return res.status(409).json({
+            message: "A public key is already registered for this session. Set forceRekey: true to replace.",
+            existingKey: true
+          });
+        }
+        session.publicKey = publicKey;
+        session.lastSeenAt = new Date();
+        await session.save();
+      }
+    }
 
-    res.status(200).json({ message: "Public key registered successfully" });
+    res.status(200).json({
+      message: "Public key registered successfully",
+      sessionId: sessionId || null,
+      publicKey
+    });
   } catch (error) {
     console.error("Error in updateUserPublicKey:", error);
     res.status(500).json({ message: "Failed to update public key", error: error.message });

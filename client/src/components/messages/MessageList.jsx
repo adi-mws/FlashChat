@@ -95,7 +95,7 @@ export default function MessageList({ loading, messages, messagesEndRef, handleS
                                 return (
                                     <React.Fragment key={msg._id || `sending-${i}`}>
                                         {showDateHeader && (
-                                            <div className="flex justify-center my-6 sticky top-2 z-10 animate-fade-in">
+                                            <div className="flex justify-center  sticky top-0 z-10 animate-fade-in">
                                                 <span className="px-3.5 py-1.5 rounded-xl bg-slate-100/90 dark:bg-zinc-900/90 text-slate-500 dark:text-zinc-400 text-[11px] font-semibold tracking-wide select-none shadow-sm backdrop-blur-sm border border-slate-200/20 dark:border-zinc-800/20">
                                                     {getRelativeDateString(msg.createdAt)}
                                                 </span>

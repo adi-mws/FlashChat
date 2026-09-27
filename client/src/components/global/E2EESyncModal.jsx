@@ -14,6 +14,7 @@ import {
   fetchMessages
 } from '../../redux/slices/chatsSlice';
 import { ShieldAlert, KeyRound, Eye, EyeOff, Lock, AlertCircle, RefreshCw } from 'lucide-react';
+import { normalizeRecoveryPhrase } from '../../lib/e2ee';
 
 export default function E2EESyncModal() {
   const dispatch = useDispatch();
@@ -32,12 +33,13 @@ export default function E2EESyncModal() {
 
   const handleRestore = async (e) => {
     e.preventDefault();
-    if (!passphrase.trim()) return;
+    const clean = normalizeRecoveryPhrase(passphrase);
+    if (!clean) return;
     
     setLoading(true);
     dispatch(setE2eeSyncError(null));
     try {
-      await dispatch(restoreE2EEKeys({ passphrase: passphrase.trim(), user })).unwrap();
+      await dispatch(restoreE2EEKeys({ passphrase: clean, user })).unwrap();
       // Re-fetch chats and open messages so they immediately decrypt
       dispatch(fetchChats(user));
       if (selectedChat) {
@@ -75,8 +77,8 @@ export default function E2EESyncModal() {
                 <Lock size={24} />
               </div>
               <h3 className="text-lg font-bold tracking-tight">Sync Encrypted Messages</h3>
-              <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-sm">
-                FlashChat messages are end-to-end encrypted. Enter your Security Passphrase to restore your private decryption key on this device.
+              <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-sm leading-relaxed">
+                FlashChat messages are end-to-end encrypted. Enter your 12-word recovery phrase or security passphrase to restore your private key on this device.
               </p>
             </div>
 
@@ -94,12 +96,12 @@ export default function E2EESyncModal() {
             {/* Form */}
             <form onSubmit={handleRestore} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400">Security Passphrase</label>
+                <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400">12-Word Recovery Phrase or Passphrase</label>
                 <div className="relative">
                   <input
                     className="w-full pl-4 pr-10 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800/80 bg-slate-50 dark:bg-zinc-950 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-150 text-sm animate-pulse-once"
                     type={showPassphrase ? "text" : "password"}
-                    placeholder="Enter security passphrase"
+                    placeholder="Enter 12 words or your security passphrase"
                     value={passphrase}
                     onChange={(e) => setPassphrase(e.target.value)}
                     required

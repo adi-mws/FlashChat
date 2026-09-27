@@ -5,10 +5,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { getImageUrl } from '../../lib/imageUtils';
 import { useNotification } from '../../hooks/useNotification';
-import { Pencil, X, Check, ArrowLeft, Camera, Calendar, Mail, User, Info, ShieldCheck, MonitorSmartphone, History, CheckCircle2, ShieldAlert, Key, Lock, Eye, EyeOff, RefreshCw } from 'lucide-react';
+import { Pencil, X, Check, ArrowLeft, Camera, Calendar, Mail, User, Info, ShieldCheck, MonitorSmartphone, History, CheckCircle2, ShieldAlert, Key, Lock, Eye, EyeOff, RefreshCw, Copy, Download, Sparkles, RotateCcw } from 'lucide-react';
 import { ACCOUNT_ROUTES, SETTINGS_ROUTES } from '../../../routes/routes';
 import AppHeader from '../layout/AppHeader';
 import Loading from '../global/Loading';
+import { generate12WordRecoveryPhrase, downloadBackupFile, normalizeRecoveryPhrase } from '../../lib/e2ee';
 
 export default function Profile({ edit = false, targetUserId }) {
     const dispatch = useDispatch();
@@ -28,6 +29,10 @@ export default function Profile({ edit = false, targetUserId }) {
     const [showBackupPass, setShowBackupPass] = useState(false);
     const [backingUp, setBackingUp] = useState(false);
     const [showBackupForm, setShowBackupForm] = useState(false);
+    const [showMnemonicModal, setShowMnemonicModal] = useState(false);
+    const [generatedMnemonic, setGeneratedMnemonic] = useState(null);
+    const [copiedPhrase, setCopiedPhrase] = useState(false);
+    const [backupTab, setBackupTab] = useState('words'); // 'words' | 'custom'
 
     const isOwnProfile = edit || targetUserId === user?.id || (!targetUserId && chatId === user?.id);
 
@@ -105,19 +110,63 @@ export default function Profile({ edit = false, targetUserId }) {
 
     const handleCreateBackup = async (e) => {
         e.preventDefault();
-        if (backupPassphrase.length < 6) {
+        const clean = normalizeRecoveryPhrase(backupPassphrase);
+        if (clean.length < 6) {
             showNotification('Passphrase must be at least 6 characters', 'error');
             return;
         }
         try {
             setBackingUp(true);
-            await dispatch(backupE2EEKeys({ passphrase: backupPassphrase, user })).unwrap();
-            showNotification('E2EE private key backed up successfully!', 'success');
+            await dispatch(backupE2EEKeys({ passphrase: clean, user })).unwrap();
+            showNotification('E2EE backup key updated successfully!', 'success');
             setBackupPassphrase('');
             setShowBackupForm(false);
         } catch (err) {
             console.error('Backup failed:', err);
             showNotification(err || 'Failed to create E2EE key backup', 'error');
+        } finally {
+            setBackingUp(false);
+        }
+    };
+
+    const handleOpenMnemonicModal = () => {
+        const generated = generate12WordRecoveryPhrase();
+        setGeneratedMnemonic(generated);
+        setCopiedPhrase(false);
+        setShowMnemonicModal(true);
+    };
+
+    const handleRegeneratePhrase = () => {
+        const generated = generate12WordRecoveryPhrase();
+        setGeneratedMnemonic(generated);
+        setCopiedPhrase(false);
+    };
+
+    const handleCopyPhrase = () => {
+        if (!generatedMnemonic?.phrase) return;
+        navigator.clipboard.writeText(generatedMnemonic.phrase);
+        setCopiedPhrase(true);
+        showNotification('12-word recovery phrase copied to clipboard!', 'success');
+        setTimeout(() => setCopiedPhrase(false), 2500);
+    };
+
+    const handleDownloadPhrase = () => {
+        if (!generatedMnemonic?.phrase) return;
+        downloadBackupFile(generatedMnemonic.phrase, user?.username || profile?.username || 'User');
+        showNotification('Recovery key file downloaded', 'success');
+    };
+
+    const handleSaveMnemonicBackup = async () => {
+        if (!generatedMnemonic?.phrase) return;
+        try {
+            setBackingUp(true);
+            await dispatch(backupE2EEKeys({ passphrase: generatedMnemonic.phrase, user })).unwrap();
+            showNotification('Recovery phrase activated & backup re-encrypted!', 'success');
+            setShowMnemonicModal(false);
+            setShowBackupForm(false);
+        } catch (err) {
+            console.error('Backup failed:', err);
+            showNotification(err || 'Failed to activate recovery key', 'error');
         } finally {
             setBackingUp(false);
         }
@@ -297,10 +346,27 @@ export default function Profile({ edit = false, targetUserId }) {
                         </div>
                     )}
 
-                    {/* E2EE Backup Card */}
+                    {/* E2EE Backup & Key Recovery Card */}
                     {isOwnProfile && (
                         <div className="bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 rounded-2xl p-6 shadow-sm space-y-5">
-                            <h4 className="text-sm font-bold text-slate-800 dark:text-zinc-200 tracking-wide uppercase border-b border-slate-100 dark:border-zinc-800 pb-2">End-to-End Encryption Backup</h4>
+                            <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-3">
+                                <div>
+                                    <h4 className="text-sm font-bold text-slate-800 dark:text-zinc-200 tracking-wide uppercase">
+                                        End-to-End Encryption Backup
+                                    </h4>
+                                    <p className="text-[11px] text-slate-500 dark:text-zinc-500">
+                                        Zero-knowledge recovery to decrypt message history across logins
+                                    </p>
+                                </div>
+                                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 ${
+                                    user.encryptedPrivateKey
+                                        ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
+                                        : "bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400"
+                                }`}>
+                                    <Lock size={10} />
+                                    {user.encryptedPrivateKey ? "Active & Sealed" : "Unbacked"}
+                                </span>
+                            </div>
                             
                             {user.encryptedPrivateKey ? (
                                 <div className="space-y-4">
@@ -309,54 +375,75 @@ export default function Profile({ edit = false, targetUserId }) {
                                             <CheckCircle2 size={16} />
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-xs font-bold text-slate-800 dark:text-zinc-200">Secure backup is active</p>
+                                            <p className="text-xs font-bold text-slate-800 dark:text-zinc-200">Zero-Knowledge Backup Active</p>
                                             <p className="text-[11px] text-emerald-700/80 dark:text-emerald-400/80 leading-relaxed">
-                                                Your private E2EE key is encrypted and stored safely on the server. You can log in on secondary devices and sync your messages by entering your security passphrase.
+                                                Your private E2EE key is encrypted and stored safely on the server. If you log in on a new device, entering your 12-word recovery key restores your chat history.
                                             </p>
                                         </div>
                                     </div>
 
-                                    {/* Option to change passphrase */}
-                                    <div className="pt-2">
+                                    {/* Rotation and Update Options */}
+                                    <div className="flex items-center gap-3 flex-wrap pt-1">
                                         <button 
-                                            onClick={() => setShowBackupForm(!showBackupForm)}
-                                            className="text-xs font-semibold text-indigo-500 hover:text-indigo-600 transition cursor-pointer"
+                                            type="button"
+                                            onClick={handleOpenMnemonicModal}
+                                            className="px-3.5 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5 cursor-pointer"
                                         >
-                                            {showBackupForm ? "Hide Form" : "Change Passphrase / Update Backup"}
+                                            <RotateCcw size={13} /> Rotate Recovery Key (12 Words)
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            onClick={() => setShowBackupForm(!showBackupForm)}
+                                            className="px-3 py-2 rounded-xl border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 text-xs font-semibold transition cursor-pointer"
+                                        >
+                                            {showBackupForm ? "Hide Form" : "Custom Passphrase"}
                                         </button>
                                     </div>
                                 </div>
                             ) : (
-                                <div className="space-y-3">
+                                <div className="space-y-4">
                                     <div className="flex items-start gap-3.5 p-4 rounded-xl border border-amber-100 bg-amber-50/50 dark:border-amber-500/20 dark:bg-amber-500/5 text-amber-800 dark:text-amber-400">
                                         <div className="h-5 w-5 mt-0.5 flex-shrink-0 flex items-center justify-center rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
                                             <ShieldAlert size={16} />
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-xs font-bold text-slate-800 dark:text-zinc-200">Backup is missing</p>
+                                            <p className="text-xs font-bold text-slate-800 dark:text-zinc-200">No Recovery Backup Found</p>
                                             <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80 leading-relaxed">
-                                                If you log in on another device (such as your phone), you will not be able to decrypt past messages because your private key only exists locally in this browser.
+                                                If you log out or clear your browser cache, older messages will be unreadable on new sessions because your private key only exists in this browser.
                                             </p>
                                         </div>
                                     </div>
-                                    
-                                    <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed">
-                                        Create a secure, zero-knowledge backup by setting a security passphrase. The server will never know your passphrase or your unencrypted private key.
-                                    </p>
+
+                                    <div className="flex items-center gap-3 flex-wrap">
+                                        <button 
+                                            type="button"
+                                            onClick={handleOpenMnemonicModal}
+                                            className="px-4 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-semibold shadow-md shadow-indigo-500/15 transition flex items-center gap-2 cursor-pointer"
+                                        >
+                                            <Sparkles size={14} /> Generate 12-Word Recovery Key
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            onClick={() => setShowBackupForm(!showBackupForm)}
+                                            className="px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 text-xs font-semibold transition cursor-pointer"
+                                        >
+                                            Use Custom Passphrase
+                                        </button>
+                                    </div>
                                 </div>
                             )}
 
-                            {/* Backup Form */}
-                            {(showBackupForm || !user.encryptedPrivateKey) && (
-                                <form onSubmit={handleCreateBackup} className="space-y-4 pt-2 border-t border-slate-50 dark:border-zinc-800/40">
+                            {/* Custom Backup Form */}
+                            {showBackupForm && (
+                                <form onSubmit={handleCreateBackup} className="space-y-4 pt-3 border-t border-slate-100 dark:border-zinc-800/60 animate-fade-in">
                                     <div className="space-y-1.5">
                                         <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400 flex items-center gap-1.5">
-                                            <Key size={13} /> Set Security Passphrase
+                                            <Key size={13} /> Custom Security Passphrase
                                         </label>
                                         <div className="relative">
                                             <input
                                                 type={showBackupPass ? "text" : "password"}
-                                                placeholder="Choose a strong security passphrase"
+                                                placeholder="Enter at least 6 characters"
                                                 value={backupPassphrase}
                                                 onChange={(e) => setBackupPassphrase(e.target.value)}
                                                 className="w-full pl-4 pr-10 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800/80 bg-slate-50 dark:bg-zinc-950 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-150 text-sm"
@@ -372,9 +459,6 @@ export default function Profile({ edit = false, targetUserId }) {
                                                 {showBackupPass ? <EyeOff size={18} /> : <Eye size={18} />}
                                             </button>
                                         </div>
-                                        <p className="text-[10px] text-slate-400 dark:text-zinc-500 leading-normal">
-                                            Passphrase must be at least 6 characters. Store this securely; if lost, your backup is unrecoverable.
-                                        </p>
                                     </div>
 
                                     <button
@@ -384,10 +468,10 @@ export default function Profile({ edit = false, targetUserId }) {
                                     >
                                         {backingUp ? (
                                             <>
-                                                <RefreshCw className="animate-spin mr-2 h-4 w-4" /> Creating Backup...
+                                                <RefreshCw className="animate-spin mr-2 h-4 w-4" /> Saving Backup...
                                             </>
                                         ) : (
-                                            user.encryptedPrivateKey ? "Update Secure Backup" : "Enable Secure Backup"
+                                            user.encryptedPrivateKey ? "Update Backup Passphrase" : "Save Backup Passphrase"
                                         )}
                                     </button>
                                 </form>
@@ -411,10 +495,131 @@ export default function Profile({ edit = false, targetUserId }) {
             {showEnlargedImage && (
                 <div onClick={() => setShowEnlargedImage(false)} className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm animate-fade-in">
                     <div onClick={(e) => e.stopPropagation()} className="relative bg-white dark:bg-zinc-900 p-3 rounded-2xl max-w-lg w-full shadow-2xl animate-scale-in">
-                        <button onClick={() => setShowEnlargedImage(false)} className="absolute top-4 right-4 text-white bg-black/50 hover:bg-red-500 hover:text-white transition p-1.5 rounded-full z-10">
+                        <button onClick={() => setShowEnlargedImage(false)} className="absolute top-4 right-4 text-white bg-black/50 hover:bg-red-500 hover:text-white transition p-1.5 rounded-full z-10 cursor-pointer">
                             <X className="w-4 h-4" />
                         </button>
                         <img src={getImageUrl(profile.pfp)} alt="Enlarged avatar" className="w-full h-auto max-h-[70vh] object-contain rounded-xl" />
+                    </div>
+                </div>
+            )}
+
+            {/* 12-Word Recovery Key Modal */}
+            {showMnemonicModal && generatedMnemonic && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/80 px-4 backdrop-blur-md animate-fade-in">
+                    <div className="w-full max-w-lg bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 shadow-2xl rounded-2xl p-6 sm:p-7 space-y-5 animate-scale-in text-slate-800 dark:text-zinc-100">
+                        {/* Header */}
+                        <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="h-10 w-10 rounded-2xl bg-indigo-500/10 dark:bg-indigo-500/20 text-indigo-500 flex items-center justify-center flex-shrink-0">
+                                    <Sparkles size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-bold tracking-tight text-slate-900 dark:text-zinc-100">
+                                        12-Word Recovery Key
+                                    </h3>
+                                    <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+                                        Zero-Knowledge E2EE Key Backup
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => !backingUp && setShowMnemonicModal(false)}
+                                className="text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 p-1 rounded-lg transition cursor-pointer"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        {/* Description */}
+                        <div className="p-3 rounded-xl bg-amber-50/70 border border-amber-200/60 dark:bg-amber-500/10 dark:border-amber-500/20 text-[11px] text-amber-800 dark:text-amber-400 leading-relaxed">
+                            <span className="font-bold">Important:</span> Write down or save these 12 words in a safe place. You will need them to decrypt your message history when logging in on other browsers or devices. FlashChat cannot recover this key for you.
+                        </div>
+
+                        {/* Words Grid */}
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-slate-50 dark:bg-zinc-950/80 p-3.5 rounded-2xl border border-slate-200/70 dark:border-zinc-800/80">
+                            {generatedMnemonic.words.map((word, idx) => (
+                                <div
+                                    key={idx}
+                                    className="flex items-center gap-2 px-3 py-2 bg-white dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-800 rounded-xl shadow-xs"
+                                >
+                                    <span className="text-[10px] font-bold text-slate-400 dark:text-zinc-500 w-4 select-none">
+                                        {idx + 1}.
+                                    </span>
+                                    <span className="text-xs font-mono font-semibold text-slate-800 dark:text-zinc-200 tracking-wide">
+                                        {word}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Action buttons (Copy, Download, Regenerate) */}
+                        <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-100 dark:border-zinc-800/80">
+                            <div className="flex items-center gap-2">
+                                <button
+                                    type="button"
+                                    onClick={handleCopyPhrase}
+                                    className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 text-xs font-medium transition flex items-center gap-1.5 cursor-pointer"
+                                >
+                                    {copiedPhrase ? (
+                                        <>
+                                            <Check size={13} className="text-emerald-500" />
+                                            <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Copied!</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Copy size={13} />
+                                            <span>Copy Phrase</span>
+                                        </>
+                                    )}
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleDownloadPhrase}
+                                    className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-zinc-300 text-xs font-medium transition flex items-center gap-1.5 cursor-pointer"
+                                >
+                                    <Download size={13} />
+                                    <span>Download .txt</span>
+                                </button>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={handleRegeneratePhrase}
+                                title="Regenerate 12 Words"
+                                className="p-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-500 dark:text-zinc-400 transition cursor-pointer"
+                            >
+                                <RefreshCw size={14} />
+                            </button>
+                        </div>
+
+                        {/* Footer confirmation */}
+                        <div className="flex items-center gap-3 pt-2">
+                            <button
+                                type="button"
+                                disabled={backingUp}
+                                onClick={() => setShowMnemonicModal(false)}
+                                className="w-1/3 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-800 text-xs font-semibold transition cursor-pointer"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                disabled={backingUp}
+                                onClick={handleSaveMnemonicBackup}
+                                className="w-2/3 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-semibold shadow-md shadow-indigo-500/15 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                            >
+                                {backingUp ? (
+                                    <>
+                                        <RefreshCw className="animate-spin h-3.5 w-3.5" />
+                                        <span>Sealing Backup...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Lock size={13} />
+                                        <span>Activate & Seal Backup</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

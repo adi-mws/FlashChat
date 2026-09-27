@@ -1,0 +1,118 @@
+import { useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from "react-redux";
+import {
+  selectChats,
+  selectSelectedChat,
+  selectOnlineUsers,
+  selectMessages,
+  selectSendingMessages,
+  selectLoadingMessages,
+  setSelectedChat,
+  fetchMessages,
+  selectDraft,
+  setActiveMessage,
+  setActiveAttachements,
+} from "../../../../redux/slices/chatsSlice";
+import { selectUser } from "../../../../redux/slices/authSlice";
+import { socket } from "../../../../lib/socket";
+
+/**
+ * useConversation
+ * Coordinates chat room participation, socket join/seen events,
+ * message feed, draft hydration, and auto-scrolling.
+ */
+export default function useConversation(chatId) {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+
+  const chats = useSelector(selectChats);
+  const selectedChat = useSelector(selectSelectedChat);
+  const onlineUsers = useSelector(selectOnlineUsers);
+  const messages = useSelector(selectMessages);
+  const sendingMessages = useSelector(selectSendingMessages);
+  const loadingMessages = useSelector(selectLoadingMessages);
+  const user = useSelector(selectUser);
+
+  const messagesEndRef = useRef(null);
+  const isLoadingDraft = useRef(false);
+
+  const chat = chats.find((c) => c._id === chatId);
+  const allMessages = [...messages, ...sendingMessages];
+
+  const scrollToBottom = () => {
+    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+  };
+
+  // Join chat room on socket
+  useEffect(() => {
+    if (!chatId || chats.length === 0 || !user?.id) return;
+    if (!chat) return;
+
+    dispatch(setSelectedChat(chatId));
+
+    socket.emit("joinChat", {
+      chatId,
+      userId: user.id,
+    });
+  }, [chatId, chats, user?.id, chat, dispatch]);
+
+  // Fetch messages and emit seen
+  useEffect(() => {
+    if (!chatId || !user) return;
+
+    dispatch(fetchMessages({ chatId, user })).then((action) => {
+      if (action.meta.requestStatus === "fulfilled") {
+        const rawMessages = action.payload.rawMessages;
+        if (rawMessages && rawMessages.length > 0) {
+          rawMessages
+            .filter((msg) => !(msg.readBy || []).includes(user.id))
+            .forEach((msg) => {
+              socket.emit("seenMessage", {
+                messageId: msg._id,
+                chatId,
+                senderId: msg.sender._id,
+                userId: user.id,
+              });
+            });
+        }
+      }
+    });
+  }, [chatId, user, dispatch]);
+
+  // Load drafts for active chat
+  const draft = useSelector((state) => selectDraft(state, chatId));
+  useEffect(() => {
+    if (!chatId) return;
+
+    isLoadingDraft.current = true;
+    dispatch(setActiveMessage(draft?.message || ""));
+    dispatch(setActiveAttachements(draft?.attachments || []));
+
+    setTimeout(() => {
+      isLoadingDraft.current = false;
+    }, 0);
+  }, [chatId, dispatch]);
+
+  // Auto-scroll on new messages
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, sendingMessages]);
+
+  return {
+    chat,
+    chatId,
+    chats,
+    selectedChat,
+    onlineUsers,
+    user,
+    messages,
+    sendingMessages,
+    allMessages,
+    loadingMessages,
+    messagesEndRef,
+    scrollToBottom,
+    navigate,
+    dispatch,
+  };
+}

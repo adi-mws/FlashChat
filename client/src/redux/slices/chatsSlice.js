@@ -17,7 +17,7 @@ export const fetchChats = createAsyncThunk(
         (res.data.chats || []).map(async (chat) => {
           if (chat.lastMessage?.encryption?.isEncrypted) {
             try {
-              const decryptedContent = await decryptMessage(chat.lastMessage, user.id, user.username);
+              const decryptedContent = await decryptMessage(chat.lastMessage, user.sessionId, user.id);
               return {
                 ...chat,
                 lastMessage: { ...chat.lastMessage, content: decryptedContent },
@@ -49,7 +49,7 @@ export const fetchMessages = createAsyncThunk(
         (data.messages || []).map(async (msg) => {
           if (msg.encryption?.isEncrypted) {
             try {
-              const decryptedContent = await decryptMessage(msg, user.id, user.username);
+              const decryptedContent = await decryptMessage(msg, user.sessionId, user.id);
               return { ...msg, content: decryptedContent };
             } catch (err) {
               console.error('Decryption failed for historical msg:', err);
