@@ -41,7 +41,7 @@ export default function useMessageSender({ chatId, chat, user }) {
   };
 
   const getReceiverId = () => {
-    return chat?.participant?._id || null;
+    return chat?.participant?._id || chat?.participants?.find((p) => (p?._id || p)?.toString() !== user?.id?.toString())?._id || null;
   };
 
   const handleSendMessage = async () => {

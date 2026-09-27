@@ -8,6 +8,7 @@ import { Users, Trash } from "lucide-react";
 export default function ChatOptionsMenu({
   show = false,
   isGroup = false,
+  isGroupAdmin = false,
   onClose,
   onViewInfo,
   onClearChat,
@@ -18,7 +19,7 @@ export default function ChatOptionsMenu({
 
   return (
     <div
-      className="absolute right-4 top-[68px] w-48 bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800 shadow-xl rounded-xl z-50 py-1.5 animate-scale-in"
+      className="absolute right-4 top-[68px] w-52 bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800 shadow-xl rounded-xl z-50 py-1.5 animate-scale-in"
       onClick={(e) => e.stopPropagation()}
     >
       <button
@@ -32,7 +33,8 @@ export default function ChatOptionsMenu({
         <Users size={14} /> {isGroup ? "Group Info" : "Contact Info"}
       </button>
 
-      {!isGroup && onClearChat && (
+      {/* Clear Chat: allowed for direct chats, or for groups ONLY IF user is a group admin */}
+      {((!isGroup) || (isGroup && isGroupAdmin)) && onClearChat && (
         <button
           type="button"
           onClick={() => {
@@ -41,7 +43,8 @@ export default function ChatOptionsMenu({
           }}
           className="w-full text-left px-4 py-2.5 text-xs text-slate-700 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 flex items-center gap-2.5 transition border-t border-slate-100 dark:border-zinc-800/80 cursor-pointer"
         >
-          <Trash size={14} /> Clear Chat
+          <Trash size={14} className={isGroup ? "text-amber-500" : ""} />
+          <span>{isGroup ? "Clear All Group Messages" : "Clear Chat"}</span>
         </button>
       )}
 

@@ -1,6 +1,7 @@
 import cookie from 'cookie'; 
 import jwt from 'jsonwebtoken'
 import Session from '../models/session.js';
+import User from '../models/user.js';
 
 const authenticateSocket = async (socket, next) => {
   try {
@@ -17,6 +18,12 @@ const authenticateSocket = async (socket, next) => {
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (!decoded.sessionId) throw new Error("No session");
+
+    // Check if account is deactivated
+    const user = await User.findById(decoded.id).select('isDeactivated role');
+    if (!user || user.isDeactivated) {
+      throw new Error("Account deactivated or not found");
+    }
 
     const sessionQuery = {
       user: decoded.id,
@@ -35,7 +42,10 @@ const authenticateSocket = async (socket, next) => {
 
     if (!session) throw new Error("Invalid session");
 
-    socket.user = decoded; // Attached the user to the socket
+    socket.user = {
+      ...decoded,
+      role: user.role || decoded.role || 'user'
+    };
     next();
   } catch (err) {
     console.log("Socket auth error:", err.message);

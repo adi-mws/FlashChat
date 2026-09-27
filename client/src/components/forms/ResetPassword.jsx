@@ -2,7 +2,7 @@ import React from "react";
 import { useForm } from "react-hook-form";
 import axios from "axios";
 import { useNotification } from "../../hooks/useNotification";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import { MARKETING_ROUTES } from "../../../routes/routes";
 
 export default function ResetPassword() {

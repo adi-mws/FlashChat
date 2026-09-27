@@ -9,6 +9,7 @@ import connectDB from './lib/connectDb.js';
 import authRoutes from './routes/authRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import adminRoutes from './routes/adminRoutes.js';
 import { initSocket } from './socket/index.js';
 
 dotenv.config();
@@ -35,6 +36,7 @@ connectDB();
 app.use('/api/auth', authRoutes);
 app.use('/api/chats', chatRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/admin', adminRoutes);
 
 
 initSocket(server);

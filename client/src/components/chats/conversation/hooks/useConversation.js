@@ -44,18 +44,29 @@ export default function useConversation(chatId) {
     setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
   };
 
+  // Set selected chat immediately upon mount / chatId change
+  useEffect(() => {
+    if (!chatId) return;
+    dispatch(setSelectedChat(chatId));
+
+    return () => {
+      dispatch(setSelectedChat(null));
+    };
+  }, [chatId, dispatch]);
+
   // Join chat room on socket
   useEffect(() => {
-    if (!chatId || chats.length === 0 || !user?.id) return;
-    if (!chat) return;
-
-    dispatch(setSelectedChat(chatId));
+    if (!chatId || !user?.id) return;
 
     socket.emit("joinChat", {
       chatId,
       userId: user.id,
     });
-  }, [chatId, chats, user?.id, chat, dispatch]);
+
+    return () => {
+      socket.emit("leaveChat", { chatId });
+    };
+  }, [chatId, user?.id]);
 
   // Fetch messages and emit seen
   useEffect(() => {

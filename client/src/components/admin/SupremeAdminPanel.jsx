@@ -1,0 +1,1149 @@
+import React, { useState, useEffect, useMemo } from 'react';
+import axios from 'axios';
+import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { selectUser, setUser, updateUser, logoutUser } from '../../redux/slices/authSlice';
+import { useNotification } from '../../hooks/useNotification';
+import { CHAT_ROUTES } from '../../../routes/routes';
+import { getImageUrl } from '../../lib/imageUtils';
+import {
+  ShieldCheck,
+  ShieldAlert,
+  Users,
+  MessageSquare,
+  HardDrive,
+  Activity,
+  Radio,
+  RefreshCw,
+  Search,
+  Filter,
+  Ban,
+  CheckCircle2,
+  UserCheck,
+  Key,
+  Lock,
+  ArrowUpRight,
+  BarChart3,
+  Database,
+  FileText,
+  Image as ImageIcon,
+  Sparkles,
+  ArrowLeft,
+  Calendar,
+  AlertTriangle,
+  X,
+  SlidersHorizontal,
+  ChevronRight,
+  MonitorSmartphone,
+  Trash2,
+  Flame,
+  FolderX,
+  UserX,
+  LogOut,
+} from 'lucide-react';
+
+export default function SupremeAdminPanel() {
+  const user = useSelector(selectUser);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { showNotification } = useNotification();
+
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [metrics, setMetrics] = useState(null);
+  const [usersList, setUsersList] = useState([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all' | 'active' | 'deactivated'
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ total: 0, totalPages: 1 });
+
+  // Moderation action modal states
+  const [actionUser, setActionUser] = useState(null);
+  const [deactivateReason, setDeactivateReason] = useState('Violation of Community Guidelines');
+  const [actionLoading, setActionLoading] = useState(false);
+
+  // Danger / Delete Zones modal states
+  const [dangerModal, setDangerModal] = useState(null);
+  const [confirmInput, setConfirmInput] = useState('');
+  const [dangerLoading, setDangerLoading] = useState(false);
+
+  // Direct Admin Credentials Login states
+  const [loginUsername, setLoginUsername] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loggingIn, setLoggingIn] = useState(false);
+
+  const isAdmin = user?.role === 'admin';
+
+  // Fetch telemetry & metrics
+  const fetchMetrics = async () => {
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/admin/metrics`, {
+        withCredentials: true,
+      });
+      if (res.data.success) {
+        setMetrics(res.data.metrics);
+      }
+    } catch (err) {
+      console.error('Failed to load metrics:', err);
+    }
+  };
+
+  // Fetch user directory
+  const fetchUsers = async () => {
+    try {
+      const res = await axios.get(`${import.meta.env.VITE_API_URL}/admin/users`, {
+        params: {
+          search: searchQuery,
+          status: statusFilter,
+          page,
+          limit: 30,
+        },
+        withCredentials: true,
+      });
+      if (res.data.success) {
+        setUsersList(res.data.users);
+        setPagination(res.data.pagination);
+      }
+    } catch (err) {
+      console.error('Failed to load users:', err);
+    }
+  };
+
+  const loadAll = async () => {
+    setLoading(true);
+    await Promise.all([fetchMetrics(), fetchUsers()]);
+    setLoading(false);
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([fetchMetrics(), fetchUsers()]);
+    setRefreshing(false);
+    showNotification('System telemetry updated', 'success');
+  };
+
+  useEffect(() => {
+    if (isAdmin) {
+      loadAll();
+    } else {
+      setLoading(false);
+    }
+  }, [isAdmin, statusFilter, page]);
+
+  // Handle Search Debounce
+  useEffect(() => {
+    if (!isAdmin) return;
+    const timer = setTimeout(() => {
+      fetchUsers();
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Toggle user activation / deactivation
+  const handleConfirmToggleStatus = async () => {
+    if (!actionUser) return;
+    try {
+      setActionLoading(true);
+      const isDeactivating = !actionUser.isDeactivated;
+      const res = await axios.put(
+        `${import.meta.env.VITE_API_URL}/admin/users/${actionUser._id}/toggle-status`,
+        {
+          isDeactivated: isDeactivating,
+          reason: isDeactivating ? deactivateReason : '',
+        },
+        { withCredentials: true }
+      );
+
+      if (res.data.success) {
+        showNotification(res.data.message, 'success');
+        // Update list locally
+        setUsersList((prev) =>
+          prev.map((u) =>
+            u._id === actionUser._id
+              ? {
+                  ...u,
+                  isDeactivated: isDeactivating,
+                  deactivatedReason: isDeactivating ? deactivateReason : '',
+                  activeSessions: isDeactivating ? 0 : u.activeSessions,
+                }
+              : u
+          )
+        );
+        // Refresh metrics to reflect new status
+        fetchMetrics();
+        setActionUser(null);
+      }
+    } catch (err) {
+      console.error(err);
+      showNotification(err.response?.data?.message || 'Failed to update user status', 'error');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Toggle user role (promote/demote admin)
+  const handleToggleRole = async (targetUser) => {
+    const newRole = targetUser.role === 'admin' ? 'user' : 'admin';
+    const confirmMsg =
+      newRole === 'admin'
+        ? `Grant Supreme Admin privileges to @${targetUser.username}?`
+        : `Demote @${targetUser.username} to standard user?`;
+
+    if (!window.confirm(confirmMsg)) return;
+
+    try {
+      const res = await axios.put(
+        `${import.meta.env.VITE_API_URL}/admin/users/${targetUser._id}/role`,
+        { role: newRole },
+        { withCredentials: true }
+      );
+      if (res.data.success) {
+        showNotification(res.data.message, 'success');
+        setUsersList((prev) =>
+          prev.map((u) => (u._id === targetUser._id ? { ...u, role: newRole } : u))
+        );
+      }
+    } catch (err) {
+      showNotification(err.response?.data?.message || 'Failed to update user role', 'error');
+    }
+  };
+
+  // Danger Zone / Delete Zones Action Execution
+  const handleExecuteDangerAction = async () => {
+    if (!dangerModal) return;
+    if (confirmInput.trim() !== dangerModal.confirmPhrase) {
+      showNotification(`Confirmation phrase must match: "${dangerModal.confirmPhrase}" exactly.`, 'error');
+      return;
+    }
+
+    try {
+      setDangerLoading(true);
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_URL}${dangerModal.endpoint}`,
+        { confirmPhrase: dangerModal.confirmPhrase },
+        { withCredentials: true }
+      );
+
+      if (res.data.success) {
+        showNotification(res.data.message, 'success');
+        setDangerModal(null);
+        setConfirmInput('');
+        // Refresh telemetry and users
+        await Promise.all([fetchMetrics(), fetchUsers()]);
+      }
+    } catch (err) {
+      console.error('Danger action failed:', err);
+      showNotification(err.response?.data?.message || 'Purge action failed', 'error');
+    } finally {
+      setDangerLoading(false);
+    }
+  };
+
+  // Vice versa: If a non-admin user navigates to /flsh-ad-pnl, redirect them immediately to user chat
+  useEffect(() => {
+    if (user && user.role !== 'admin') {
+      showNotification('Access restricted: Admins only. Redirecting to user chat...', 'error');
+      navigate(CHAT_ROUTES.root, { replace: true });
+    }
+  }, [user, navigate]);
+
+  // Direct Administrator Credentials Login
+  const handleAdminDirectLogin = async (e) => {
+    e.preventDefault();
+    try {
+      setLoggingIn(true);
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_URL}/auth/login`,
+        { username: loginUsername.trim(), password: loginPassword },
+        { withCredentials: true }
+      );
+
+      const loggedUser = res.data.user;
+      dispatch(setUser(loggedUser));
+
+      if (loggedUser.role !== 'admin') {
+        showNotification('Standard user account authenticated. Redirecting to user chat...', 'info');
+        navigate(CHAT_ROUTES.root, { replace: true });
+        return;
+      }
+
+      showNotification('Supreme Admin Authenticated', 'success');
+      loadAll();
+    } catch (err) {
+      console.error(err);
+      showNotification(err.response?.data?.message || 'Authentication failed. Please verify credentials.', 'error');
+    } finally {
+      setLoggingIn(false);
+    }
+  };
+
+  // If user is not authenticated at all
+  if (!user) {
+    return (
+      <div className="min-h-screen w-full bg-zinc-950 flex flex-col items-center justify-center p-4 sm:p-6 text-zinc-100 selection:bg-indigo-500 selection:text-white">
+        <div className="max-w-md w-full p-6 sm:p-8 rounded-3xl bg-zinc-900/95 border border-zinc-800 shadow-2xl space-y-6 animate-scale-in backdrop-blur-xl">
+          <div className="text-center space-y-2">
+            <div className="h-14 w-14 mx-auto rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center shadow-lg shadow-indigo-500/10 mb-1">
+              <ShieldCheck size={28} />
+            </div>
+            <h2 className="text-xl font-bold tracking-tight text-white">Supreme Admin Console</h2>
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              Route <span className="font-mono text-indigo-400 font-semibold">/flsh-ad-pnl</span> is restricted to verified system administrators.
+            </p>
+          </div>
+
+          <form onSubmit={handleAdminDirectLogin} className="space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-zinc-400">Admin Username or Email</label>
+              <input
+                type="text"
+                placeholder="Enter administrator username or email"
+                value={loginUsername}
+                onChange={(e) => setLoginUsername(e.target.value)}
+                required
+                className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-600 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition"
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-zinc-400">Admin Password</label>
+              <input
+                type="password"
+                placeholder="Enter administrator password"
+                value={loginPassword}
+                onChange={(e) => setLoginPassword(e.target.value)}
+                required
+                className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-600 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loggingIn || !loginUsername || !loginPassword}
+              className="w-full py-3 bg-indigo-500 hover:bg-indigo-600 font-semibold rounded-xl text-sm transition shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-1"
+            >
+              {loggingIn ? (
+                <>
+                  <RefreshCw className="animate-spin h-4 w-4" />
+                  <span>Verifying Credentials...</span>
+                </>
+              ) : (
+                <>
+                  <Lock size={16} />
+                  <span>Sign In to Supreme Console</span>
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="text-center pt-2 border-t border-zinc-800/80">
+            <button
+              type="button"
+              onClick={() => navigate('/')}
+              className="text-xs text-zinc-500 hover:text-zinc-300 transition cursor-pointer"
+            >
+              ← Back to FlashChat
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // If user is logged in but does not have the admin role
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen w-full bg-zinc-950 flex flex-col items-center justify-center p-6 text-zinc-100">
+        <div className="max-w-lg w-full p-8 rounded-3xl bg-zinc-900/90 border border-zinc-800 shadow-2xl text-center space-y-6">
+          <div className="h-16 w-16 mx-auto rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
+            <ShieldAlert size={34} />
+          </div>
+          <div className="space-y-1.5">
+            <h2 className="text-xl font-bold tracking-tight">Access Restricted</h2>
+            <p className="text-xs text-zinc-400 leading-relaxed">
+              Logged in as <strong className="text-zinc-200">@{user.username}</strong> ({user.name}). This account does not possess Supreme Admin privileges.
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-3 pt-2">
+            <button
+              onClick={() => dispatch(logoutUser())}
+              className="w-full py-3 bg-indigo-500 hover:bg-indigo-600 font-semibold rounded-xl text-sm transition shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 cursor-pointer"
+            >
+              <Lock size={16} /> Sign In with Admin Account
+            </button>
+            <button
+              onClick={() => navigate('/')}
+              className="w-full py-2.5 rounded-xl border border-zinc-800 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/60 text-xs font-semibold transition cursor-pointer"
+            >
+              Back to FlashChat
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen w-full bg-zinc-950 text-zinc-100 flex flex-col overflow-x-hidden selection:bg-indigo-500 selection:text-white">
+      {/* Supreme Navigation Bar */}
+      <header className="sticky top-0 z-40 w-full bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-800/80 px-4 sm:px-8 py-3.5 flex items-center justify-between">
+        <div className="flex items-center gap-3.5">
+          <button
+            onClick={() => dispatch(logoutUser())}
+            className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-rose-400 hover:border-rose-900/50 hover:bg-rose-500/10 transition cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+            title="Sign out of Supreme Admin"
+          >
+            <LogOut size={15} />
+            <span className="hidden sm:inline">Sign Out</span>
+          </button>
+          <div className="flex items-center gap-2.5">
+            <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-400 p-[1px] flex items-center justify-center shadow-lg shadow-indigo-500/20">
+              <div className="w-full h-full bg-zinc-950 rounded-[11px] flex items-center justify-center">
+                <Sparkles size={16} className="text-cyan-400" />
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
+                  FlashChat Supreme Console
+                </h1>
+                <span className="text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                  /flsh-ad-pnl
+                </span>
+              </div>
+              <p className="text-[11px] text-zinc-400">Real-time Telemetry & Global Moderation Control</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3">
+          {/* Live indicator beacon */}
+          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800/80 text-xs">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span className="text-[11px] font-mono text-zinc-400">
+              {metrics?.users?.liveOnline ?? 0} Sockets Live
+            </span>
+          </div>
+
+          <button
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-100 hover:bg-zinc-800 transition cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+          >
+            <RefreshCw size={14} className={refreshing ? 'animate-spin text-indigo-400' : ''} />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Main Command Dashboard */}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-8 space-y-8 animate-fade-in">
+        {/* KPI Command Center */}
+        <section className="space-y-3">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
+              <Activity size={14} className="text-indigo-400" /> Platform Metrics & Footprint
+            </h2>
+            <span className="text-[11px] text-zinc-500 font-mono">Live Sync</span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Card 1: Users */}
+            <div className="p-5 rounded-2xl bg-zinc-900/70 border border-zinc-800/80 hover:border-zinc-700/80 transition-all shadow-sm space-y-3 relative overflow-hidden group">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-zinc-400">Total Registered Users</span>
+                <div className="h-8 w-8 rounded-xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center">
+                  <Users size={16} />
+                </div>
+              </div>
+              <div>
+                <p className="text-3xl font-extrabold tracking-tight text-white font-mono">
+                  {metrics?.users?.total?.toLocaleString() ?? '—'}
+                </p>
+                <div className="flex items-center gap-2 mt-2 text-[11px]">
+                  <span className="text-emerald-400 font-semibold flex items-center gap-1">
+                    <CheckCircle2 size={12} /> {metrics?.users?.active ?? 0} Active
+                  </span>
+                  <span className="text-zinc-600">•</span>
+                  <span className="text-rose-400 font-semibold flex items-center gap-1">
+                    <Ban size={12} /> {metrics?.users?.deactivated ?? 0} Banned
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 2: Messages Volume */}
+            <div className="p-5 rounded-2xl bg-zinc-900/70 border border-zinc-800/80 hover:border-zinc-700/80 transition-all shadow-sm space-y-3 relative overflow-hidden group">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-zinc-400">Total Chat Messages</span>
+                <div className="h-8 w-8 rounded-xl bg-cyan-500/10 text-cyan-400 flex items-center justify-center">
+                  <MessageSquare size={16} />
+                </div>
+              </div>
+              <div>
+                <p className="text-3xl font-extrabold tracking-tight text-white font-mono">
+                  {metrics?.messages?.total?.toLocaleString() ?? '—'}
+                </p>
+                <div className="flex items-center gap-2 mt-2 text-[11px] text-zinc-400">
+                  <span>{metrics?.messages?.text?.toLocaleString() ?? 0} Text</span>
+                  <span className="text-zinc-600">•</span>
+                  <span className="text-cyan-400 font-medium">
+                    {metrics?.messages?.mediaTotal?.toLocaleString() ?? 0} Media Attachments
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 3: Storage Size */}
+            <div className="p-5 rounded-2xl bg-zinc-900/70 border border-zinc-800/80 hover:border-zinc-700/80 transition-all shadow-sm space-y-3 relative overflow-hidden group">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-zinc-400">Disk Storage Used</span>
+                <div className="h-8 w-8 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
+                  <HardDrive size={16} />
+                </div>
+              </div>
+              <div>
+                <p className="text-3xl font-extrabold tracking-tight text-white font-mono">
+                  {metrics?.storage?.formattedUploadSize ?? '0 B'}
+                </p>
+                <div className="flex items-center gap-2 mt-2 text-[11px] text-zinc-400">
+                  <span>{metrics?.storage?.totalUploadsCount ?? 0} Uploaded Files</span>
+                  <span className="text-zinc-600">•</span>
+                  <span className="text-purple-400 font-medium">
+                    ~{metrics?.storage?.formattedTextSize ?? '0 B'} Text Payload
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 4: Sessions & Cryptography */}
+            <div className="p-5 rounded-2xl bg-zinc-900/70 border border-zinc-800/80 hover:border-zinc-700/80 transition-all shadow-sm space-y-3 relative overflow-hidden group">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold text-zinc-400">Active E2EE Sessions</span>
+                <div className="h-8 w-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                  <MonitorSmartphone size={16} />
+                </div>
+              </div>
+              <div>
+                <p className="text-3xl font-extrabold tracking-tight text-white font-mono">
+                  {metrics?.network?.activeSessions?.toLocaleString() ?? '—'}
+                </p>
+                <div className="flex items-center gap-2 mt-2 text-[11px] text-zinc-400">
+                  <span>{metrics?.network?.directChats ?? 0} Direct</span>
+                  <span className="text-zinc-600">•</span>
+                  <span className="text-emerald-400 font-medium">
+                    {metrics?.network?.groupChats ?? 0} Groups
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* 7-Day Activity Chart Visualization */}
+        <section className="p-6 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
+                <BarChart3 size={16} className="text-indigo-400" /> 7-Day Traffic & Messaging Velocity
+              </h3>
+              <p className="text-xs text-zinc-500">Daily message dispatch volume across the network</p>
+            </div>
+            <span className="text-[11px] font-mono text-zinc-400 bg-zinc-800/60 px-2.5 py-1 rounded-lg">
+              Rolling 7 Days
+            </span>
+          </div>
+
+          <div className="pt-4 pb-2">
+            <div className="h-44 flex items-end gap-3 sm:gap-6 w-full justify-between">
+              {metrics?.trafficTimeline?.map((item, idx) => {
+                const max = Math.max(...metrics.trafficTimeline.map((t) => t.total), 1);
+                const heightPct = Math.max(8, Math.round((item.total / max) * 100));
+
+                return (
+                  <div key={idx} className="flex-1 flex flex-col items-center gap-2 group h-full justify-end">
+                    <div className="text-[10px] font-mono text-zinc-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {item.total} msg
+                    </div>
+                    <div className="w-full max-w-[48px] bg-zinc-800 rounded-t-xl overflow-hidden flex flex-col justify-end p-0.5 h-full">
+                      <div
+                        style={{ height: `${heightPct}%` }}
+                        className="w-full bg-gradient-to-t from-indigo-600 to-cyan-400 rounded-t-lg transition-all duration-500 shadow-lg shadow-indigo-500/20 group-hover:from-indigo-500 group-hover:to-cyan-300"
+                      />
+                    </div>
+                    <span className="text-[10px] font-mono text-zinc-500 truncate w-full text-center">
+                      {item.displayDate.split(',')[0]}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* User Directory & Supreme Moderation Center */}
+        <section className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
+                <Users size={16} className="text-cyan-400" /> User Directory & Account Moderation
+              </h3>
+              <p className="text-xs text-zinc-500">
+                Instantly activate, deactivate, or manage roles for any user
+              </p>
+            </div>
+
+            {/* Filter Pills */}
+            <div className="flex items-center gap-2 bg-zinc-900 p-1 rounded-xl border border-zinc-800 self-start sm:self-auto">
+              <button
+                onClick={() => setStatusFilter('all')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                  statusFilter === 'all' ? 'bg-zinc-800 text-white shadow-xs' : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                All Users
+              </button>
+              <button
+                onClick={() => setStatusFilter('active')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                  statusFilter === 'active' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                Active
+              </button>
+              <button
+                onClick={() => setStatusFilter('deactivated')}
+                className={`px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer ${
+                  statusFilter === 'deactivated' ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30' : 'text-zinc-400 hover:text-zinc-200'
+                }`}
+              >
+                Deactivated / Banned
+              </button>
+            </div>
+          </div>
+
+          {/* Search bar */}
+          <div className="relative">
+            <Search size={16} className="absolute left-4 top-3 text-zinc-500" />
+            <input
+              type="text"
+              placeholder="Search user by display name, @username, or email..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-11 pr-4 py-2.5 rounded-xl border border-zinc-800 bg-zinc-900/80 text-zinc-100 placeholder-zinc-500 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition"
+            />
+          </div>
+
+          {/* Users Table */}
+          <div className="rounded-2xl border border-zinc-800/80 bg-zinc-900/40 overflow-hidden shadow-sm">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-zinc-800/80 bg-zinc-900/80 text-[11px] uppercase font-bold text-zinc-400 tracking-wider">
+                    <th className="py-3 px-4">User</th>
+                    <th className="py-3 px-4">Email</th>
+                    <th className="py-3 px-4">Status</th>
+                    <th className="py-3 px-4">Activity</th>
+                    <th className="py-3 px-4">Joined</th>
+                    <th className="py-3 px-4 text-right">Moderation Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/60 text-xs">
+                  {usersList.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="py-12 text-center text-zinc-500">
+                        No users found matching your filters.
+                      </td>
+                    </tr>
+                  ) : (
+                    usersList.map((u) => {
+                      const isSelf = u._id === user.id;
+
+                      return (
+                        <tr
+                          key={u._id}
+                          className="hover:bg-zinc-800/30 transition-colors"
+                        >
+                          {/* User Identity */}
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-3">
+                              <div className="relative">
+                                <img
+                                  src={getImageUrl(u.pfp)}
+                                  alt={u.name}
+                                  className="h-9 w-9 rounded-xl object-cover border border-zinc-800 bg-zinc-800"
+                                />
+                                {u.isOnline && (
+                                  <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-emerald-500 border-2 border-zinc-900" />
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-semibold text-zinc-100 truncate">{u.name}</span>
+                                  {u.role === 'admin' && (
+                                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                                      Admin
+                                    </span>
+                                  )}
+                                  {isSelf && (
+                                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400">
+                                      You
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-zinc-400 truncate">@{u.username}</p>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Email */}
+                          <td className="py-3.5 px-4 font-mono text-[11px] text-zinc-400 truncate max-w-[180px]">
+                            {u.email}
+                          </td>
+
+                          {/* Status */}
+                          <td className="py-3.5 px-4">
+                            {u.isDeactivated ? (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-500/15 text-rose-400 border border-rose-500/30">
+                                <Ban size={10} /> Deactivated
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                <CheckCircle2 size={10} /> Active
+                              </span>
+                            )}
+                          </td>
+
+                          {/* Activity: Messages and Sessions */}
+                          <td className="py-3.5 px-4 text-zinc-400">
+                            <div className="space-y-0.5 text-[11px]">
+                              <div>
+                                <strong className="text-zinc-200">{u.messageCount || 0}</strong> messages
+                              </div>
+                              <div className="text-zinc-500">
+                                {u.activeSessions || 0} active device(s)
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Joined */}
+                          <td className="py-3.5 px-4 text-[11px] text-zinc-500 whitespace-nowrap">
+                            {new Date(u.createdAt).toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}
+                          </td>
+
+                          {/* Moderation Actions */}
+                          <td className="py-3.5 px-4 text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {/* Toggle Admin Role */}
+                              <button
+                                type="button"
+                                onClick={() => handleToggleRole(u)}
+                                disabled={isSelf}
+                                className={`px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition cursor-pointer disabled:opacity-40 ${
+                                  u.role === 'admin'
+                                    ? 'border-zinc-800 text-zinc-400 hover:bg-zinc-800'
+                                    : 'border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10'
+                                }`}
+                              >
+                                {u.role === 'admin' ? 'Revoke Admin' : 'Make Admin'}
+                              </button>
+
+                              {/* Activate / Deactivate Toggle */}
+                              {u.isDeactivated ? (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActionUser(u);
+                                    handleConfirmToggleStatus();
+                                  }}
+                                  disabled={actionLoading}
+                                  className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/40 text-[11px] font-semibold transition flex items-center gap-1 cursor-pointer"
+                                >
+                                  <UserCheck size={12} /> Activate
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  disabled={isSelf}
+                                  onClick={() => setActionUser(u)}
+                                  className="px-2.5 py-1 rounded-lg bg-rose-500/10 text-rose-400 hover:bg-rose-500/20 border border-rose-500/30 text-[11px] font-semibold transition flex items-center gap-1 cursor-pointer disabled:opacity-40"
+                                >
+                                  <Ban size={12} /> Deactivate
+                                </button>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        {/* Supreme Danger / Delete Zones */}
+        <section className="space-y-4 pt-6 border-t border-zinc-800/80">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-bold text-rose-400 flex items-center gap-2">
+                  <Flame size={16} className="text-rose-500 animate-pulse" /> Supreme Delete Zones & System Reset
+                </h3>
+                <span className="px-2 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/30 text-rose-400 font-mono text-[10px] uppercase font-bold tracking-wider">
+                  Danger Area
+                </span>
+              </div>
+              <p className="text-xs text-zinc-500 mt-1">
+                Permanent system purge actions to clear messages, purge uploaded files, and prune non-admin users to prepare FlashChat for new releases.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Zone 1: Clear All Messages */}
+            <div className="p-5 rounded-2xl bg-zinc-900/60 border border-rose-900/30 hover:border-rose-700/50 transition-all flex flex-col justify-between space-y-4 group">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="h-9 w-9 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center">
+                    <Trash2 size={18} />
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-zinc-800/80 text-zinc-400 border border-zinc-700/50">
+                    Database Wipe
+                  </span>
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-zinc-100 group-hover:text-rose-300 transition">
+                    Clear All Chat Messages
+                  </h4>
+                  <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                    Completely wipes all direct and group chat messages from the database. Resets last message previews.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-zinc-800/60 flex items-center justify-between">
+                <span className="text-[11px] font-mono text-zinc-500">
+                  {metrics?.messages?.total?.toLocaleString() ?? 0} messages stored
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDangerModal({
+                      type: 'messages',
+                      title: 'Clear All Chat Messages',
+                      badge: 'Database Purge',
+                      confirmPhrase: 'CLEAR_ALL_MESSAGES',
+                      endpoint: '/admin/danger/clear-messages',
+                      buttonText: 'Wipe All Messages',
+                      description: 'This will irreversibly delete every message across all 1-on-1 and group chats in FlashChat.',
+                      warning: 'All messages, text, and chat history will be immediately deleted from the database. Active chat lists will be reset to empty.',
+                    });
+                    setConfirmInput('');
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <Trash2 size={13} /> Clear Messages
+                </button>
+              </div>
+            </div>
+
+            {/* Zone 2: Clear All Uploads */}
+            <div className="p-5 rounded-2xl bg-zinc-900/60 border border-amber-900/30 hover:border-amber-700/50 transition-all flex flex-col justify-between space-y-4 group">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="h-9 w-9 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center">
+                    <FolderX size={18} />
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-zinc-800/80 text-zinc-400 border border-zinc-700/50">
+                    Disk Storage
+                  </span>
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-zinc-100 group-hover:text-amber-300 transition">
+                    Purge All Chat Uploads
+                  </h4>
+                  <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                    Permanently deletes all image attachments, documents, and media files stored on the server disk.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-zinc-800/60 flex items-center justify-between">
+                <span className="text-[11px] font-mono text-zinc-500">
+                  {metrics?.storage?.totalUploadsCount ?? 0} files ({metrics?.storage?.formattedUploadSize ?? '0 B'})
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDangerModal({
+                      type: 'uploads',
+                      title: 'Purge All Chat Uploads',
+                      badge: 'Disk Storage Purge',
+                      confirmPhrase: 'CLEAR_ALL_UPLOADS',
+                      endpoint: '/admin/danger/clear-uploads',
+                      buttonText: 'Purge All Uploads',
+                      description: 'This will delete all uploaded media and files in /uploads/attachments and /uploads/media from disk.',
+                      warning: 'All uploaded files will be permanently erased from the server disk storage. Disk capacity will be reclaimed immediately.',
+                    });
+                    setConfirmInput('');
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <FolderX size={13} /> Purge Uploads
+                </button>
+              </div>
+            </div>
+
+            {/* Zone 3: Delete All Users Except Admins */}
+            <div className="p-5 rounded-2xl bg-zinc-900/60 border border-rose-900/30 hover:border-rose-700/50 transition-all flex flex-col justify-between space-y-4 group">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="h-9 w-9 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center">
+                    <UserX size={18} />
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-zinc-800/80 text-zinc-400 border border-zinc-700/50">
+                    User Accounts
+                  </span>
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-zinc-100 group-hover:text-rose-300 transition">
+                    Delete All Non-Admin Users
+                  </h4>
+                  <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                    Deletes all registered user accounts, active sessions, and direct chats except accounts with the admin role.
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-zinc-800/60 flex items-center justify-between">
+                <span className="text-[11px] font-mono text-zinc-500">
+                  {Math.max(0, (metrics?.users?.total || 0) - (metrics?.users?.admins || 0))} standard users
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDangerModal({
+                      type: 'users',
+                      title: 'Delete All Non-Admin Users',
+                      badge: 'User Accounts Purge',
+                      confirmPhrase: 'DELETE_NON_ADMIN_USERS',
+                      endpoint: '/admin/danger/delete-users',
+                      buttonText: 'Delete All Users',
+                      description: 'This will delete all standard user accounts, credentials, companion pairings, and sessions.',
+                      warning: 'All non-admin users will have their cryptographic keys, sessions, and accounts permanently removed. Their active connections will be terminated. Admin accounts will NOT be touched.',
+                    });
+                    setConfirmInput('');
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <UserX size={13} /> Delete Users
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Zone 4: Master Nuclear Clean Slate */}
+          <div className="p-6 rounded-2xl bg-gradient-to-r from-rose-950/40 via-zinc-900/80 to-amber-950/40 border border-rose-700/40 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-5 relative overflow-hidden">
+            <div className="absolute -right-8 -top-8 w-40 h-40 bg-rose-500/10 rounded-full blur-2xl pointer-events-none" />
+            <div className="flex items-start gap-4">
+              <div className="h-12 w-12 rounded-2xl bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center flex-shrink-0 shadow-lg shadow-rose-500/20">
+                <Flame size={24} className="text-rose-400 animate-pulse" />
+              </div>
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-bold text-white tracking-tight">
+                    Supreme Factory Reset (Clean Slate for Newer Version)
+                  </h4>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 uppercase font-bold">
+                    Master Reset
+                  </span>
+                </div>
+                <p className="text-xs text-zinc-400 max-w-2xl leading-relaxed">
+                  Performs an all-in-one complete purge: wipes all messages, deletes all disk uploads, clears all non-admin users, revokes all sessions, and resets chats. Leaves only your administrator account intact and primes FlashChat for fresh builds.
+                </p>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                setDangerModal({
+                  type: 'master',
+                  title: 'Supreme System Wipe & Factory Reset',
+                  badge: 'Nuclear Reset',
+                  confirmPhrase: 'PURGE_EVERYTHING_EXCEPT_ADMINS',
+                  endpoint: '/admin/danger/purge-all',
+                  buttonText: 'Execute Supreme Factory Reset',
+                  description: 'This is the master clean slate command. It clears all messages, removes all uploads, deletes all non-admin users, and resets the entire chat system.',
+                  warning: 'This will reset the entire application state. Only administrator account(s) will be preserved. All messages, uploaded files, and non-admin users will be permanently deleted.',
+                });
+                setConfirmInput('');
+              }}
+              className="py-3 px-6 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-bold text-xs shadow-lg shadow-rose-600/30 transition flex items-center justify-center gap-2 flex-shrink-0 cursor-pointer"
+            >
+              <Flame size={16} /> Execute Factory Reset
+            </button>
+          </div>
+        </section>
+      </main>
+
+      {/* Moderation Deactivation Modal */}
+      {actionUser && !actionUser.isDeactivated && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4 backdrop-blur-md animate-fade-in">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-5 animate-scale-in text-zinc-100 shadow-2xl">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold tracking-tight text-white">
+                    Deactivate @{actionUser.username}?
+                  </h3>
+                  <p className="text-[11px] text-zinc-400">
+                    Immediately terminates all sessions and blocks future logins
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setActionUser(null)}
+                className="text-zinc-400 hover:text-zinc-200 p-1"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-3 rounded-xl bg-rose-950/30 border border-rose-800/40 text-[11px] text-rose-300 leading-relaxed">
+              <strong>Moderation Notice:</strong> The user will be instantly logged out from all devices, their active sockets will be disconnected, and they will be banned from signing in until an administrator reactivates their account.
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-semibold text-zinc-400">Moderation Reason</label>
+              <textarea
+                value={deactivateReason}
+                onChange={(e) => setDeactivateReason(e.target.value)}
+                placeholder="Reason for suspension (visible to user upon rejection)..."
+                rows={3}
+                className="w-full px-4 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-600 text-xs focus:outline-none focus:ring-2 focus:ring-rose-500/40 resize-none"
+              />
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                disabled={actionLoading}
+                onClick={() => setActionUser(null)}
+                className="w-1/2 py-2.5 rounded-xl border border-zinc-800 text-zinc-400 hover:text-zinc-200 text-xs font-semibold transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={actionLoading}
+                onClick={handleConfirmToggleStatus}
+                className="w-1/2 py-2.5 rounded-xl bg-rose-500 hover:bg-rose-600 text-white text-xs font-semibold shadow-md shadow-rose-500/20 transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                {actionLoading ? 'Deactivating...' : 'Confirm Deactivation'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Danger Zone Confirmation Modal */}
+      {dangerModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 px-4 backdrop-blur-md animate-fade-in">
+          <div className="w-full max-w-lg bg-zinc-900 border border-rose-800/50 rounded-2xl p-6 space-y-5 animate-scale-in text-zinc-100 shadow-2xl">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center flex-shrink-0 border border-rose-500/30">
+                  <AlertTriangle size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold tracking-tight text-white">
+                    {dangerModal.title}
+                  </h3>
+                  <p className="text-[11px] text-zinc-400">
+                    {dangerModal.badge} • Irreversible Administrative Action
+                  </p>
+                </div>
+              </div>
+              <button
+                disabled={dangerLoading}
+                onClick={() => setDangerModal(null)}
+                className="text-zinc-400 hover:text-zinc-200 p-1 cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-rose-950/40 border border-rose-800/60 text-xs text-rose-200 space-y-1.5 leading-relaxed">
+              <p className="font-semibold text-rose-300 flex items-center gap-1.5">
+                <AlertTriangle size={14} className="text-rose-400" /> Caution: Irreversible Operation
+              </p>
+              <p className="text-rose-200/90 text-[11px]">
+                {dangerModal.warning}
+              </p>
+            </div>
+
+            <p className="text-xs text-zinc-300 leading-relaxed">
+              {dangerModal.description}
+            </p>
+
+            <div className="space-y-2 pt-1">
+              <label className="text-xs font-semibold text-zinc-400">
+                Type <span className="font-mono text-rose-400 font-bold select-all bg-rose-950/50 px-1.5 py-0.5 rounded border border-rose-800/50">{dangerModal.confirmPhrase}</span> to confirm:
+              </label>
+              <input
+                type="text"
+                value={confirmInput}
+                onChange={(e) => setConfirmInput(e.target.value)}
+                placeholder={dangerModal.confirmPhrase}
+                className="w-full px-4 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 font-mono text-xs text-rose-200 placeholder-zinc-700 focus:outline-none focus:ring-2 focus:ring-rose-500/50"
+                autoFocus
+              />
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                disabled={dangerLoading}
+                onClick={() => setDangerModal(null)}
+                className="w-1/2 py-2.5 rounded-xl border border-zinc-800 text-zinc-400 hover:text-zinc-200 text-xs font-semibold transition cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={dangerLoading || confirmInput.trim() !== dangerModal.confirmPhrase}
+                onClick={handleExecuteDangerAction}
+                className="w-1/2 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 disabled:bg-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed text-white text-xs font-bold shadow-md shadow-rose-600/30 transition flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                {dangerLoading ? (
+                  <>
+                    <RefreshCw size={14} className="animate-spin" /> Purging...
+                  </>
+                ) : (
+                  <>
+                    <Flame size={14} /> {dangerModal.buttonText}
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+

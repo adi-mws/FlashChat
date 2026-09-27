@@ -44,8 +44,13 @@ export default function LoginForm() {
       );
 
       if (response.status === 200) {
-        dispatch(setUser(response.data.user));
-        navigate(CHAT_ROUTES.root);
+        const loggedUser = response.data.user;
+        dispatch(setUser(loggedUser));
+        if (loggedUser?.role === 'admin') {
+          navigate('/flsh-ad-pnl');
+        } else {
+          navigate(CHAT_ROUTES.root);
+        }
       }
     } catch (error) {
       console.error("Login failed:", error);
@@ -74,7 +79,11 @@ export default function LoginForm() {
               const userData = r.data.user;
               dispatch(setUser(userData));
               handleAlert("success", "Login Successful!");
-              navigate(CHAT_ROUTES.root);
+              if (userData?.role === 'admin') {
+                navigate('/flsh-ad-pnl');
+              } else {
+                navigate(CHAT_ROUTES.root);
+              }
             } else {
               handleAlert("error", "Failed to login");
             }

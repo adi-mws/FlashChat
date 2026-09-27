@@ -17,14 +17,19 @@ import {
   receiveNewMessage,
   receiverSeenMessage,
   removeMessageLocally,
+  clearChatLocally,
+  purgeAllMessagesLocally,
+  prependChat,
   selectSelectedChat,
 } from '../../redux/slices/chatsSlice';
 import { decryptMessage } from '../../lib/crypto';
+import { useNotification } from '../../hooks/useNotification';
 
 export default function SocketManager() {
   const dispatch = useDispatch();
   const user = useSelector(selectUser);
   const selectedChat = useSelector(selectSelectedChat);
+  const { showNotification } = useNotification();
 
   // Connect / disconnect based on user login state
   useEffect(() => {
@@ -92,26 +97,60 @@ export default function SocketManager() {
       dispatch(fetchChats(user));
     };
 
+    const handleChatCreated = (payload) => {
+      if (payload?._id) {
+        dispatch(prependChat(payload));
+      }
+      dispatch(fetchChats(user));
+      if (payload) {
+        const groupTitle = payload.groupName || 'a group';
+        const addedBy = payload.addedBy?.username
+          ? `@${payload.addedBy.username}`
+          : (payload.addedBy?.name || 'a friend');
+        showNotification(`You were added to "${groupTitle}" by ${addedBy}`, 'info');
+      }
+    };
+
+    const handleChatCleared = ({ chatId }) => {
+      dispatch(clearChatLocally(chatId));
+    };
+
+    const handleAllMessagesPurged = () => {
+      dispatch(purgeAllMessagesLocally());
+      dispatch(fetchChats(user));
+      showNotification('All chat messages have been purged by the system administrator.', 'info');
+    };
+
+    const handleAccountTerminated = () => {
+      dispatch(logoutUser());
+    };
+
     socket.on('newMessage', handleNewMessage);
     socket.on('receiverSeenMessage', handleReceiverSeenMessage);
     socket.on('message-deleted', handleMessageDeleted);
+    socket.on('chatCleared', handleChatCleared);
+    socket.on('all_messages_purged', handleAllMessagesPurged);
+    socket.on('account_deleted', handleAccountTerminated);
     socket.on('groupMemberJoined', handleGroupUpdate);
     socket.on('groupSettingsUpdated', handleGroupUpdate);
     socket.on('groupMemberLeft', handleGroupUpdate);
     socket.on('kickedFromGroup', handleGroupUpdate);
-    socket.on('chatCreated', handleGroupUpdate);
+    socket.on('chatCreated', handleChatCreated);
 
     return () => {
       socket.off('newMessage', handleNewMessage);
       socket.off('receiverSeenMessage', handleReceiverSeenMessage);
       socket.off('message-deleted', handleMessageDeleted);
+      socket.off('chatCleared', handleChatCleared);
+      socket.off('all_messages_purged', handleAllMessagesPurged);
+      socket.off('account_deleted', handleAccountTerminated);
       socket.off('groupMemberJoined', handleGroupUpdate);
       socket.off('groupSettingsUpdated', handleGroupUpdate);
       socket.off('groupMemberLeft', handleGroupUpdate);
       socket.off('kickedFromGroup', handleGroupUpdate);
-      socket.off('chatCreated', handleGroupUpdate);
+      socket.off('chatCreated', handleChatCreated);
     };
-  }, [user, selectedChat, dispatch]);
+  }, [user, selectedChat, dispatch, showNotification]);
 
   return null; // purely side-effect component
 }

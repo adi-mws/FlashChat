@@ -64,7 +64,10 @@ export default function CompanionQRLoginModal({ isOpen, onClose }) {
         socketRef.current.disconnect();
       }
 
-      const socketUrl = import.meta.env.VITE_SOCKET_URL || "http://localhost:5000";
+      const socketUrl =
+        import.meta.env.VITE_BACKEND_URL ||
+        import.meta.env.VITE_API_URL?.replace(/\/api$/, "") ||
+        "http://localhost:3000";
       const socket = io(socketUrl, {
         withCredentials: true,
         query: { pairingId },
@@ -73,7 +76,7 @@ export default function CompanionQRLoginModal({ isOpen, onClose }) {
       socketRef.current = socket;
 
       socket.on("companion_approved", (data) => {
-        handleApprovalSuccess(data);
+        handleApprovalSuccess(data, pairingId);
       });
 
       // Start fallback polling every 2.5 seconds
@@ -81,10 +84,11 @@ export default function CompanionQRLoginModal({ isOpen, onClose }) {
       pollTimerRef.current = setInterval(async () => {
         try {
           const pollRes = await axios.get(
-            `${import.meta.env.VITE_API_URL}/auth/companion/status/${pairingId}`
+            `${import.meta.env.VITE_API_URL}/auth/companion/status/${pairingId}`,
+            { withCredentials: true }
           );
           if (pollRes.data.status === "approved") {
-            handleApprovalSuccess(pollRes.data);
+            handleApprovalSuccess(pollRes.data, pairingId);
           } else if (pollRes.data.status === "expired") {
             setError("Pairing session expired. Please refresh the QR code.");
             clearInterval(pollTimerRef.current);
@@ -102,13 +106,27 @@ export default function CompanionQRLoginModal({ isOpen, onClose }) {
     }
   };
 
-  const handleApprovalSuccess = (data) => {
+  const handleApprovalSuccess = async (data, pairingId) => {
     if (pairedSuccess) return;
     setPairedSuccess(true);
     if (pollTimerRef.current) clearInterval(pollTimerRef.current);
     if (socketRef.current) socketRef.current.disconnect();
 
-    const user = data.user;
+    let user = data?.user;
+
+    // ALWAYS call HTTP claim endpoint with credentials so browser sets the auth cookie!
+    try {
+      const claimRes = await axios.post(
+        `${import.meta.env.VITE_API_URL}/auth/companion/claim`,
+        { pairingId },
+        { withCredentials: true }
+      );
+      if (claimRes.data?.user) {
+        user = claimRes.data.user;
+      }
+    } catch (err) {
+      console.warn("Claim endpoint call had warning/error (continuing with socket payload):", err);
+    }
 
     // Save this session's private and public keys in keyStore
     if (user?.sessionId && generatedKeyPairRef.current) {

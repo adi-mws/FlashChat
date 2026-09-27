@@ -58,6 +58,26 @@ const userSchema = new mongoose.Schema({
       createdAt: { type: Date, default: Date.now }, 
     }
   ],
+
+  // Moderation & Access Control
+  role: {
+    type: String,
+    enum: ['user', 'admin'],
+    default: 'user',
+  },
+  isDeactivated: {
+    type: Boolean,
+    default: false,
+    index: true,
+  },
+  deactivatedReason: {
+    type: String,
+    default: '',
+  },
+  deactivatedAt: {
+    type: Date,
+    default: null,
+  },
   
 }, {timestamps: true});
 

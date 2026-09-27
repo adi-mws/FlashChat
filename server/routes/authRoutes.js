@@ -17,7 +17,8 @@ import {
   updateSessionPublicKey,
   initCompanionPairing,
   getCompanionPairingStatus,
-  approveCompanionPairing
+  approveCompanionPairing,
+  claimCompanionPairing
 } from '../controllers/authController.js';
 
 router.post('/register', registerUser);
@@ -37,5 +38,6 @@ router.post('/reset-password', resetPassword);
 router.post('/companion/init', initCompanionPairing);
 router.get('/companion/status/:pairingId', getCompanionPairingStatus);
 router.post('/companion/approve', authenticateJWT, approveCompanionPairing);
+router.post('/companion/claim', claimCompanionPairing);
 
 export default router;

@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import Session from '../models/session.js';
+import User from '../models/user.js';
 
 // Middleware to authenticate using cookies
 const authenticateJWT = (req, res, next) => {
@@ -14,8 +15,6 @@ const authenticateJWT = (req, res, next) => {
             return res.status(403).json({ message: 'Invalid or expired token' });
         }
 
-        req.user = decoded;
-
         // Check for token expiration
         const currentTime = Math.floor(Date.now() / 1000);
         if (decoded.exp && decoded.exp < currentTime) {
@@ -25,6 +24,19 @@ const authenticateJWT = (req, res, next) => {
         try {
             if (!decoded.sessionId) {
                 return res.status(403).json({ message: 'Invalid session' });
+            }
+
+            // Check if user is deactivated in database
+            const user = await User.findById(decoded.id).select('role isDeactivated deactivatedReason');
+            if (!user) {
+                return res.status(401).json({ message: 'User account not found' });
+            }
+
+            if (user.isDeactivated) {
+                return res.status(403).json({
+                    message: user.deactivatedReason || 'Your account has been deactivated by administration.',
+                    code: 'ACCOUNT_DEACTIVATED',
+                });
             }
 
             const sessionQuery = {
@@ -46,6 +58,10 @@ const authenticateJWT = (req, res, next) => {
                 return res.status(403).json({ message: 'Session expired or logged out' });
             }
 
+            req.user = {
+                ...decoded,
+                role: user.role || decoded.role || 'user',
+            };
             req.sessionId = decoded.sessionId;
             req.accountId = decoded.accountId;
             req.provider = decoded.provider;

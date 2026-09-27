@@ -16,8 +16,10 @@ import LoginForm from "./components/forms/LoginForm";
 import RegistrationForm from "./components/forms/RegistrationForm";
 import MarketingLayout from "./layouts/MarketingLayout";
 import PublicRoutes from "../routes/PublicRoutes";
+import UserRoute from "../routes/UserRoute";
+import AdminRoute from "../routes/AdminRoute";
 import LoadingScreen from "./components/global/LoadingScreen";
-import { MARKETING_ROUTES, INFO_ROUTES, getIsMobile } from "../routes/routes";
+import { MARKETING_ROUTES, CHAT_ROUTES, ADMIN_ROUTES, getIsMobile } from "../routes/routes";
 import Sparks from "./components/sparks/Sparks";
 import DetailsLayout from "./layouts/DetailsLayout";
 import Settings from "./components/settings/Settings";
@@ -27,6 +29,7 @@ import ChatsOverview from "./components/app/ChatsOverview";
 import DesktopLayout from "./layouts/DesktopLayout";
 import Conversation from "./components/chats/conversation/Conversation";
 import E2EESyncModal from "./components/global/E2EESyncModal";
+import SupremeAdminPanel from "./components/admin/SupremeAdminPanel";
 
 export default function AppRoutes() {
     const user = useSelector(selectUser);
@@ -38,6 +41,8 @@ export default function AppRoutes() {
         window.addEventListener("resize", handleResize);
         return () => window.removeEventListener("resize", handleResize);
     }, []);
+
+    const isAdmin = user?.role === 'admin';
 
     return (
         <LoadingScreen loading={loading} text="Initializing Server...">
@@ -53,25 +58,24 @@ export default function AppRoutes() {
                     <Route path="about" element={<AboutPage />} />
                 </Route>
 
-                {/* Protected Routes */}
+                {/* Protected User App Routes (Admins are strictly blocked and redirected to /flsh-ad-pnl) */}
                 {isMobile ? (
                     <>
                         <Route
                             path="/app"
-                            element={user ? <AppLayout /> : <Navigate to={MARKETING_ROUTES.landing} replace />}
+                            element={<UserRoute><AppLayout /></UserRoute>}
                         >
-                            <Route path='chats' element={user ? <ChatsOverview /> : <Navigate to={MARKETING_ROUTES.login} replace />} />
+                            <Route path='chats' element={<ChatsOverview />} />
                             <Route path="profile" element={<Profile edit={true} />} />
                             <Route path="sparks" element={<Sparks />} />
                             <Route path="contacts" element={<ContactsPage />} />
                         </Route>
 
-                        <Route path="/chat/:chatId" element={user ? <ChatLayout /> : <Navigate to={MARKETING_ROUTES.login} replace />} />
+                        <Route path="/chat/:chatId" element={<UserRoute><ChatLayout /></UserRoute>} />
+                        <Route path="/chat/:chatId/info" element={<UserRoute><DetailsLayout><ChatInfo /></DetailsLayout></UserRoute>} />
+                        <Route path="/group/:groupId/info" element={<UserRoute><DetailsLayout><GroupInfo /></DetailsLayout></UserRoute>} />
 
-                        <Route path="/chat/:chatId/info" element={user ? <DetailsLayout><ChatInfo /></DetailsLayout> : <Navigate to={MARKETING_ROUTES.login} replace />} />
-                        <Route path="/group/:groupId/info" element={user ? <DetailsLayout><GroupInfo /></DetailsLayout> : <Navigate to={MARKETING_ROUTES.login} replace />} />
-
-                        <Route path="/settings" element={user ? <DetailsLayout /> : <Navigate to={MARKETING_ROUTES.login} />}>
+                        <Route path="/settings" element={<UserRoute><DetailsLayout /></UserRoute>}>
                             <Route index element={<Settings />} />
                             <Route path="profile" element={<Profile edit={true} />} />
                             <Route path="update-history" element={<AboutPage />} />
@@ -82,7 +86,7 @@ export default function AppRoutes() {
                     <>
                         <Route
                             path="/"
-                            element={user ? <DesktopLayout /> : <Navigate to={MARKETING_ROUTES.landing} replace />}
+                            element={<UserRoute><DesktopLayout /></UserRoute>}
                         >
                             <Route path="app" element={<Navigate to="/app/chats" replace />} />
                             <Route path="app/chats" element={<SelectChat />} />
@@ -105,9 +109,22 @@ export default function AppRoutes() {
                     </>
                 )}
 
+                {/* Supreme Admin Command Console (Standard users are strictly blocked and redirected to /app/chats) */}
+                <Route path="/flsh-ad-pnl" element={<AdminRoute><SupremeAdminPanel /></AdminRoute>} />
+
                 {/* Fallback */}
-                <Route path="*" element={<Navigate to={MARKETING_ROUTES.landing} replace />} />
+                <Route
+                    path="*"
+                    element={
+                        user ? (
+                            <Navigate to={isAdmin ? ADMIN_ROUTES.dashboard : CHAT_ROUTES.root} replace />
+                        ) : (
+                            <Navigate to={MARKETING_ROUTES.landing} replace />
+                        )
+                    }
+                />
             </Routes>
         </LoadingScreen>
     );
 }
+

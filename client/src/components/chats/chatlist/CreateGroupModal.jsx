@@ -53,6 +53,7 @@ export default function CreateGroupModal({ onClose }) {
       await dispatch(createGroupChat({
         groupName: groupName.trim(),
         groupDescription: groupDescription.trim(),
+        initialMembers: selectedFriends,
         members: selectedFriends,
       })).unwrap();
       

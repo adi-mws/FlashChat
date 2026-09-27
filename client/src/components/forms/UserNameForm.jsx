@@ -35,8 +35,13 @@ export default function UserNameForm({ showForm, setShowForm, credentialResponse
       if (response.status === 201) {
         // Actually 201 signs that the user is registered for the first time by Google Auth and also 
         // logged in (
-        dispatch(setUser(response.data.user))
-        navigate(CHAT_ROUTES.root)
+        const loggedUser = response.data.user;
+        dispatch(setUser(loggedUser));
+        if (loggedUser?.role === 'admin') {
+          navigate('/flsh-ad-pnl');
+        } else {
+          navigate(CHAT_ROUTES.root);
+        }
         showNotification("success", "Login Successful!");
       }
     } catch (error) {

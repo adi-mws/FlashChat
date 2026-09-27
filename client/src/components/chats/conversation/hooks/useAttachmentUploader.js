@@ -51,7 +51,9 @@ export default function useAttachmentUploader({ chatId, chat, user }) {
       dispatch(removeDraft(chatId));
 
       const isGroup = chat?.isGroupChat;
-      const receiverId = isGroup ? null : chat?.participant?._id;
+      const receiverId = isGroup
+        ? null
+        : (chat?.participant?._id || chat?.participants?.find((p) => (p?._id || p)?.toString() !== user?.id?.toString())?._id || null);
 
       items.forEach(({ file, caption }) => {
         const tempId = `temp-att-${Date.now()}-${Math.random().toString(36).slice(2)}`;

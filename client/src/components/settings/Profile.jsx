@@ -505,8 +505,8 @@ export default function Profile({ edit = false, targetUserId }) {
 
             {/* 12-Word Recovery Key Modal */}
             {showMnemonicModal && generatedMnemonic && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/80 px-4 backdrop-blur-md animate-fade-in">
-                    <div className="w-full max-w-lg bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 shadow-2xl rounded-2xl p-6 sm:p-7 space-y-5 animate-scale-in text-slate-800 dark:text-zinc-100">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/80 p-3 sm:p-6 backdrop-blur-md animate-fade-in overflow-y-auto">
+                    <div className="w-full max-w-lg bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 shadow-2xl rounded-2xl p-5 sm:p-7 space-y-4 sm:space-y-5 animate-scale-in text-slate-800 dark:text-zinc-100 max-h-[92vh] overflow-y-auto my-auto">
                         {/* Header */}
                         <div className="flex items-start justify-between">
                             <div className="flex items-center gap-3">

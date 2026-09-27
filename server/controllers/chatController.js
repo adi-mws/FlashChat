@@ -3,6 +3,7 @@ import Chat from "../models/chat.js";
 import User from "../models/user.js";
 import Session from "../models/session.js";
 import { io } from "../socket/index.js";
+import { getUserRoom } from "../socket/store.js";
 import crypto from "crypto";
 import Message from "../models/message.js";
 import mongoose from "mongoose";
@@ -323,12 +324,36 @@ export const deleteContact = async (req, res) => {
 
 export const deleteAllMessages = async (req, res) => {
   const { chatId } = req.body;
+  const userId = req.user.id;
 
   if (!chatId) {
     return res.status(400).json({ message: "chatId is required." });
   }
 
   try {
+    const chat = await Chat.findById(chatId);
+    if (!chat) {
+      return res.status(404).json({ message: "Chat not found." });
+    }
+
+    if (chat.isGroupChat) {
+      const isGroupAdmin = (chat.groupAdmins || []).some(
+        (adminId) => adminId.toString() === userId.toString()
+      );
+      if (!isGroupAdmin) {
+        return res.status(403).json({
+          message: "Only group admins can clear all messages in this group.",
+        });
+      }
+    } else {
+      const isParticipant = (chat.participants || []).some(
+        (p) => p.toString() === userId.toString()
+      );
+      if (!isParticipant) {
+        return res.status(403).json({ message: "Unauthorized: not a participant of this chat." });
+      }
+    }
+
     // Delete all attachment files from disk first
     const messagesWithAttachments = await Message.find({
       chat: chatId,
@@ -337,6 +362,13 @@ export const deleteAllMessages = async (req, res) => {
     messagesWithAttachments.forEach((m) => deleteAttachmentFile(m.attachmentUrl));
 
     const deleted = await Message.deleteMany({ chat: chatId });
+
+    chat.lastMessage = null;
+    await chat.save();
+
+    // Broadcast clear event to all participants in real-time
+    io?.to(chatId).emit("chatCleared", { chatId });
+
     res.status(200).json({ message: "All messages deleted.", count: deleted.deletedCount });
   } catch (error) {
     console.error("Error deleting messages:", error);
@@ -348,11 +380,17 @@ export const deleteAllMessages = async (req, res) => {
 
 export const createGroupChat = async (req, res) => {
     try {
-        const { groupName, groupDescription, initialMembers } = req.body;
+        const { groupName, groupDescription } = req.body;
+        const initialMembers = req.body.initialMembers || req.body.members || [];
         const creatorId = req.user.id;
 
         if (!groupName || groupName.trim() === "") {
             return res.status(400).json({ success: false, message: "Group name is required" });
+        }
+
+        const creatorUser = await User.findById(creatorId).select('name username pfp contacts');
+        if (!creatorUser) {
+            return res.status(404).json({ success: false, message: "User not found" });
         }
 
         // Generate a random unique invite code
@@ -361,11 +399,16 @@ export const createGroupChat = async (req, res) => {
         // Participants initially include the creator
         const participants = [creatorId];
 
-        // Add other selected contacts
+        // Add other selected contacts (group creation is restricted to verified friends)
         if (Array.isArray(initialMembers)) {
+            const friendIds = (creatorUser.contacts || []).map(c => c.toString());
             initialMembers.forEach(memberId => {
-                if (memberId && !participants.includes(memberId)) {
-                    participants.push(memberId);
+                const idStr = memberId?.toString();
+                if (idStr && idStr !== creatorId.toString() && !participants.includes(idStr)) {
+                    // Only add if they are on the creator's friends list
+                    if (friendIds.includes(idStr)) {
+                        participants.push(idStr);
+                    }
                 }
             });
         }
@@ -394,45 +437,41 @@ export const createGroupChat = async (req, res) => {
                 select: "username name pfp"
             });
 
+        const chatPayload = {
+            _id: populatedGroup._id,
+            isGroupChat: true,
+            groupName: populatedGroup.groupName,
+            groupDescription: populatedGroup.groupDescription,
+            groupPhoto: populatedGroup.groupPhoto,
+            groupAdmins: populatedGroup.groupAdmins,
+            inviteCode: populatedGroup.inviteCode,
+            allowMembersToInvite: populatedGroup.allowMembersToInvite,
+            memberLimit: populatedGroup.memberLimit,
+            participants: populatedGroup.participants,
+            lastMessage: null,
+            unreadCount: 0,
+            updatedAt: populatedGroup.updatedAt,
+            addedBy: {
+                _id: creatorUser._id,
+                name: creatorUser.name,
+                username: creatorUser.username
+            }
+        };
+
         // Notify via socket to other participants
         populatedGroup.participants.forEach(member => {
-            if (member._id.toString() !== creatorId) {
-                io.to(member._id.toString()).emit("chatCreated", {
-                    _id: populatedGroup._id,
-                    isGroupChat: true,
-                    groupName: populatedGroup.groupName,
-                    groupDescription: populatedGroup.groupDescription,
-                    groupPhoto: populatedGroup.groupPhoto,
-                    groupAdmins: populatedGroup.groupAdmins,
-                    inviteCode: populatedGroup.inviteCode,
-                    allowMembersToInvite: populatedGroup.allowMembersToInvite,
-                    memberLimit: populatedGroup.memberLimit,
-                    participants: populatedGroup.participants,
-                    lastMessage: null,
-                    unreadCount: 0,
-                    updatedAt: populatedGroup.updatedAt
-                });
+            const memberId = member._id.toString();
+            if (memberId !== creatorId.toString()) {
+                const userRoom = getUserRoom(memberId);
+                io?.to(userRoom).emit("chatCreated", chatPayload);
+                io?.to(memberId).emit("chatCreated", chatPayload);
             }
         });
 
         res.status(201).json({
             success: true,
             message: "Group chat created successfully",
-            group: {
-                _id: populatedGroup._id,
-                isGroupChat: true,
-                groupName: populatedGroup.groupName,
-                groupDescription: populatedGroup.groupDescription,
-                groupPhoto: populatedGroup.groupPhoto,
-                groupAdmins: populatedGroup.groupAdmins,
-                inviteCode: populatedGroup.inviteCode,
-                allowMembersToInvite: populatedGroup.allowMembersToInvite,
-                memberLimit: populatedGroup.memberLimit,
-                participants: populatedGroup.participants,
-                lastMessage: null,
-                unreadCount: 0,
-                updatedAt: populatedGroup.updatedAt
-            }
+            group: chatPayload
         });
     } catch (err) {
         console.error("createGroupChat error:", err);
@@ -494,11 +533,14 @@ export const joinGroupByInviteCode = async (req, res) => {
 
         // Notify other group members
         group.participants.forEach(memberId => {
-            io.to(memberId.toString()).emit("groupMemberJoined", {
+            const idStr = memberId.toString();
+            const payload = {
                 chatId: group._id,
                 user: { _id: userId },
                 participants: populatedGroup.participants
-            });
+            };
+            io?.to(getUserRoom(idStr)).emit("groupMemberJoined", payload);
+            io?.to(idStr).emit("groupMemberJoined", payload);
         });
 
         res.status(200).json({

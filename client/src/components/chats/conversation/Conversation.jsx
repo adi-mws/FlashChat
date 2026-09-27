@@ -133,6 +133,11 @@ export default function Conversation() {
       <ChatOptionsMenu
         show={showChatOptions}
         isGroup={chat.isGroupChat}
+        isGroupAdmin={
+          chat.isGroupChat &&
+          Array.isArray(chat.groupAdmins) &&
+          chat.groupAdmins.some((admin) => (admin?._id || admin)?.toString() === user?.id?.toString())
+        }
         onClose={() => setShowChatOptions(false)}
         onViewInfo={() =>
           navigate(chat.isGroupChat ? INFO_ROUTES.group(chatId) : INFO_ROUTES.chat(chatId))

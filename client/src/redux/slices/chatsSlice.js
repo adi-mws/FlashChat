@@ -131,11 +131,12 @@ export const deleteContact = createAsyncThunk(
 
 export const createGroupChat = createAsyncThunk(
   'chats/createGroupChat',
-  async ({ groupName, groupDescription, initialMembers }, { rejectWithValue }) => {
+  async ({ groupName, groupDescription, initialMembers, members }, { rejectWithValue }) => {
     try {
+      const selected = initialMembers || members || [];
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/chats/groups/create`,
-        { groupName, groupDescription, initialMembers },
+        { groupName, groupDescription, initialMembers: selected, members: selected },
         { withCredentials: true }
       );
       return response.data.group;
@@ -377,6 +378,24 @@ const chatsSlice = createSlice({
     removeMessageLocally(state, action) {
       state.messages = state.messages.filter((m) => m._id !== action.payload);
     },
+    clearChatLocally(state, action) {
+      const chatId = action.payload;
+      if (state.selectedChat === chatId) {
+        state.messages = [];
+      }
+      state.chats = state.chats.map((c) =>
+        c._id === chatId ? { ...c, lastMessage: {} } : c
+      );
+    },
+    purgeAllMessagesLocally(state) {
+      state.messages = [];
+      state.sendingMessages = [];
+      state.chats = state.chats.map((c) => ({
+        ...c,
+        lastMessage: null,
+        unreadCount: 0,
+      }));
+    },
     // Add chat to list (when friend request accepted)
     prependChat(state, action) {
       if (!state.chats.some((c) => c._id === action.payload._id)) {
@@ -521,6 +540,8 @@ export const {
   receiveNewMessage,
   receiverSeenMessage,
   removeMessageLocally,
+  clearChatLocally,
+  purgeAllMessagesLocally,
   prependChat,
   removeChatById,
   updateChatLastMessage,

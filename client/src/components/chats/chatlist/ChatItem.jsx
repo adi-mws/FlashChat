@@ -1,5 +1,5 @@
 import React from "react";
-import { Check, CheckCheck, Users } from "lucide-react";
+import { Check, CheckCheck, Users, Image as ImageIcon, FileText } from "lucide-react";
 import { getImageUrl } from "../../../lib/imageUtils";
 
 /**
@@ -109,8 +109,22 @@ export default function ChatItem({
                 </span>
               )
             )}
-            <span className="truncate min-w-0">
-              {draft ? draft?.message : chat?.lastMessage?.content}
+            <span className="truncate min-w-0 inline-flex items-center gap-1">
+              {draft ? (
+                draft?.message
+              ) : chat?.lastMessage?.type === "image" ? (
+                <>
+                  <ImageIcon size={13} className="text-slate-400 dark:text-zinc-400 flex-shrink-0" />
+                  <span className="truncate">{chat.lastMessage.content ? `Image: ${chat.lastMessage.content}` : "Image"}</span>
+                </>
+              ) : chat?.lastMessage?.type === "file" ? (
+                <>
+                  <FileText size={13} className="text-slate-400 dark:text-zinc-400 flex-shrink-0" />
+                  <span className="truncate">{chat.lastMessage.fileName || "File"}</span>
+                </>
+              ) : (
+                chat?.lastMessage?.content
+              )}
             </span>
           </p>
         ) : (

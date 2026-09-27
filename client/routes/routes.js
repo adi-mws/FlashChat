@@ -40,3 +40,7 @@ export const INFO_ROUTES = {
     chat: (userId) => `/chat/${userId}/info`,
     group: (groupId) => `/group/${groupId}/info`
 }
+
+export const ADMIN_ROUTES = {
+    dashboard: "/flsh-ad-pnl",
+};

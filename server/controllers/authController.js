@@ -18,7 +18,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const isProduction = process.env.NODE_ENV === 'production';
-const getCookieOptions = (maxAge = null) => {
+export const getCookieOptions = (maxAge = null) => {
   const options = {
     httpOnly: true,
     secure: isProduction,
@@ -151,15 +151,20 @@ export const loginUser = async (req, res) => {
   const { username, password } = req.body;
 
   try {
-    // Find user by username
-    const user = await User.findOne({ username });
+    // Find user by username or email
+    const user = await User.findOne({
+      $or: [
+        { username: username },
+        { email: (username || '').toLowerCase() }
+      ]
+    });
 
     if (!user) {
       return res.status(401).json({ message: 'Invalid Credentials' });
     }
 
     if (!user.password) {
-      return res.status(401).json({ message: 'Invalid Credentials' });
+      return res.status(401).json({ message: 'No password set on this account. Please sign in with Google or use forgot password to create one.' });
     }
 
     // Check if the password matches
@@ -167,6 +172,13 @@ export const loginUser = async (req, res) => {
 
     if (!isPasswordMatch) {
       return res.status(401).json({ message: 'Invalid Credentials' });
+    }
+
+    if (user.isDeactivated) {
+      return res.status(403).json({
+        message: user.deactivatedReason || "Your account has been deactivated by administration for moderation policy violations.",
+        code: "ACCOUNT_DEACTIVATED"
+      });
     }
 
     const account = await ensureAccount({
@@ -194,7 +206,9 @@ export const loginUser = async (req, res) => {
         sessionPublicKey: null,
         encryptedPrivateKey: user.encryptedPrivateKey,
         backupSalt: user.backupSalt,
-        backupIv: user.backupIv
+        backupIv: user.backupIv,
+        role: user.role || 'user',
+        isDeactivated: !!user.isDeactivated
       },
       token // Also send the token in response
     });
@@ -505,22 +519,30 @@ export const verifyUserDetails = async (req, res) => {
         if (!user) {
           return res.status(404).json({ message: 'User not found' });
         }
-        else {
-          return res.status(200).json({
-            id: user._id,
-            email: user.email,
-            username: user.username,
-            showLastMessageInList: user.showLastMessageInList,
-            pfp: user.pfp,
-            name: user.name,
-            type: session.accountId?.provider || decoded.provider || 'credentials',
-            sessionId: session.sessionId,
-            sessionPublicKey: session.publicKey || null,
-            encryptedPrivateKey: user.encryptedPrivateKey,
-            backupSalt: user.backupSalt,
-            backupIv: user.backupIv,
-          })
+
+        if (user.isDeactivated) {
+          return res.status(403).json({
+            message: user.deactivatedReason || 'Your account has been deactivated by administration.',
+            code: 'ACCOUNT_DEACTIVATED',
+          });
         }
+
+        return res.status(200).json({
+          id: user._id,
+          email: user.email,
+          username: user.username,
+          showLastMessageInList: user.showLastMessageInList,
+          pfp: user.pfp,
+          name: user.name,
+          role: user.role || 'user',
+          isDeactivated: !!user.isDeactivated,
+          type: session.accountId?.provider || decoded.provider || 'credentials',
+          sessionId: session.sessionId,
+          sessionPublicKey: session.publicKey || null,
+          encryptedPrivateKey: user.encryptedPrivateKey,
+          backupSalt: user.backupSalt,
+          backupIv: user.backupIv,
+        });
       });
     }
 
@@ -646,7 +668,7 @@ export const forgotPassword = async (req, res) => {
   const { email } = req.body;
 
   try {
-    const user = await User.findOne({ email, password: { $exists: true, $ne: null } });
+    const user = await User.findOne({ email: (email || '').toLowerCase().trim() });
 
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
@@ -671,7 +693,7 @@ export const forgotPassword = async (req, res) => {
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; line-height: 1.6; max-width: 600px; margin: auto; padding: 20px; background-color: #f9f9f9; border-radius: 8px;">
         <h2 style="color: #007bff;">Hi ${user.name},</h2>
         
-        <p>You recently requested to reset your password for your FlashChat account. Click the button below to proceed:</p>
+        <p>You recently requested to reset or create a password for your FlashChat account. Click the button below to proceed:</p>
         
         <div style="text-align: center; margin: 30px 0;">
           <a href="${resetLink}" target="_blank"
@@ -715,10 +737,6 @@ export const resetPassword = async (req, res) => {
       return res.status(400).json({ message: 'Invalid or expired token.' });
     }
 
-    const account = await Account.findOne({ user: user._id, provider: 'credentials' });
-    if (!account && !user.password) {
-      return res.status(400).json({ message: 'Invalid or expired token.' });
-    }
     await ensureAccount({ user, provider: 'credentials' });
 
     user.password = hashSync(newPassword, 10);
@@ -811,6 +829,49 @@ export const getCompanionPairingStatus = async (req, res) => {
   } catch (error) {
     console.error("Error in getCompanionPairingStatus:", error);
     res.status(500).json({ message: "Failed to fetch companion pairing status", error: error.message });
+  }
+};
+
+/**
+ * POST /api/auth/companion/claim
+ * Called by Companion Device B once approved to establish its HTTP-only auth cookie and receive its user profile.
+ */
+export const claimCompanionPairing = async (req, res) => {
+  try {
+    const { pairingId } = req.body;
+    if (!pairingId) {
+      return res.status(400).json({ message: "pairingId is required" });
+    }
+
+    const pairing = await CompanionPairing.findOne({ pairingId });
+    if (!pairing) {
+      return res.status(404).json({ message: "Pairing session not found or already claimed." });
+    }
+
+    if (pairing.expiresAt < new Date()) {
+      await CompanionPairing.deleteOne({ _id: pairing._id });
+      return res.status(410).json({ message: "Pairing session expired." });
+    }
+
+    if (pairing.status !== "approved" || !pairing.token) {
+      return res.status(400).json({ message: "Pairing session is not approved yet." });
+    }
+
+    // Set HTTP-only auth cookie on companion device
+    res.cookie('token', pairing.token, getCookieOptions(7 * 24 * 60 * 60 * 1000));
+
+    const payload = {
+      token: pairing.token,
+      user: pairing.userPayload,
+    };
+
+    // Burn pairing record so it cannot be claimed multiple times
+    await CompanionPairing.deleteOne({ _id: pairing._id });
+
+    return res.status(200).json(payload);
+  } catch (error) {
+    console.error("Error in claimCompanionPairing:", error);
+    return res.status(500).json({ message: "Failed to claim companion session", error: error.message });
   }
 };
 
