@@ -237,6 +237,7 @@ const chatsSlice = createSlice({
     messages: [],              // messages for currently open chat
     sendingMessages: [],       // optimistic messages
     drafts: [],
+    typingUsers: {}, // { [chatId]: [ { userId: string, userName: string } ] }
     loadingChats: false,
     activeMessage: '',
     activeAttachements: [],
@@ -346,6 +347,19 @@ const chatsSlice = createSlice({
         return chat;
       });
 
+      // Clear typing indicator for the sender when message arrives
+      if (state.typingUsers[chatId] && msg.sender?._id) {
+        const senderIdStr = msg.sender._id.toString();
+        const updated = state.typingUsers[chatId].filter(
+          (u) => u.userId !== senderIdStr
+        );
+        if (updated.length > 0) {
+          state.typingUsers[chatId] = updated;
+        } else {
+          delete state.typingUsers[chatId];
+        }
+      }
+
       //! Bubble the chat to the top (DEPRECATED) // as now the timestamp based shorting of chats is done
       // const updatedChat = state.chats.find((c) => c._id === chatId);
       // if (updatedChat) {
@@ -410,6 +424,36 @@ const chatsSlice = createSlice({
       state.chats = state.chats.map((c) =>
         c._id === chatId ? { ...c, lastMessage } : c
       );
+    },
+    setUserTyping(state, action) {
+      const { chatId, userId, userName } = action.payload;
+      if (!chatId || !userId) return;
+      const currentList = state.typingUsers[chatId] || [];
+      if (!currentList.some((u) => u.userId?.toString() === userId.toString())) {
+        state.typingUsers[chatId] = [
+          ...currentList,
+          { userId: userId.toString(), userName: userName || 'Someone' }
+        ];
+      }
+    },
+    setUserStoppedTyping(state, action) {
+      const { chatId, userId } = action.payload;
+      if (!chatId || !userId) return;
+      const currentList = state.typingUsers[chatId] || [];
+      const updated = currentList.filter(
+        (u) => u.userId?.toString() !== userId.toString()
+      );
+      if (updated.length > 0) {
+        state.typingUsers[chatId] = updated;
+      } else {
+        delete state.typingUsers[chatId];
+      }
+    },
+    clearTypingForChat(state, action) {
+      const chatId = action.payload;
+      if (chatId) {
+        delete state.typingUsers[chatId];
+      }
     },
   },
   extraReducers: (builder) => {
@@ -551,6 +595,9 @@ export const {
   hasDraft,
   removeDraft,
   setActiveAttachements,
+  setUserTyping,
+  setUserStoppedTyping,
+  clearTypingForChat,
 } = chatsSlice.actions;
 
 export default chatsSlice.reducer;
@@ -567,3 +614,4 @@ export const selectDrafts = (state) => state.chats.drafts;
 export const selectDraft = (state, chatId) => state.chats.drafts.find(draft => draft.chatId === chatId);
 export const selectActiveMessage = (state) => state.chats.activeMessage;
 export const selectActiveAttachements = (state) => state.chats.activeAttachements;
+export const selectTypingUsers = (state) => state.chats.typingUsers || {};

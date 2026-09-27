@@ -1,4 +1,5 @@
 import React from "react";
+import { useSelector } from "react-redux";
 import { Check, CheckCheck, Users, Image as ImageIcon, FileText } from "lucide-react";
 import { getImageUrl } from "../../../lib/imageUtils";
 
@@ -6,7 +7,7 @@ import { getImageUrl } from "../../../lib/imageUtils";
  * ChatItem
  * Individual conversation row in the chat sidebar list.
  * Displays avatar, online status indicator, last message preview or draft,
- * timestamp, and unread badge.
+ * real-time typing indicators, timestamp, and unread badge.
  */
 export default function ChatItem({
   chat,
@@ -16,6 +17,11 @@ export default function ChatItem({
   draft,
   onClick,
 }) {
+  const activeTypers = useSelector(
+    (state) => state.chats.typingUsers?.[chat?._id]
+  ) || [];
+  const hasTypers = activeTypers.length > 0;
+
   const time = chat.lastMessage
     ? new Date(chat.lastMessage.createdAt).toLocaleTimeString([], {
         hour: "2-digit",
@@ -32,7 +38,18 @@ export default function ChatItem({
 
   const displayName = chat.isGroupChat ? chat.groupName : chat.participant?.name;
   const displayPhoto = chat.isGroupChat ? chat.groupPhoto : chat.participant?.pfp;
-  const isOnline = !chat.isGroupChat && onlineUsers.includes(chat.participant?._id);
+
+  const participantIdStr = chat.participant?._id?.toString();
+  const isOnline = !chat.isGroupChat && Boolean(
+    participantIdStr && onlineUsers.some((id) => id?.toString() === participantIdStr)
+  );
+
+  const groupOnlineCount = chat.isGroupChat
+    ? (chat.participants || []).filter((p) => {
+        const pId = typeof p === "object" && p !== null ? p._id?.toString() : p?.toString();
+        return pId && onlineUsers.some((uId) => uId?.toString() === pId);
+      }).length
+    : 0;
 
   return (
     <div
@@ -55,7 +72,7 @@ export default function ChatItem({
             alt={displayName || "Chat"}
           />
         )}
-        {isOnline && (
+        {(isOnline || (chat.isGroupChat && groupOnlineCount > 0)) && (
           <span className="w-3.5 h-3.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-zinc-950 absolute bottom-0 right-0" />
         )}
       </div>
@@ -76,7 +93,15 @@ export default function ChatItem({
           </span>
         </div>
 
-        {(chat?.lastMessage || draft) && user?.showLastMessageInList ? (
+        {hasTypers ? (
+          <p className="text-xs text-emerald-500 dark:text-emerald-400 font-medium truncate animate-pulse flex items-center gap-1">
+            {chat.isGroupChat
+              ? activeTypers.length === 1
+                ? `${activeTypers[0].userName} is typing...`
+                : `${activeTypers.length} people typing...`
+              : "typing..."}
+          </p>
+        ) : (chat?.lastMessage || draft) && user?.showLastMessageInList ? (
           <p className="text-xs text-slate-400 dark:text-zinc-400 flex items-center gap-1 pr-4 min-w-0">
             {draft ? (
               <span className="inline-flex bold dark:text-white items-center gap-1 flex-shrink-0">

@@ -20,6 +20,8 @@ import {
   clearChatLocally,
   purgeAllMessagesLocally,
   prependChat,
+  setUserTyping,
+  setUserStoppedTyping,
   selectSelectedChat,
 } from '../../redux/slices/chatsSlice';
 import { decryptMessage } from '../../lib/crypto';
@@ -125,12 +127,23 @@ export default function SocketManager() {
       dispatch(logoutUser());
     };
 
+    const handleUserTyping = ({ chatId, userId, userName }) => {
+      if (userId?.toString() === user?.id?.toString()) return;
+      dispatch(setUserTyping({ chatId, userId, userName }));
+    };
+
+    const handleUserStoppedTyping = ({ chatId, userId }) => {
+      dispatch(setUserStoppedTyping({ chatId, userId }));
+    };
+
     socket.on('newMessage', handleNewMessage);
     socket.on('receiverSeenMessage', handleReceiverSeenMessage);
     socket.on('message-deleted', handleMessageDeleted);
     socket.on('chatCleared', handleChatCleared);
     socket.on('all_messages_purged', handleAllMessagesPurged);
     socket.on('account_deleted', handleAccountTerminated);
+    socket.on('userTyping', handleUserTyping);
+    socket.on('userStoppedTyping', handleUserStoppedTyping);
     socket.on('groupMemberJoined', handleGroupUpdate);
     socket.on('groupSettingsUpdated', handleGroupUpdate);
     socket.on('groupMemberLeft', handleGroupUpdate);
@@ -144,6 +157,8 @@ export default function SocketManager() {
       socket.off('chatCleared', handleChatCleared);
       socket.off('all_messages_purged', handleAllMessagesPurged);
       socket.off('account_deleted', handleAccountTerminated);
+      socket.off('userTyping', handleUserTyping);
+      socket.off('userStoppedTyping', handleUserStoppedTyping);
       socket.off('groupMemberJoined', handleGroupUpdate);
       socket.off('groupSettingsUpdated', handleGroupUpdate);
       socket.off('groupMemberLeft', handleGroupUpdate);

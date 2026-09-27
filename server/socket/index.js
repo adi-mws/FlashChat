@@ -81,6 +81,67 @@ export const initSocket = (server) => {
       console.log(`${socket.id} left chat room ${chatId}`);
     });
 
+    socket.on("typing", async ({ chatId, receiverId }) => {
+      if (!chatId || !socket.user?.id) return;
+      const senderId = socket.user.id.toString();
+
+      let senderName = socket.user.name || socket.user.username || "Someone";
+      try {
+        const u = await User.findById(senderId).select("name username");
+        if (u) senderName = u.name || u.username;
+      } catch (e) {}
+
+      const payload = {
+        chatId,
+        userId: senderId,
+        userName: senderName,
+        isTyping: true,
+      };
+
+      try {
+        const chat = await Chat.findById(chatId).select("participants isGroupChat");
+        if (chat && chat.participants) {
+          chat.participants.forEach((pId) => {
+            const pIdStr = pId?.toString();
+            if (pIdStr && pIdStr !== senderId) {
+              io.to(getUserRoom(pIdStr)).emit("userTyping", payload);
+            }
+          });
+        } else if (receiverId) {
+          io.to(getUserRoom(receiverId.toString())).emit("userTyping", payload);
+        }
+      } catch (err) {
+        socket.to(chatId).emit("userTyping", payload);
+      }
+    });
+
+    socket.on("stopTyping", async ({ chatId, receiverId }) => {
+      if (!chatId || !socket.user?.id) return;
+      const senderId = socket.user.id.toString();
+
+      const payload = {
+        chatId,
+        userId: senderId,
+        isTyping: false,
+      };
+
+      try {
+        const chat = await Chat.findById(chatId).select("participants isGroupChat");
+        if (chat && chat.participants) {
+          chat.participants.forEach((pId) => {
+            const pIdStr = pId?.toString();
+            if (pIdStr && pIdStr !== senderId) {
+              io.to(getUserRoom(pIdStr)).emit("userStoppedTyping", payload);
+            }
+          });
+        } else if (receiverId) {
+          io.to(getUserRoom(receiverId.toString())).emit("userStoppedTyping", payload);
+        }
+      } catch (err) {
+        socket.to(chatId).emit("userStoppedTyping", payload);
+      }
+    });
+
     socket.on("sendMessage", async ({
       chatId,
       message,

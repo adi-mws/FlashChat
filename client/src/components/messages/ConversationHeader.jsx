@@ -1,11 +1,12 @@
 import React from "react";
-import { ArrowLeft, EllipsisVertical, Lock, Users } from "lucide-react";
+import { useSelector } from "react-redux";
+import { ArrowLeft, EllipsisVertical, Users } from "lucide-react";
 import { getImageUrl } from "../../lib/imageUtils";
 
 /**
  * ConversationHeader
- * Displays chat participant/group information, avatar, live status,
- * E2EE encryption status badge, and action buttons.
+ * Displays chat participant/group information, avatar, live online/typing status,
+ * and action buttons.
  */
 export default function ConversationHeader({
   chat,
@@ -18,11 +19,32 @@ export default function ConversationHeader({
 }) {
   if (!chat) return null;
 
+  const currentChatId = chatId || chat._id;
   const isGroup = chat.isGroupChat;
-  const isParticipantOnline = !isGroup && chat.participant?._id && onlineUsers.includes(chat.participant._id);
+  const activeTypers = useSelector(
+    (state) => state.chats.typingUsers?.[currentChatId]
+  ) || [];
+
+  const getParticipantId = (p) =>
+    typeof p === "object" && p !== null ? p._id?.toString() : p?.toString();
+
+  const onlineCount = isGroup
+    ? (chat.participants || []).filter((p) => {
+        const id = getParticipantId(p);
+        return id && onlineUsers.some((uId) => uId?.toString() === id);
+      }).length
+    : 0;
+
+  const participantIdStr = chat.participant?._id?.toString();
+  const isParticipantOnline =
+    !isGroup &&
+    Boolean(
+      participantIdStr &&
+        onlineUsers.some((id) => id?.toString() === participantIdStr)
+    );
+
   const displayName = isGroup ? chat.groupName : (chat.participant?.name || "Deleted User");
   const avatarSrc = isGroup ? chat.groupPhoto : chat.participant?.pfp;
-  const isEncrypted = (isGroup && chat.participants?.length > 0) || (!isGroup && !!user?.sessionPublicKey);
 
   return (
     <div className="h-[64px] flex items-center px-4 sm:px-8 bg-white/95 dark:bg-zinc-950/95 border-b border-slate-200/50 dark:border-zinc-900/80 backdrop-blur-md z-10 flex-shrink-0 justify-between">
@@ -53,7 +75,7 @@ export default function ConversationHeader({
                 className="w-10 h-10 object-cover rounded-full border border-slate-100 dark:border-zinc-800"
               />
             )}
-            {isParticipantOnline && (
+            {(isParticipantOnline || (isGroup && onlineCount > 0)) && (
               <span className="w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-zinc-950 absolute bottom-0 right-0 animate-pulse" />
             )}
           </div>
@@ -71,19 +93,25 @@ export default function ConversationHeader({
           </p>
           <div className="text-2xs text-slate-400 dark:text-zinc-500 truncate flex items-center gap-1.5">
             {isGroup ? (
-              <span className="font-medium text-slate-500 dark:text-zinc-400">
-                {chat.participants?.length || 0} members
+              activeTypers.length > 0 ? (
+                <span className="text-emerald-500 dark:text-emerald-400 font-medium animate-pulse">
+                  {activeTypers.length === 1
+                    ? `${activeTypers[0].userName} is typing...`
+                    : `${activeTypers.length} people typing...`}
+                </span>
+              ) : (
+                <span className="font-medium text-slate-500 dark:text-zinc-400">
+                  {onlineCount} online
+                </span>
+              )
+            ) : activeTypers.length > 0 ? (
+              <span className="text-emerald-500 dark:text-emerald-400 font-medium animate-pulse">
+                typing...
               </span>
             ) : isParticipantOnline ? (
-              <span className="text-emerald-500 font-medium">Active now</span>
+              <span className="text-emerald-500 dark:text-emerald-400 font-medium">Online</span>
             ) : (
               <span>Offline</span>
-            )}
-
-            {isEncrypted && (
-              <span className="text-emerald-600 dark:text-emerald-400/80 font-medium flex items-center gap-0.5" title="End-to-End Encrypted">
-                • <Lock size={10} className="inline" /> Encrypted
-              </span>
             )}
           </div>
         </div>

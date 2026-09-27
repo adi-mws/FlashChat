@@ -24,24 +24,66 @@ export default function useMessageSender({ chatId, chat, user }) {
 
   const textareaRef = useRef(null);
   const [isMobile] = useState(() => window.innerWidth < 640);
+  const typingTimeoutRef = useRef(null);
+  const isTypingRef = useRef(false);
 
-  // Auto focus textarea when chat changes
+  const getReceiverId = () => {
+    return chat?.participant?._id || chat?.participants?.find((p) => (p?._id || p)?.toString() !== user?.id?.toString())?._id || null;
+  };
+
+  const stopTyping = () => {
+    if (isTypingRef.current) {
+      isTypingRef.current = false;
+      const isGroup = chat?.isGroupChat;
+      const receiverId = isGroup ? null : getReceiverId();
+      socket.emit("stopTyping", { chatId, receiverId });
+    }
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = null;
+    }
+  };
+
+  const startTyping = () => {
+    const isGroup = chat?.isGroupChat;
+    const receiverId = isGroup ? null : getReceiverId();
+
+    if (!isTypingRef.current) {
+      isTypingRef.current = true;
+      socket.emit("typing", { chatId, receiverId });
+    }
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    typingTimeoutRef.current = setTimeout(() => {
+      stopTyping();
+    }, 1800);
+  };
+
+  // Auto focus textarea when chat changes, stop typing on unmount/switch
   useEffect(() => {
     textareaRef.current?.focus();
+    return () => {
+      stopTyping();
+    };
   }, [chatId]);
 
   const handleChange = (e) => {
-    dispatch(setActiveMessage(e.target.value));
+    const val = e.target.value;
+    dispatch(setActiveMessage(val));
+
+    if (val.trim().length > 0) {
+      startTyping();
+    } else {
+      stopTyping();
+    }
 
     const textarea = textareaRef.current;
     if (textarea) {
       textarea.style.height = "auto";
       textarea.style.height = `${textarea.scrollHeight}px`;
     }
-  };
-
-  const getReceiverId = () => {
-    return chat?.participant?._id || chat?.participants?.find((p) => (p?._id || p)?.toString() !== user?.id?.toString())?._id || null;
   };
 
   const handleSendMessage = async () => {
@@ -52,6 +94,8 @@ export default function useMessageSender({ chatId, chat, user }) {
 
     const trimmed = message?.trim();
     if (!trimmed || !chatId) return;
+
+    stopTyping();
 
     const isGroup = chat?.isGroupChat;
     const receiverId = isGroup ? null : getReceiverId();
