@@ -6,7 +6,6 @@ import { io } from "../socket/index.js";
 import { getUserRoom } from "../socket/store.js";
 import crypto from "crypto";
 import Message from "../models/message.js";
-import mongoose from "mongoose";
 import multer from "multer";
 import path from "path";
 import fs from "fs";

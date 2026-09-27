@@ -85,4 +85,32 @@ export const authorizeRole = (role) => (req, res, next) => {
     next();
 };
 
+// Middleware for optional authentication (attaches req.user if valid token present, otherwise proceeds)
+export const optionalAuthenticateJWT = (req, res, next) => {
+    const token = req.cookies?.token;
+    const googleToken = req.cookies?.googleToken;
+    if (!token && !googleToken) {
+        return next();
+    }
+    const verificationToken = token ? token : googleToken;
+    jwt.verify(verificationToken, process.env.JWT_SECRET, async (err, decoded) => {
+        if (err || !decoded?.id) {
+            return next();
+        }
+        try {
+            const user = await User.findById(decoded.id).select('role isDeactivated');
+            if (user && !user.isDeactivated) {
+                req.user = {
+                    ...decoded,
+                    role: user.role || decoded.role || 'user',
+                };
+            }
+        } catch (e) {
+            // ignore
+        }
+        next();
+    });
+};
+
 export default authenticateJWT;
+

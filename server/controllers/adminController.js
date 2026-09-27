@@ -7,6 +7,7 @@ import CompanionPairing from '../models/companionPairing.js';
 import fs from 'fs';
 import path from 'path';
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 import { buildSession } from '../lib/session.js';
 import { getCookieOptions } from './authController.js';
 import { io } from '../socket/index.js';
@@ -327,17 +328,19 @@ export const getBootstrapStatus = async (req, res) => {
 
 /**
  * POST /api/admin/claim-admin
- * One-time initial administrator bootstrap with master secret.
+ * Initial administrator bootstrap with Master Passkey.
+ * Supports both:
+ * 1) Authenticated user claiming Supreme Admin with { masterKey }
+ * 2) Unauthenticated visitor claiming Supreme Admin with { username, password, masterKey }
  * Once an admin exists in the system, master key claim is PERMANENTLY DISABLED.
  */
 export const claimAdminAccess = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const { masterKey } = req.body;
+    const { masterKey, username, password } = req.body;
 
     const totalAdmins = await User.countDocuments({ role: 'admin' });
 
-    // Permanently disable once an admin already exists
+    // Permanently disable once an admin already exists in the system
     if (totalAdmins > 0) {
       return res.status(403).json({
         message: "Supreme Admin has already been initialized. Master key option is permanently disabled."
@@ -345,19 +348,88 @@ export const claimAdminAccess = async (req, res) => {
     }
 
     const MASTER_SECRET = process.env.ADMIN_MASTER_KEY || "FLASHCHAT_SUPREME_2026";
-    if (masterKey !== MASTER_SECRET) {
-      return res.status(403).json({ message: "Invalid Master Passkey." });
+    if (!masterKey || masterKey !== MASTER_SECRET) {
+      return res.status(403).json({ message: "Invalid Master Passkey. Access rejected." });
     }
 
-    const user = await User.findByIdAndUpdate(userId, { role: 'admin' }, { new: true });
+    let userToPromote = null;
+
+    // Option A: Authenticated user (session cookie present)
+    if (req.user?.id) {
+      userToPromote = await User.findById(req.user.id);
+    }
+    // Option B: Unauthenticated visitor providing credentials
+    else if (username) {
+      const trimmedUser = username.trim();
+      userToPromote = await User.findOne({
+        $or: [{ username: trimmedUser }, { email: trimmedUser }]
+      });
+
+      if (!userToPromote) {
+        return res.status(404).json({
+          message: `User "${trimmedUser}" not found. Please enter a valid registered username or email.`
+        });
+      }
+
+      // If user has a password set, verify credentials
+      if (userToPromote.password && password) {
+        const isMatch = await bcrypt.compare(password, userToPromote.password);
+        if (!isMatch) {
+          return res.status(401).json({ message: "Invalid user account password." });
+        }
+      }
+    } else {
+      return res.status(400).json({
+        message: "Please enter your username/email or sign in first to claim admin privileges."
+      });
+    }
+
+    if (!userToPromote) {
+      return res.status(404).json({ message: "User not found to grant admin privileges." });
+    }
+
+    userToPromote.role = 'admin';
+    await userToPromote.save();
+
+    // If unauthenticated, establish session & issue JWT cookie
+    let activeSessionId = req.user?.sessionId;
+    if (!req.user?.id) {
+      const session = buildSession(req, userToPromote._id);
+      await session.save();
+      activeSessionId = session.sessionId;
+
+      const token = jwt.sign(
+        {
+          id: userToPromote._id,
+          username: userToPromote.username,
+          role: userToPromote.role,
+          sessionId: session.sessionId
+        },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRES_IN || '48h' }
+      );
+
+      const cookieOptions = getCookieOptions();
+      res.cookie('token', token, cookieOptions);
+    }
+
     return res.status(200).json({
       success: true,
-      message: "Supreme Admin privileges granted successfully!",
-      role: user.role
+      message: "Supreme Admin privileges granted successfully! Welcome to the console.",
+      user: {
+        id: userToPromote._id,
+        _id: userToPromote._id,
+        name: userToPromote.name,
+        username: userToPromote.username,
+        email: userToPromote.email,
+        pfp: userToPromote.pfp,
+        role: userToPromote.role,
+        sessionId: activeSessionId,
+      }
     });
   } catch (error) {
     console.error("Error in claimAdminAccess:", error);
-    return res.status(500).json({ message: "Failed to grant admin privileges." });
+    return res.status(500).json({ message: "Failed to grant admin privileges.", error: error.message });
   }
 };
 

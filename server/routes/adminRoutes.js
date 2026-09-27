@@ -1,5 +1,5 @@
 import express from 'express';
-import authenticateJWT, { authorizeRole } from '../middlewares/auth.js';
+import authenticateJWT, { authorizeRole, optionalAuthenticateJWT } from '../middlewares/auth.js';
 import {
   getAdminMetrics,
   getAdminUsers,
@@ -18,8 +18,8 @@ const router = express.Router();
 // Check if initial Supreme Admin bootstrap has already been performed
 router.get('/bootstrap-status', getBootstrapStatus);
 
-// One-time admin claim (strictly disabled if an admin already exists)
-router.post('/claim-admin', authenticateJWT, claimAdminAccess);
+// One-time admin claim (strictly disabled once an admin already exists)
+router.post('/claim-admin', optionalAuthenticateJWT, claimAdminAccess);
 
 // Supreme Admin-Only Endpoints
 router.get('/metrics', authenticateJWT, authorizeRole('admin'), getAdminMetrics);
