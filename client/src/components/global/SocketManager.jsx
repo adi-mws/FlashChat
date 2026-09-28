@@ -14,6 +14,7 @@ import { selectUser, logoutUser } from '../../redux/slices/authSlice';
 import {
   fetchChats,
   setOnlineUsers,
+  updateUserOnlineStatus,
   receiveNewMessage,
   receiverSeenMessage,
   removeMessageLocally,
@@ -33,6 +34,30 @@ export default function SocketManager() {
   const selectedChat = useSelector(selectSelectedChat);
   const { showNotification } = useNotification();
 
+  // Instant offline detection on tab close / window unload
+  useEffect(() => {
+    if (!user) return;
+
+    const handleBeforeUnload = () => {
+      if (socket.connected) {
+        try {
+          socket.emit('leave_app');
+          socket.disconnect();
+        } catch (e) {
+          // ignore
+        }
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    window.addEventListener('pagehide', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      window.removeEventListener('pagehide', handleBeforeUnload);
+    };
+  }, [user]);
+
   // Connect / disconnect based on user login state
   useEffect(() => {
     if (!user) {
@@ -49,6 +74,7 @@ export default function SocketManager() {
     dispatch(fetchChats(user));
 
     const handleOnlineUsers = (users) => dispatch(setOnlineUsers(users));
+    const handleUserStatusUpdate = (status) => dispatch(updateUserOnlineStatus(status));
     const handleSessionRevoked = () => dispatch(logoutUser());
     const handleConnectError = (err) => {
       console.error('Socket error:', err.message);
@@ -58,11 +84,13 @@ export default function SocketManager() {
     };
 
     socket.on('onlineUsers', handleOnlineUsers);
+    socket.on('userStatusUpdate', handleUserStatusUpdate);
     socket.on('session_revoked', handleSessionRevoked);
     socket.on('connect_error', handleConnectError);
 
     return () => {
       socket.off('onlineUsers', handleOnlineUsers);
+      socket.off('userStatusUpdate', handleUserStatusUpdate);
       socket.off('session_revoked', handleSessionRevoked);
       socket.off('connect_error', handleConnectError);
     };

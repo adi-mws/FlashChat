@@ -3,6 +3,49 @@ import { useSelector } from "react-redux";
 import { ArrowLeft, EllipsisVertical, Users } from "lucide-react";
 import { getImageUrl } from "../../lib/imageUtils";
 
+export function formatLastSeen(dateVal) {
+  if (!dateVal) return "Offline";
+  const date = new Date(dateVal);
+  if (isNaN(date.getTime())) return "Offline";
+
+  const now = new Date();
+  const diffMs = now - date;
+
+  if (diffMs < 60000 && diffMs >= 0) {
+    return "Last seen just now";
+  }
+
+  const isToday =
+    date.getDate() === now.getDate() &&
+    date.getMonth() === now.getMonth() &&
+    date.getFullYear() === now.getFullYear();
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const isYesterday =
+    date.getDate() === yesterday.getDate() &&
+    date.getMonth() === yesterday.getMonth() &&
+    date.getFullYear() === yesterday.getFullYear();
+
+  const timeStr = date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
+
+  if (isToday) {
+    return `Last seen today at ${timeStr}`;
+  }
+  if (isYesterday) {
+    return `Last seen yesterday at ${timeStr}`;
+  }
+
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  if (diffDays < 7) {
+    const dayName = date.toLocaleDateString([], { weekday: 'short' });
+    return `Last seen ${dayName} at ${timeStr}`;
+  }
+
+  const dateStr = date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+  return `Last seen on ${dateStr} at ${timeStr}`;
+}
+
 /**
  * ConversationHeader
  * Displays chat participant/group information, avatar, live online/typing status,
@@ -111,7 +154,9 @@ export default function ConversationHeader({
             ) : isParticipantOnline ? (
               <span className="text-emerald-500 dark:text-emerald-400 font-medium">Online</span>
             ) : (
-              <span>Offline</span>
+              <span className="text-slate-400 dark:text-zinc-500 font-normal">
+                {formatLastSeen(chat.participant?.lastOnline)}
+              </span>
             )}
           </div>
         </div>

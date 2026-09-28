@@ -10,10 +10,18 @@ import ImageViewer from "../ImageViewer";
  * E2EE encrypted image bubble with lightbox zoom and upload progress overlay.
  */
 export default function ImageMessage({ message, isSender, time }) {
+  const mimeType = message.fileName?.toLowerCase().endsWith(".png")
+    ? "image/png"
+    : message.fileName?.toLowerCase().endsWith(".webp")
+    ? "image/webp"
+    : message.fileName?.toLowerCase().endsWith(".gif")
+    ? "image/gif"
+    : "image/jpeg";
+
   const { blobUrl, loading, error } = useDecryptedAttachment(
     message.attachmentUrl,
     message.attachmentEncryption,
-    "image/jpeg",
+    mimeType,
     message.localBlobUrl
   );
 
@@ -27,25 +35,28 @@ export default function ImageMessage({ message, isSender, time }) {
   return (
     <>
       <div
-        className={`relative max-w-[72%] sm:max-w-[52%] rounded-2xl overflow-hidden shadow-md ${bubble} ${
+        className={`relative w-[280px] sm:w-[320px] max-w-[85vw] rounded-2xl overflow-hidden shadow-md select-none ${bubble} ${
           message.isSending ? "ring-2 ring-indigo-500/50" : ""
         }`}
       >
-        {/* Image Display Area */}
+        {/* Image Display Area - Standard width box filled by image with standard max-height */}
         <div
-          className="relative bg-zinc-800"
-          style={{ minWidth: 180, minHeight: 120 }}
+          onClick={() => !message.isSending && blobUrl && setViewerOpen(true)}
+          className={`relative w-full bg-zinc-800/80 overflow-hidden ${
+            blobUrl && !message.isSending ? "cursor-pointer group/img" : ""
+          }`}
+          style={{ minHeight: 160 }}
         >
           {loading && !message.isSending && (
-            <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/80 z-10">
+            <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/80 z-10 min-h-[160px]">
               <div className="w-8 h-8 rounded-full border-2 border-zinc-600 border-t-indigo-400 animate-spin" />
             </div>
           )}
 
           {error && !message.isSending && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900/80 z-10 gap-1">
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900/80 z-10 gap-1 min-h-[160px]">
               <AlertCircle size={20} className="text-red-400" />
-              <span className="text-[10px] text-red-300">Failed to load</span>
+              <span className="text-[10px] text-red-300">Failed to load image</span>
             </div>
           )}
 
@@ -54,24 +65,22 @@ export default function ImageMessage({ message, isSender, time }) {
               <img
                 src={blobUrl}
                 alt={message.fileName || "Image"}
-                onClick={() => !message.isSending && setViewerOpen(true)}
-                className={`w-full object-cover block transition-opacity ${
+                className={`w-full h-auto min-h-[160px] max-h-[360px] object-cover block transition-transform duration-200 group-hover/img:scale-[1.01] ${
                   message.isSending
                     ? "opacity-75 cursor-default"
-                    : "cursor-zoom-in active:opacity-90"
+                    : "cursor-pointer active:opacity-90"
                 }`}
-                style={{ maxHeight: 320 }}
               />
 
               {!message.isSending && (
-                <div className="absolute top-1.5 right-1.5 pointer-events-none">
-                  <span className="w-6 h-6 rounded-full bg-black/40 flex items-center justify-center">
+                <div className="absolute top-2 right-2 pointer-events-none opacity-80 group-hover/img:opacity-100 transition">
+                  <span className="w-7 h-7 rounded-full bg-black/50 backdrop-blur-xs flex items-center justify-center shadow-sm">
                     <svg
                       viewBox="0 0 24 24"
                       fill="none"
                       stroke="white"
                       strokeWidth={2.5}
-                      className="w-3 h-3"
+                      className="w-3.5 h-3.5"
                     >
                       <path
                         d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"

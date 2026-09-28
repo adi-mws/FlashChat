@@ -14,6 +14,8 @@ export const initSocket = (server) => {
       methods: ["GET", "POST"],
       credentials: true,
     },
+    pingInterval: 10000,
+    pingTimeout: 5000,
   });
 
   io.use(socketAuth);
@@ -35,6 +37,7 @@ export const initSocket = (server) => {
       socket.join(getUserRoom(userId));
       socket.join(getSessionRoom(userId, sessionId));
       io.emit("onlineUsers", getOnlineUsers());
+      io.emit("userStatusUpdate", { userId, isOnline: true });
       console.log(`User ${userId} session ${sessionId} connected`);
     }
 
@@ -45,6 +48,7 @@ export const initSocket = (server) => {
       console.log(`User ${socket.user.id} joined`);
 
       io.emit("onlineUsers", getOnlineUsers());
+      io.emit("userStatusUpdate", { userId: socket.user.id.toString(), isOnline: true });
     });
 
     socket.on("joinChat", async ({ chatId }) => {
@@ -286,28 +290,28 @@ export const initSocket = (server) => {
       }
     });
 
-    socket.on("disconnect", () => {
+    const handleUserDisconnect = async () => {
       const socketInfo = removeUser(socket.id);
       if (socketInfo?.userId) {
         const { userId } = socketInfo;
         console.log(`User ${userId} disconnected`);
-        const updateOnlineStatus = async () => {
-          if (!getOnlineUsers().includes(userId)) {
-            await User.findByIdAndUpdate(userId, { lastOnline: Date.now() });
+        const stillOnline = getOnlineUsers().includes(userId);
+        if (!stillOnline) {
+          const now = new Date();
+          try {
+            await User.findByIdAndUpdate(userId, { lastOnline: now });
+          } catch (err) {
+            console.error("Error updating lastOnline on disconnect:", err);
           }
-        };
-        updateOnlineStatus();
-
-        // Leave all rooms
-        for (const room of socket.rooms) {
-          if (room !== socket.id) {
-            socket.leave(room);
-          }
+          io.emit("userStatusUpdate", { userId, isOnline: false, lastOnline: now.toISOString() });
         }
 
         io.emit("onlineUsers", getOnlineUsers());
       }
-    });
+    };
+
+    socket.on("leave_app", handleUserDisconnect);
+    socket.on("disconnect", handleUserDisconnect);
   });
 
   return io;

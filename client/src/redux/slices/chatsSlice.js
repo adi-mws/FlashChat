@@ -254,6 +254,34 @@ const chatsSlice = createSlice({
     setOnlineUsers(state, action) {
       state.onlineUsers = action.payload;
     },
+    updateUserOnlineStatus(state, action) {
+      const { userId, isOnline, lastOnline } = action.payload || {};
+      if (!userId) return;
+
+      const userIdStr = userId.toString();
+      if (isOnline) {
+        if (!state.onlineUsers.some(id => id?.toString() === userIdStr)) {
+          state.onlineUsers.push(userIdStr);
+        }
+      } else {
+        state.onlineUsers = state.onlineUsers.filter(id => id?.toString() !== userIdStr);
+      }
+
+      if (lastOnline) {
+        state.chats.forEach(chat => {
+          if (chat.participant && chat.participant._id?.toString() === userIdStr) {
+            chat.participant.lastOnline = lastOnline;
+          }
+          if (Array.isArray(chat.participants)) {
+            chat.participants.forEach(p => {
+              if (p?._id?.toString() === userIdStr) {
+                p.lastOnline = lastOnline;
+              }
+            });
+          }
+        });
+      }
+    },
     setActiveMessage(state, action ) {
       state.activeMessage = action.payload;
     },
@@ -576,6 +604,7 @@ export const {
   setChats,
   setSelectedChat,
   setOnlineUsers,
+  updateUserOnlineStatus,
   clearMessages,
   addSendingMessage,
   removeSendingMessage,

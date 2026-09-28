@@ -62,11 +62,11 @@ export const showAllChatsOfUser = async (req, res) => {
         })
             .populate({
                 path: "participants",
-                select: "username name pfp"
+                select: "username name pfp lastOnline"
             })
             .populate({
                 path: "groupAdmins",
-                select: "username name pfp"
+                select: "username name pfp lastOnline"
             })
             .populate({
                 path: "lastMessage",
@@ -429,11 +429,11 @@ export const createGroupChat = async (req, res) => {
         const populatedGroup = await Chat.findById(newGroup._id)
             .populate({
                 path: "participants",
-                select: "username name pfp"
+                select: "username name pfp lastOnline"
             })
             .populate({
                 path: "groupAdmins",
-                select: "username name pfp"
+                select: "username name pfp lastOnline"
             });
 
         const chatPayload = {
@@ -515,11 +515,11 @@ export const joinGroupByInviteCode = async (req, res) => {
         const populatedGroup = await Chat.findById(group._id)
             .populate({
                 path: "participants",
-                select: "username name pfp"
+                select: "username name pfp lastOnline"
             })
             .populate({
                 path: "groupAdmins",
-                select: "username name pfp"
+                select: "username name pfp lastOnline"
             })
             .populate({
                 path: "lastMessage",
@@ -637,11 +637,11 @@ export const updateGroupSettings = async (req, res) => {
         const populatedGroup = await Chat.findById(chatId)
             .populate({
                 path: "participants",
-                select: "username name pfp"
+                select: "username name pfp lastOnline"
             })
             .populate({
                 path: "groupAdmins",
-                select: "username name pfp"
+                select: "username name pfp lastOnline"
             });
 
         // Notify members via socket
@@ -701,11 +701,11 @@ export const manageGroupAdmins = async (req, res) => {
         const populatedGroup = await Chat.findById(chatId)
             .populate({
                 path: "participants",
-                select: "username name pfp"
+                select: "username name pfp lastOnline"
             })
             .populate({
                 path: "groupAdmins",
-                select: "username name pfp"
+                select: "username name pfp lastOnline"
             });
 
         group.participants.forEach(memberId => {
@@ -778,11 +778,11 @@ export const removeGroupMember = async (req, res) => {
         const populatedGroup = await Chat.findById(chatId)
             .populate({
                 path: "participants",
-                select: "username name pfp"
+                select: "username name pfp lastOnline"
             })
             .populate({
                 path: "groupAdmins",
-                select: "username name pfp"
+                select: "username name pfp lastOnline"
             });
 
         // Notify all remaining members
