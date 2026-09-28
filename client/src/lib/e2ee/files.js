@@ -128,7 +128,13 @@ export async function decryptFile(url, attachmentEncryption, currentSessionId, m
     throw new Error("NO_SESSION_KEY_ENVELOPE");
   }
 
-  const privateKeyJwkStr = currentSessionId ? getSessionPrivateKey(currentSessionId) : null;
+  let privateKeyJwkStr = currentSessionId ? getSessionPrivateKey(currentSessionId) : null;
+  if (!privateKeyJwkStr && currentUserId && typeof localStorage !== 'undefined') {
+    const legacyKey = localStorage.getItem(`e2ee_private_key_${currentUserId}`) ||
+                      localStorage.getItem(`e2ee_private_key_legacy`);
+    if (legacyKey) privateKeyJwkStr = legacyKey;
+  }
+
   if (!privateKeyJwkStr) {
     throw new Error("PRIVATE_KEY_MISSING");
   }

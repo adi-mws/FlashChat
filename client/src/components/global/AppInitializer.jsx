@@ -1,12 +1,14 @@
-/**
- * AppInitializer
- * Runs once at app boot: verifies session from cookie,
- * then initializes E2EE keys when user is available.
- * Replaces the useEffect logic that was inside AuthContext.
- */
 import { useEffect } from 'react';
+import axios from 'axios';
 import { useDispatch, useSelector } from 'react-redux';
 import { verifyUser, initE2EEKeys, selectUser } from '../../redux/slices/authSlice';
+import { getOrCreateDeviceId } from '../../lib/e2ee/keyStore';
+
+// Attach stable browser device ID to every outgoing request
+const deviceId = getOrCreateDeviceId();
+if (deviceId) {
+  axios.defaults.headers.common['x-device-id'] = deviceId;
+}
 
 export default function AppInitializer() {
   const dispatch = useDispatch();

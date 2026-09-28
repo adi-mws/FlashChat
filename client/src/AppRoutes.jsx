@@ -42,7 +42,7 @@ export default function AppRoutes() {
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
-    const isAdmin = user?.role === 'admin';
+    const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
 
     return (
         <LoadingScreen loading={loading} text="Initializing Server...">

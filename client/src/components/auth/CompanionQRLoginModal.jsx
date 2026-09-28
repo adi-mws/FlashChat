@@ -8,6 +8,7 @@ import { setUser, initE2EEKeys } from "../../redux/slices/authSlice";
 import { CHAT_ROUTES } from "../../../routes/routes";
 import { generateE2EEKeyPair, saveSessionPrivateKey, saveSessionPublicKey } from "../../lib/e2ee";
 import { QrCode, MonitorSmartphone, X, RefreshCw, CheckCircle2, ShieldCheck, AlertCircle, Copy, Check } from "lucide-react";
+import { createPortal } from "react-dom";
 
 export default function CompanionQRLoginModal({ isOpen, onClose }) {
   const dispatch = useDispatch();
@@ -135,8 +136,17 @@ export default function CompanionQRLoginModal({ isOpen, onClose }) {
     }
 
     // If existing device transferred an unencrypted private key directly:
-    if (user?.transferredKeyPayload && user.sessionId) {
-      saveSessionPrivateKey(user.sessionId, user.transferredKeyPayload);
+    if (user?.transferredKeyPayload) {
+      if (user.sessionId) {
+        saveSessionPrivateKey(user.sessionId, user.transferredKeyPayload);
+      }
+      if (user.username) {
+        localStorage.setItem(`e2ee_private_key_${user.username}`, user.transferredKeyPayload);
+      }
+      if (user.id || user._id) {
+        localStorage.setItem(`e2ee_private_key_${user.id || user._id}`, user.transferredKeyPayload);
+      }
+      localStorage.setItem("e2ee_private_key", user.transferredKeyPayload);
     }
 
     dispatch(setUser(user));
@@ -198,9 +208,9 @@ export default function CompanionQRLoginModal({ isOpen, onClose }) {
     return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/80 px-4 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-md bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 shadow-2xl rounded-3xl p-6 sm:p-8 space-y-6 animate-scale-in text-slate-800 dark:text-zinc-100">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 dark:bg-black/80 px-4 backdrop-blur-md animate-fade-in">
+      <div className="relative w-full max-w-md bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 shadow-2xl rounded-2xl p-6 sm:p-8 space-y-6 animate-scale-in text-slate-800 dark:text-zinc-100">
         
         {/* Close Button */}
         <button
@@ -310,6 +320,7 @@ export default function CompanionQRLoginModal({ isOpen, onClose }) {
         </div>
 
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

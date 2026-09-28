@@ -126,6 +126,12 @@ export default function LinkDeviceScannerModal({ isOpen, onClose, onDeviceLinked
       if (!localPrivateKey && user?.username) {
         localPrivateKey = localStorage.getItem(`e2ee_private_key_${user.username}`);
       }
+      if (!localPrivateKey && user?.id) {
+        localPrivateKey = localStorage.getItem(`e2ee_private_key_${user.id}`);
+      }
+      if (!localPrivateKey) {
+        localPrivateKey = localStorage.getItem("e2ee_private_key");
+      }
 
       const payload = {
         pairingId: scannedData?.pairingId || null,

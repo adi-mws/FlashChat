@@ -45,3 +45,36 @@ export function clearSessionKeys(sessionId) {
   removeSessionPrivateKey(sessionId);
   removeSessionPublicKey(sessionId);
 }
+
+/**
+ * Returns a stable device/installation ID for this browser.
+ * If this browser already has private keys from a previous login, seamlessly adopts that sessionId.
+ */
+export function getOrCreateDeviceId() {
+  if (!isStorageAvailable()) return null;
+  let deviceId = localStorage.getItem('flashchat_device_id');
+  if (deviceId) return deviceId;
+
+  // Seamlessly adopt existing session key if this browser already generated one in a previous login
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('e2ee_private_key_') && key !== 'e2ee_private_key_legacy') {
+        const candidateSessionId = key.replace('e2ee_private_key_', '');
+        if (candidateSessionId && !candidateSessionId.includes(' ') && candidateSessionId.length > 5) {
+          deviceId = candidateSessionId;
+          localStorage.setItem('flashchat_device_id', deviceId);
+          return deviceId;
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("Error scanning existing session keys:", e);
+  }
+
+  deviceId = (typeof crypto !== 'undefined' && crypto.randomUUID)
+    ? crypto.randomUUID()
+    : 'device_' + Date.now() + '_' + Math.random().toString(36).substring(2, 10);
+  localStorage.setItem('flashchat_device_id', deviceId);
+  return deviceId;
+}

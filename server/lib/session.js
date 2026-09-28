@@ -31,11 +31,31 @@ export const parseDeviceInfo = (userAgent = '') => {
   return { browser, os, userAgent };
 };
 
-export const buildSession = (req) => {
-  const userAgent = req.headers['user-agent'] || '';
+export const buildSession = (req, user = null) => {
+  const userAgent = req?.headers?.['user-agent'] || '';
+  const requestedDeviceId = req?.body?.deviceId || req?.headers?.['x-device-id'];
+
+  let sessionId;
+  if (requestedDeviceId && typeof requestedDeviceId === 'string' && requestedDeviceId.trim().length > 0) {
+    const rawId = requestedDeviceId.trim();
+    // Scope the device session to the user so multiple accounts on the same browser have separate sessions and keys
+    if (user?._id) {
+      const uIdStr = user._id.toString();
+      const uPrefix = uIdStr.slice(-6);
+      if (rawId.includes(uPrefix)) {
+        sessionId = rawId;
+      } else {
+        sessionId = `dev_${uPrefix}_${rawId.slice(0, 14)}`;
+      }
+    } else {
+      sessionId = rawId;
+    }
+  } else {
+    sessionId = createSessionId();
+  }
 
   return {
-    sessionId: createSessionId(),
+    sessionId,
     ip: getClientIp(req),
     ...parseDeviceInfo(userAgent),
     createdAt: new Date(),

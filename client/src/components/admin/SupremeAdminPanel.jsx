@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { selectUser, setUser, updateUser, logoutUser } from '../../redux/slices/authSlice';
+import { selectUser, setUser, updateUser, clearUser, logoutUser } from '../../redux/slices/authSlice';
 import { useNotification } from '../../hooks/useNotification';
 import { CHAT_ROUTES } from '../../../routes/routes';
 import { getImageUrl } from '../../lib/imageUtils';
@@ -39,7 +39,10 @@ import {
   Flame,
   FolderX,
   UserX,
+  UserPlus,
   LogOut,
+  MessagesSquare,
+  MessageSquareX,
 } from 'lucide-react';
 
 export default function SupremeAdminPanel() {
@@ -76,8 +79,27 @@ export default function SupremeAdminPanel() {
   const [isBootstrapped, setIsBootstrapped] = useState(null);
   const [masterKey, setMasterKey] = useState('');
   const [claimingAdmin, setClaimingAdmin] = useState(false);
+  const [claimPassword, setClaimPassword] = useState('');
+  const [claimConfirmPassword, setClaimConfirmPassword] = useState('');
+  const [claimName, setClaimName] = useState('');
 
-  const isAdmin = user?.role === 'admin';
+  // Password Management modal states
+  const [passwordModalOpen, setPasswordModalOpen] = useState(false);
+  const [newAdminPassword, setNewAdminPassword] = useState('');
+  const [confirmAdminPassword, setConfirmAdminPassword] = useState('');
+  const [updatingPassword, setUpdatingPassword] = useState(false);
+
+  // Secondary Administrator Provisioning modal states (Super Admin only)
+  const [createAdminModalOpen, setCreateAdminModalOpen] = useState(false);
+  const [regAdminUsername, setRegAdminUsername] = useState('');
+  const [regAdminName, setRegAdminName] = useState('');
+  const [regAdminEmail, setRegAdminEmail] = useState('');
+  const [regAdminPassword, setRegAdminPassword] = useState('');
+  const [regAdminConfirmPassword, setRegAdminConfirmPassword] = useState('');
+  const [creatingAdmin, setCreatingAdmin] = useState(false);
+
+  const isAdmin = user?.role === 'admin' || user?.role === 'superadmin';
+  const isSuperAdmin = user?.role === 'superadmin';
 
   // Fetch telemetry & metrics
   const fetchMetrics = async () => {
@@ -186,13 +208,118 @@ export default function SupremeAdminPanel() {
     }
   };
 
-  // Toggle user role (promote/demote admin)
+  // Sign out cleanly, invalidate session and redirect
+  const handleSignOut = async () => {
+    try {
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/admin/auth/logout`,
+        {},
+        { withCredentials: true }
+      );
+    } catch (err) {
+      console.warn("Logout error:", err);
+    } finally {
+      dispatch(clearUser());
+      showNotification('Signed out from Supreme Console.', 'info');
+      navigate('/', { replace: true });
+    }
+  };
+
+  // Super Admin: Provision a new secondary Administrator
+  const handleCreateAdmin = async (e) => {
+    if (e) e.preventDefault();
+    if (!regAdminUsername.trim()) {
+      showNotification('Username is required.', 'error');
+      return;
+    }
+    if (!regAdminPassword || regAdminPassword.length < 6) {
+      showNotification('Password must be at least 6 characters long.', 'error');
+      return;
+    }
+    if (regAdminPassword !== regAdminConfirmPassword) {
+      showNotification('Passwords do not match.', 'error');
+      return;
+    }
+
+    try {
+      setCreatingAdmin(true);
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_URL}/admin/auth/register`,
+        {
+          username: regAdminUsername.trim(),
+          name: regAdminName.trim() || regAdminUsername.trim(),
+          email: regAdminEmail.trim() || undefined,
+          password: regAdminPassword,
+          confirmPassword: regAdminConfirmPassword,
+        },
+        { withCredentials: true }
+      );
+
+      if (res.data.success) {
+        showNotification(res.data.message || 'Administrator created successfully!', 'success');
+        setCreateAdminModalOpen(false);
+        setRegAdminUsername('');
+        setRegAdminName('');
+        setRegAdminEmail('');
+        setRegAdminPassword('');
+        setRegAdminConfirmPassword('');
+        fetchUsers();
+      }
+    } catch (err) {
+      console.error('Create admin error:', err);
+      showNotification(err.response?.data?.message || 'Failed to create administrator.', 'error');
+    } finally {
+      setCreatingAdmin(false);
+    }
+  };
+
+  // Update or set admin password
+  const handleUpdateAdminPassword = async (e) => {
+    if (e) e.preventDefault();
+    if (!newAdminPassword || newAdminPassword.length < 6) {
+      showNotification('Password must be at least 6 characters long.', 'error');
+      return;
+    }
+    if (newAdminPassword !== confirmAdminPassword) {
+      showNotification('Passwords do not match.', 'error');
+      return;
+    }
+    try {
+      setUpdatingPassword(true);
+      const res = await axios.post(
+        `${import.meta.env.VITE_API_URL}/admin/set-password`,
+        { password: newAdminPassword, confirmPassword: confirmAdminPassword },
+        { withCredentials: true }
+      );
+      if (res.data.success) {
+        showNotification(res.data.message || 'Password updated successfully!', 'success');
+        setPasswordModalOpen(false);
+        setNewAdminPassword('');
+        setConfirmAdminPassword('');
+      }
+    } catch (err) {
+      showNotification(err.response?.data?.message || 'Failed to update password', 'error');
+    } finally {
+      setUpdatingPassword(false);
+    }
+  };
+
+  // Toggle user role (appoint/revoke admin) - Only Super Admin can perform this!
   const handleToggleRole = async (targetUser) => {
+    if (!isSuperAdmin) {
+      showNotification('Only the Super Admin can appoint or revoke administrators.', 'error');
+      return;
+    }
+    if (targetUser.role === 'superadmin') {
+      showNotification('The Super Admin account cannot be modified.', 'error');
+      return;
+    }
+
     const newRole = targetUser.role === 'admin' ? 'user' : 'admin';
     const confirmMsg =
       newRole === 'admin'
-        ? `Grant Supreme Admin privileges to @${targetUser.username}?`
-        : `Demote @${targetUser.username} to standard user?`;
+        ? `Grant System Admin privileges to @${targetUser.username}?`
+        : `Revoke admin privileges and demote @${targetUser.username} to standard user?`;
 
     if (!window.confirm(confirmMsg)) return;
 
@@ -248,7 +375,7 @@ export default function SupremeAdminPanel() {
   useEffect(() => {
     let isMounted = true;
     axios
-      .get(`${import.meta.env.VITE_API_URL}/admin/bootstrap-status`)
+      .get(`${import.meta.env.VITE_API_URL}/admin/auth/bootstrap-status`)
       .then((res) => {
         if (isMounted && res.data?.success) {
           setIsBootstrapped(res.data.isBootstrapped);
@@ -264,17 +391,25 @@ export default function SupremeAdminPanel() {
 
   // Only redirect non-admins if an admin has ALREADY been bootstrapped
   useEffect(() => {
-    if (isBootstrapped === true && user && user.role !== 'admin') {
+    if (isBootstrapped === true && user && user.role !== 'admin' && user.role !== 'superadmin') {
       showNotification('Access restricted: Admins only. Redirecting to user chat...', 'error');
       navigate(CHAT_ROUTES.root, { replace: true });
     }
   }, [isBootstrapped, user, navigate]);
 
-  // Master Passkey Initial Bootstrap Claim
+  // Master Passkey Initial Bootstrap Claim (One-time only for Super Admin setup)
   const handleClaimAdmin = async (e) => {
     if (e) e.preventDefault();
     if (!masterKey.trim()) {
       showNotification('Please enter the Master Passkey.', 'error');
+      return;
+    }
+    if (!claimPassword || claimPassword.length < 6) {
+      showNotification('Please enter a Super Admin password (minimum 6 characters).', 'error');
+      return;
+    }
+    if (claimPassword !== claimConfirmPassword) {
+      showNotification('Password and Confirm Password do not match.', 'error');
       return;
     }
 
@@ -282,68 +417,74 @@ export default function SupremeAdminPanel() {
       setClaimingAdmin(true);
       const payload = {
         masterKey: masterKey.trim(),
+        password: claimPassword,
+        confirmPassword: claimConfirmPassword,
       };
 
       if (!user) {
         if (!loginUsername.trim()) {
-          showNotification('Please enter your registered username or email.', 'error');
+          showNotification('Please enter your chosen username or email.', 'error');
           setClaimingAdmin(false);
           return;
         }
         payload.username = loginUsername.trim();
-        payload.password = loginPassword;
+        if (claimName.trim()) payload.name = claimName.trim();
       }
 
       const res = await axios.post(
-        `${import.meta.env.VITE_API_URL}/admin/claim-admin`,
+        `${import.meta.env.VITE_API_URL}/admin/auth/register`,
         payload,
         { withCredentials: true }
       );
 
       if (res.data.success) {
-        showNotification(res.data.message || 'Supreme Admin privileges granted successfully!', 'success');
+        showNotification(res.data.message || 'Super Admin initialized successfully!', 'success');
         if (res.data.user) {
           dispatch(setUser(res.data.user));
         } else if (user) {
-          dispatch(updateUser({ role: 'admin' }));
+          dispatch(updateUser({ role: 'superadmin' }));
         }
         setIsBootstrapped(true);
         setMasterKey('');
+        setClaimPassword('');
+        setClaimConfirmPassword('');
         loadAll();
       }
     } catch (err) {
       console.error(err);
-      showNotification(err.response?.data?.message || 'Failed to claim admin access. Verify Master Passkey.', 'error');
+      showNotification(err.response?.data?.message || 'Failed to claim Super Admin access. Verify Master Passkey.', 'error');
     } finally {
       setClaimingAdmin(false);
     }
   };
 
-  // Direct Administrator Credentials Login
+  // Direct Administrator Credentials Login (Dedicated Admin Auth)
   const handleAdminDirectLogin = async (e) => {
     e.preventDefault();
     try {
       setLoggingIn(true);
       const res = await axios.post(
-        `${import.meta.env.VITE_API_URL}/auth/login`,
+        `${import.meta.env.VITE_API_URL}/admin/auth/login`,
         { username: loginUsername.trim(), password: loginPassword },
         { withCredentials: true }
       );
 
-      const loggedUser = res.data.user;
-      dispatch(setUser(loggedUser));
+      if (res.data.success && res.data.user) {
+        const loggedUser = res.data.user;
+        dispatch(setUser(loggedUser));
 
-      if (loggedUser.role !== 'admin') {
-        showNotification('Standard user account authenticated. Redirecting to user chat...', 'info');
-        navigate(CHAT_ROUTES.root, { replace: true });
-        return;
+        if (loggedUser.role !== 'admin' && loggedUser.role !== 'superadmin') {
+          showNotification('Standard user account authenticated. Redirecting to user chat...', 'info');
+          navigate(CHAT_ROUTES.root, { replace: true });
+          return;
+        }
+
+        showNotification(`Welcome to Supreme Console, @${loggedUser.username}!`, 'success');
+        loadAll();
       }
-
-      showNotification('Supreme Admin Authenticated', 'success');
-      loadAll();
     } catch (err) {
       console.error(err);
-      showNotification(err.response?.data?.message || 'Authentication failed. Please verify credentials.', 'error');
+      showNotification(err.response?.data?.message || 'Authentication failed. Please verify administrator credentials.', 'error');
     } finally {
       setLoggingIn(false);
     }
@@ -381,10 +522,12 @@ export default function SupremeAdminPanel() {
 
           <form onSubmit={isFirstTimeSetup ? handleClaimAdmin : handleAdminDirectLogin} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-zinc-400">Username or Email</label>
+              <label className="text-xs font-semibold text-zinc-400">
+                {isFirstTimeSetup ? 'Super Admin Username or Email' : 'Username or Email'}
+              </label>
               <input
                 type="text"
-                placeholder="Enter registered username or email"
+                placeholder={isFirstTimeSetup ? "Enter chosen username (e.g. supreme_admin)" : "Enter registered username or email"}
                 value={loginUsername}
                 onChange={(e) => setLoginUsername(e.target.value)}
                 required
@@ -392,50 +535,90 @@ export default function SupremeAdminPanel() {
               />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-semibold text-zinc-400">Password</label>
-              <input
-                type="password"
-                placeholder="Enter account password"
-                value={loginPassword}
-                onChange={(e) => setLoginPassword(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-600 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition"
-              />
-            </div>
-
             {isFirstTimeSetup && (
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-amber-400 flex items-center gap-1.5">
-                    <Key size={13} /> Master Passkey
-                  </label>
-                  <span className="text-[10px] text-amber-500/80 font-mono">One-Time Secret</span>
+                <label className="text-xs font-semibold text-zinc-400">Admin Display Name (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Master Administrator"
+                  value={claimName}
+                  onChange={(e) => setClaimName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-600 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition"
+                />
+              </div>
+            )}
+
+            {isFirstTimeSetup ? (
+              <>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-amber-400">Create Super Admin Password</label>
+                  <input
+                    type="password"
+                    placeholder="Create a strong password (min 6 chars)"
+                    value={claimPassword}
+                    onChange={(e) => setClaimPassword(e.target.value)}
+                    required
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-600 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition"
+                  />
                 </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-zinc-400">Confirm Super Admin Password</label>
+                  <input
+                    type="password"
+                    placeholder="Re-enter password to confirm"
+                    value={claimConfirmPassword}
+                    onChange={(e) => setClaimConfirmPassword(e.target.value)}
+                    required
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-600 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-amber-400 flex items-center gap-1.5">
+                      <Key size={13} /> Master Passkey
+                    </label>
+                    <span className="text-[10px] text-amber-500/80 font-mono">One-Time Secret</span>
+                  </div>
+                  <input
+                    type="password"
+                    placeholder="Enter FLASHCHAT Master Passkey"
+                    value={masterKey}
+                    onChange={(e) => setMasterKey(e.target.value)}
+                    required
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-amber-500/40 bg-zinc-950 text-zinc-100 font-mono placeholder-zinc-600 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 transition"
+                  />
+                </div>
+              </>
+            ) : (
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-400">Password</label>
                 <input
                   type="password"
-                  placeholder="Enter FLASHCHAT Master Passkey"
-                  value={masterKey}
-                  onChange={(e) => setMasterKey(e.target.value)}
+                  placeholder="Enter account password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
                   required
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-amber-500/40 bg-zinc-950 text-zinc-100 font-mono placeholder-zinc-600 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/40 transition"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-600 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition"
                 />
               </div>
             )}
 
             <button
               type="submit"
-              disabled={isFirstTimeSetup ? (claimingAdmin || !loginUsername || !masterKey) : (loggingIn || !loginUsername || !loginPassword)}
+              disabled={isFirstTimeSetup ? (claimingAdmin || !loginUsername || !masterKey || !claimPassword) : (loggingIn || !loginUsername || !loginPassword)}
               className={`w-full py-3 ${isFirstTimeSetup ? 'bg-amber-500 hover:bg-amber-400 text-black shadow-amber-500/20' : 'bg-indigo-500 hover:bg-indigo-600 text-white shadow-indigo-500/20'} font-semibold rounded-xl text-sm transition shadow-lg flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 mt-1`}
             >
               {claimingAdmin || loggingIn ? (
                 <>
                   <RefreshCw className="animate-spin h-4 w-4" />
-                  <span>{claimingAdmin ? 'Claiming Supreme Admin...' : 'Verifying Credentials...'}</span>
+                  <span>{claimingAdmin ? 'Initializing Super Admin...' : 'Verifying Credentials...'}</span>
                 </>
               ) : isFirstTimeSetup ? (
                 <>
                   <Key size={16} />
-                  <span>Claim Supreme Admin Status</span>
+                  <span>Set Password & Claim Super Admin</span>
                 </>
               ) : (
                 <>
@@ -474,40 +657,68 @@ export default function SupremeAdminPanel() {
               <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 font-mono text-[10px] uppercase font-bold tracking-wider">
                 First-Time Setup
               </span>
-              <h2 className="text-xl font-bold tracking-tight text-white">Claim Supreme Admin Access</h2>
+              <h2 className="text-xl font-bold tracking-tight text-white">Initialize Super Admin Authority</h2>
               <p className="text-xs text-zinc-400 leading-relaxed">
-                No administrator exists on this server yet. Enter the Master Passkey to upgrade account <strong className="text-zinc-200">@{user.username}</strong> ({user.name}) to Supreme Admin.
+                No administrator exists on this server yet. Set a dedicated password and enter the Master Passkey to elevate <strong className="text-zinc-200">@{user.username}</strong> ({user.name}) as the sole Super Admin.
               </p>
             </div>
 
             <form onSubmit={handleClaimAdmin} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-zinc-400">Master Passkey</label>
+                <label className="text-xs font-semibold text-amber-400">Create Super Admin Password</label>
+                <input
+                  type="password"
+                  placeholder="Enter strong password (min 6 chars)"
+                  value={claimPassword}
+                  onChange={(e) => setClaimPassword(e.target.value)}
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-600 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-400">Confirm Super Admin Password</label>
+                <input
+                  type="password"
+                  placeholder="Re-enter password to confirm"
+                  value={claimConfirmPassword}
+                  onChange={(e) => setClaimConfirmPassword(e.target.value)}
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-600 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-semibold text-amber-400 flex items-center gap-1.5">
+                    <Key size={13} /> Master Passkey
+                  </label>
+                  <span className="text-[10px] text-amber-500/80 font-mono">One-Time Secret</span>
+                </div>
                 <input
                   type="password"
                   placeholder="Enter system master passkey"
                   value={masterKey}
                   onChange={(e) => setMasterKey(e.target.value)}
                   required
-                  autoFocus
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-600 text-xs sm:text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/40 transition"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-amber-500/40 bg-zinc-950 text-zinc-100 placeholder-zinc-600 text-xs sm:text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/40 transition"
                 />
               </div>
 
               <button
                 type="submit"
-                disabled={claimingAdmin || !masterKey.trim()}
+                disabled={claimingAdmin || !masterKey.trim() || !claimPassword || !claimConfirmPassword}
                 className="w-full py-3 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-black font-bold rounded-xl text-sm transition shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {claimingAdmin ? (
                   <>
                     <RefreshCw className="animate-spin h-4 w-4" />
-                    <span>Verifying Master Passkey...</span>
+                    <span>Configuring Super Admin...</span>
                   </>
                 ) : (
                   <>
                     <ShieldCheck size={16} />
-                    <span>Claim Supreme Admin Status</span>
+                    <span>Set Password & Claim Super Admin</span>
                   </>
                 )}
               </button>
@@ -542,7 +753,7 @@ export default function SupremeAdminPanel() {
 
           <div className="flex flex-col gap-3 pt-2">
             <button
-              onClick={() => dispatch(logoutUser())}
+              onClick={handleSignOut}
               className="w-full py-3 bg-indigo-500 hover:bg-indigo-600 font-semibold rounded-xl text-sm transition shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 cursor-pointer"
             >
               <Lock size={16} /> Sign In with Admin Account
@@ -565,7 +776,7 @@ export default function SupremeAdminPanel() {
       <header className="sticky top-0 z-40 w-full bg-zinc-950/80 backdrop-blur-xl border-b border-zinc-800/80 px-4 sm:px-8 py-3.5 flex items-center justify-between">
         <div className="flex items-center gap-3.5">
           <button
-            onClick={() => dispatch(logoutUser())}
+            onClick={handleSignOut}
             className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-rose-400 hover:border-rose-900/50 hover:bg-rose-500/10 transition cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
             title="Sign out of Supreme Admin"
           >
@@ -583,9 +794,15 @@ export default function SupremeAdminPanel() {
                 <h1 className="text-sm font-bold tracking-tight text-white flex items-center gap-1.5">
                   FlashChat Supreme Console
                 </h1>
-                <span className="text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
-                  /flsh-ad-pnl
-                </span>
+                {isSuperAdmin ? (
+                  <span className="text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center gap-1 shadow-sm shadow-amber-500/10">
+                    👑 Super Admin
+                  </span>
+                ) : (
+                  <span className="text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                    🛡️ System Admin
+                  </span>
+                )}
               </div>
               <p className="text-[11px] text-zinc-400">Real-time Telemetry & Global Moderation Control</p>
             </div>
@@ -603,6 +820,28 @@ export default function SupremeAdminPanel() {
               {metrics?.users?.liveOnline ?? 0} Sockets Live
             </span>
           </div>
+
+          {/* Secondary Admin Registration (Super Admin Only) */}
+          {isSuperAdmin && (
+            <button
+              onClick={() => setCreateAdminModalOpen(true)}
+              className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 hover:text-white hover:bg-indigo-600 transition cursor-pointer flex items-center gap-1.5 text-xs font-semibold shadow-sm"
+              title="Register a new system administrator"
+            >
+              <UserPlus size={14} className="text-indigo-400" />
+              <span className="hidden sm:inline">Register Admin</span>
+            </button>
+          )}
+
+          {/* Direct Password Management for Admin / Superadmin */}
+          <button
+            onClick={() => setPasswordModalOpen(true)}
+            className="p-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-amber-400 hover:border-amber-500/30 hover:bg-amber-500/10 transition cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
+            title="Set or update admin account password"
+          >
+            <Key size={14} className="text-amber-400" />
+            <span className="hidden sm:inline">Set Password</span>
+          </button>
 
           <button
             onClick={handleRefresh}
@@ -859,13 +1098,18 @@ export default function SupremeAdminPanel() {
                               <div className="min-w-0">
                                 <div className="flex items-center gap-1.5">
                                   <span className="font-semibold text-zinc-100 truncate">{u.name}</span>
+                                  {u.role === 'superadmin' && (
+                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1">
+                                      👑 Super Admin
+                                    </span>
+                                  )}
                                   {u.role === 'admin' && (
-                                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
                                       Admin
                                     </span>
                                   )}
                                   {isSelf && (
-                                    <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400">
+                                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400">
                                       You
                                     </span>
                                   )}
@@ -917,19 +1161,30 @@ export default function SupremeAdminPanel() {
                           {/* Moderation Actions */}
                           <td className="py-3.5 px-4 text-right">
                             <div className="flex items-center justify-end gap-2">
-                              {/* Toggle Admin Role */}
-                              <button
-                                type="button"
-                                onClick={() => handleToggleRole(u)}
-                                disabled={isSelf}
-                                className={`px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition cursor-pointer disabled:opacity-40 ${
-                                  u.role === 'admin'
-                                    ? 'border-zinc-800 text-zinc-400 hover:bg-zinc-800'
-                                    : 'border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10'
-                                }`}
-                              >
-                                {u.role === 'admin' ? 'Revoke Admin' : 'Make Admin'}
-                              </button>
+                              {/* Toggle Admin Role - ONLY Super Admin can appoint/revoke, Super Admin cannot be revoked */}
+                              {u.role === 'superadmin' ? (
+                                <span className="px-2 py-0.5 text-[11px] font-bold text-amber-400/90 font-mono">
+                                  👑 Owner
+                                </span>
+                              ) : isSuperAdmin ? (
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleRole(u)}
+                                  disabled={isSelf}
+                                  className={`px-2.5 py-1 rounded-lg border text-[11px] font-semibold transition cursor-pointer disabled:opacity-40 ${
+                                    u.role === 'admin'
+                                      ? 'border-rose-900/40 text-rose-400 hover:bg-rose-500/10'
+                                      : 'border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10'
+                                  }`}
+                                  title={u.role === 'admin' ? 'Revoke admin status and demote to user' : 'Appoint user as system admin'}
+                                >
+                                  {u.role === 'admin' ? 'Revoke Admin' : 'Appoint Admin'}
+                                </button>
+                              ) : (
+                                <span className="text-[10px] text-zinc-500 font-medium">
+                                  {u.role === 'admin' ? 'Admin' : 'Member'}
+                                </span>
+                              )}
 
                               {/* Activate / Deactivate Toggle */}
                               {u.isDeactivated ? (
@@ -984,7 +1239,7 @@ export default function SupremeAdminPanel() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             {/* Zone 1: Clear All Messages */}
             <div className="p-5 rounded-2xl bg-zinc-900/60 border border-rose-900/30 hover:border-rose-700/50 transition-all flex flex-col justify-between space-y-4 group">
               <div className="space-y-3">
@@ -1028,6 +1283,53 @@ export default function SupremeAdminPanel() {
                   className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
                 >
                   <Trash2 size={13} /> Clear Messages
+                </button>
+              </div>
+            </div>
+
+            {/* Zone 2: Delete All Chats & Contacts (Including Admin) */}
+            <div className="p-5 rounded-2xl bg-zinc-900/60 border border-rose-900/40 hover:border-rose-700/60 transition-all flex flex-col justify-between space-y-4 group">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="h-9 w-9 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 flex items-center justify-center">
+                    <MessagesSquare size={18} />
+                  </div>
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-zinc-800/80 text-zinc-400 border border-zinc-700/50">
+                    Chats & Contacts
+                  </span>
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-zinc-100 group-hover:text-rose-300 transition">
+                    Delete All Chats & Contacts
+                  </h4>
+                  <p className="text-xs text-zinc-400 mt-1 leading-relaxed">
+                    Deletes all 1-on-1 and group chats, wipes message logs, purges media, and clears contacts & friend requests for all users (including admins).
+                  </p>
+                </div>
+              </div>
+
+              <div className="pt-2 border-t border-zinc-800/60 flex items-center justify-between">
+                <span className="text-[11px] font-mono text-zinc-500">
+                  {metrics?.chats?.total ?? 0} chats • {metrics?.users?.total ?? 0} accounts
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDangerModal({
+                      type: 'all_chats',
+                      title: 'Delete All Chats & Contacts',
+                      badge: 'Complete Chat Wipe',
+                      confirmPhrase: 'DELETE_ALL_CHATS_AND_CONTACTS',
+                      endpoint: '/admin/danger/delete-all-chats',
+                      buttonText: 'Delete All Chats & Contacts',
+                      description: 'This will irreversibly delete every 1-on-1 chat, group room, message, and wipe contacts & friend requests for all accounts (including admins).',
+                      warning: 'All conversations and group memberships will be permanently deleted. Every user (including admins) will have an empty chat list and empty contact list. User accounts and login credentials will be preserved.',
+                    });
+                    setConfirmInput('');
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-400 text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <MessageSquareX size={13} /> Delete All Chats
                 </button>
               </div>
             </div>
@@ -1315,6 +1617,206 @@ export default function SupremeAdminPanel() {
                 )}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Password Management Modal */}
+      {passwordModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 px-4 backdrop-blur-md animate-fade-in">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-5 animate-scale-in text-zinc-100 shadow-2xl">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center flex-shrink-0 border border-amber-500/30">
+                  <Key size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold tracking-tight text-white">
+                    Admin Password Management
+                  </h3>
+                  <p className="text-[11px] text-zinc-400">
+                    Set or update your direct login password
+                  </p>
+                </div>
+              </div>
+              <button
+                disabled={updatingPassword}
+                onClick={() => setPasswordModalOpen(false)}
+                className="text-zinc-400 hover:text-zinc-200 p-1 cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdateAdminPassword} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-300">New Password</label>
+                <input
+                  type="password"
+                  value={newAdminPassword}
+                  onChange={(e) => setNewAdminPassword(e.target.value)}
+                  placeholder="Enter new password (min 6 characters)"
+                  required
+                  autoFocus
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-600 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-300">Confirm Password</label>
+                <input
+                  type="password"
+                  value={confirmAdminPassword}
+                  onChange={(e) => setConfirmAdminPassword(e.target.value)}
+                  placeholder="Re-enter password to confirm"
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-600 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/30 transition"
+                />
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  disabled={updatingPassword}
+                  onClick={() => setPasswordModalOpen(false)}
+                  className="w-1/2 py-2.5 rounded-xl border border-zinc-800 text-zinc-400 hover:text-zinc-200 text-xs font-semibold transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={updatingPassword || !newAdminPassword || !confirmAdminPassword}
+                  className="w-1/2 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 disabled:opacity-50 text-black text-xs font-bold shadow-md shadow-amber-500/20 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  {updatingPassword ? (
+                    <>
+                      <RefreshCw size={14} className="animate-spin" /> Saving...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 size={14} /> Update Password
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Super Admin Secondary Administrator Provisioning Modal */}
+      {createAdminModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 px-4 backdrop-blur-md animate-fade-in">
+          <div className="w-full max-w-md bg-zinc-900 border border-indigo-500/30 rounded-2xl p-6 space-y-5 animate-scale-in text-zinc-100 shadow-2xl">
+            <div className="flex items-start justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center flex-shrink-0 border border-indigo-500/30">
+                  <UserPlus size={20} />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold tracking-tight text-white">
+                    Register New Administrator
+                  </h3>
+                  <p className="text-[11px] text-zinc-400">
+                    Provision a secondary admin account with system moderation rights
+                  </p>
+                </div>
+              </div>
+              <button
+                disabled={creatingAdmin}
+                onClick={() => setCreateAdminModalOpen(false)}
+                className="text-zinc-400 hover:text-zinc-200 p-1 cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateAdmin} className="space-y-3.5">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-300">Admin Username *</label>
+                <input
+                  type="text"
+                  value={regAdminUsername}
+                  onChange={(e) => setRegAdminUsername(e.target.value)}
+                  placeholder="e.g. ops_lead"
+                  required
+                  autoFocus
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-600 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-300">Full Name (optional)</label>
+                <input
+                  type="text"
+                  value={regAdminName}
+                  onChange={(e) => setRegAdminName(e.target.value)}
+                  placeholder="e.g. System Moderator"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-600 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-300">Admin Email (optional)</label>
+                <input
+                  type="email"
+                  value={regAdminEmail}
+                  onChange={(e) => setRegAdminEmail(e.target.value)}
+                  placeholder="e.g. admin@flashchat.internal"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-600 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-300">Initial Password * (min 6 chars)</label>
+                <input
+                  type="password"
+                  value={regAdminPassword}
+                  onChange={(e) => setRegAdminPassword(e.target.value)}
+                  placeholder="Assign secure password"
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-600 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-zinc-300">Confirm Password *</label>
+                <input
+                  type="password"
+                  value={regAdminConfirmPassword}
+                  onChange={(e) => setRegAdminConfirmPassword(e.target.value)}
+                  placeholder="Re-enter password to confirm"
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-zinc-800 bg-zinc-950 text-zinc-100 placeholder-zinc-600 text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 transition"
+                />
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  disabled={creatingAdmin}
+                  onClick={() => setCreateAdminModalOpen(false)}
+                  className="w-1/2 py-2.5 rounded-xl border border-zinc-800 text-zinc-400 hover:text-zinc-200 text-xs font-semibold transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingAdmin || !regAdminUsername.trim() || !regAdminPassword || !regAdminConfirmPassword}
+                  className="w-1/2 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-bold shadow-md shadow-indigo-600/30 transition flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  {creatingAdmin ? (
+                    <>
+                      <RefreshCw size={14} className="animate-spin" /> Provisioning...
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus size={14} /> Register Admin
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

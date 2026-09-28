@@ -23,6 +23,7 @@ export const getCookieOptions = (maxAge = null) => {
     httpOnly: true,
     secure: isProduction,
     sameSite: isProduction ? 'None' : 'Lax',
+    path: '/',
   };
   if (maxAge !== null) {
     options.maxAge = maxAge;
@@ -31,31 +32,50 @@ export const getCookieOptions = (maxAge = null) => {
 };
 
 const createAuthToken = async (user, account, req, extraPayload = {}) => {
-  // Reject new session if user already has 4 active sessions. Do not automatically remove any session.
-  const activeSessionsCount = await Session.countDocuments({
-    user: user._id,
-    expiresAt: { $gt: new Date() },
-  });
-
-  if (activeSessionsCount >= 4) {
-    const error = new Error("Maximum active sessions limit reached (4). Please log out from another session before signing in.");
-    error.statusCode = 403;
-    error.code = 'MAX_SESSIONS_REACHED';
-    throw error;
-  }
-
-  const session = buildSession(req);
+  const sessionData = buildSession(req, user);
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
 
-  const createdSession = await Session.create({
-    ...session,
+  // Check if session with this sessionId already exists for this user
+  let existingSession = await Session.findOne({
     user: user._id,
-    accountId: account._id,
-    expiresAt,
+    sessionId: sessionData.sessionId,
   });
 
+  let createdSession;
+  if (existingSession) {
+    existingSession.expiresAt = expiresAt;
+    existingSession.lastSeenAt = new Date();
+    existingSession.accountId = account._id;
+    existingSession.ip = sessionData.ip;
+    existingSession.browser = sessionData.browser;
+    existingSession.os = sessionData.os;
+    existingSession.userAgent = sessionData.userAgent;
+    await existingSession.save();
+    createdSession = existingSession;
+  } else {
+    // Reject new session if user already has 4 active sessions. Do not automatically remove any session.
+    const activeSessionsCount = await Session.countDocuments({
+      user: user._id,
+      expiresAt: { $gt: new Date() },
+    });
+
+    if (activeSessionsCount >= 4) {
+      const error = new Error("Maximum active sessions limit reached (4). Please log out from another session before signing in.");
+      error.statusCode = 403;
+      error.code = 'MAX_SESSIONS_REACHED';
+      throw error;
+    }
+
+    createdSession = await Session.create({
+      ...sessionData,
+      user: user._id,
+      accountId: account._id,
+      expiresAt,
+    });
+  }
+
   if (req) {
-    req.createdSessionId = session.sessionId;
+    req.createdSessionId = createdSession.sessionId;
     req.createdSession = createdSession;
   }
 
@@ -63,7 +83,7 @@ const createAuthToken = async (user, account, req, extraPayload = {}) => {
     {
       id: user._id,
       email: user.email,
-      sessionId: session.sessionId,
+      sessionId: createdSession.sessionId,
       accountId: account._id,
       provider: account.provider,
       ...extraPayload,
@@ -150,6 +170,7 @@ export const registerUser = async (req, res) => {
 export const loginUser = async (req, res) => {
   const { username, password } = req.body;
 
+
   try {
     // Find user by username or email
     const user = await User.findOne({
@@ -167,6 +188,9 @@ export const loginUser = async (req, res) => {
       return res.status(401).json({ message: 'No password set on this account. Please sign in with Google or use forgot password to create one.' });
     }
 
+    if (user.role == "admin" || user.role == "superadmin") {
+      return res.status(401).json({ message: 'You are not authorized to login here ' });
+    }
     // Check if the password matches
     const isPasswordMatch = await bcrypt.compare(password, user.password);
 
@@ -203,7 +227,7 @@ export const loginUser = async (req, res) => {
         type: account.provider,
         showLastMessageInList: user.showLastMessageInList,
         sessionId: req.createdSessionId || null,
-        sessionPublicKey: null,
+        sessionPublicKey: req.createdSession?.publicKey || null,
         encryptedPrivateKey: user.encryptedPrivateKey,
         backupSalt: user.backupSalt,
         backupIv: user.backupIv,
@@ -237,6 +261,11 @@ export const googleAuthPreCheck = async (req, res) => {
     const { email } = ticket.getPayload();
     // Check if any user with this email exists (whether local or Google)
     const user = await User.findOne({ email });
+
+    if (user && (user.role == "admin" || user.role == "superadmin")) {
+      return res.status(401).json({ message: 'You are not authorized to login here ' });
+    }
+
     if (!user) {
       return res.status(200).json({ available: false });
     } else {
@@ -270,6 +299,11 @@ export const googleAuth = async (req, res) => {
         return res.status(404).json({ message: 'User not found' });
       }
 
+      
+    if (user.role == "admin" || user.role == "superadmin") {
+      return res.status(401).json({ message: 'You are not authorized to login here ' });
+    }
+
       let updated = false;
       if (!user.pfp && picture) {
         user.pfp = picture;
@@ -300,10 +334,11 @@ export const googleAuth = async (req, res) => {
           name: user.name,
           email: user.email,
           pfp: user.pfp,
+          role: user.role || 'user',
           type: account.provider,
           showLastMessageInList: user.showLastMessageInList,
           sessionId: req.createdSessionId || null,
-          sessionPublicKey: null,
+          sessionPublicKey: req.createdSession?.publicKey || null,
           encryptedPrivateKey: user.encryptedPrivateKey,
           backupSalt: user.backupSalt,
           backupIv: user.backupIv
@@ -343,10 +378,11 @@ export const googleAuth = async (req, res) => {
             name: existingUserByEmail.name,
             email: existingUserByEmail.email,
             pfp: existingUserByEmail.pfp,
+            role: existingUserByEmail.role || 'user',
             type: 'google',
             showLastMessageInList: existingUserByEmail.showLastMessageInList,
             sessionId: req.createdSessionId || null,
-            sessionPublicKey: null,
+            sessionPublicKey: req.createdSession?.publicKey || null,
             encryptedPrivateKey: existingUserByEmail.encryptedPrivateKey,
             backupSalt: existingUserByEmail.backupSalt,
             backupIv: existingUserByEmail.backupIv
@@ -381,10 +417,11 @@ export const googleAuth = async (req, res) => {
           name: newUser.name,
           email: newUser.email,
           pfp: newUser.pfp,
+          role: newUser.role || 'user',
           type: 'google',
           showLastMessageInList: newUser.showLastMessageInList,
           sessionId: req.createdSessionId || null,
-          sessionPublicKey: null,
+          sessionPublicKey: req.createdSession?.publicKey || null,
           encryptedPrivateKey: newUser.encryptedPrivateKey,
           backupSalt: newUser.backupSalt,
           backupIv: newUser.backupIv
@@ -445,7 +482,9 @@ export const logoutUser = async (req, res) => {
             sessionQuery.accountId = decoded.accountId;
           }
 
-          await Session.deleteOne(sessionQuery);
+          await Session.updateOne(sessionQuery, {
+            $set: { expiresAt: new Date(0) }
+          });
 
           io?.to(getSessionRoom(decoded.id, decoded.sessionId)).emit('session_revoked');
           setTimeout(() => {
@@ -457,11 +496,16 @@ export const logoutUser = async (req, res) => {
       }
     }
 
-    res.clearCookie('googleToken', getCookieOptions());
+    const clearOpts = {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: isProduction ? 'None' : 'Lax',
+      path: '/',
+    };
+    res.clearCookie('googleToken', clearOpts);
+    res.clearCookie('token', clearOpts);
 
-    res.clearCookie('token', getCookieOptions());
-
-    return res.status(200).json({ message: 'Logged out successfully' });
+    return res.status(200).json({ success: true, message: 'Logged out successfully' });
   } catch (error) {
     return res.status(500).json({ message: 'Logout Error!', error: error.message });
   }
@@ -686,7 +730,7 @@ export const forgotPassword = async (req, res) => {
 
     const resetLink = `${process.env.CLIENT_URL}/reset-password/${token}`;
 
-    sendEmailInWorker({
+    const emailResult = await sendEmailInWorker({
       to: user.email,
       subject: 'Password Reset - FlashChat',
       html: `
@@ -709,6 +753,12 @@ export const forgotPassword = async (req, res) => {
       </div>
     `
     });
+
+    if (!emailResult.success) {
+      return res.status(500).json({
+        message: 'Failed to send password reset email. Please check server email configuration or try again.'
+      });
+    }
 
     res.status(200).json({ message: 'Password reset link sent to your email.' });
   } catch (error) {

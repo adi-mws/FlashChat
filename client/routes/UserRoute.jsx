@@ -16,7 +16,7 @@ export default function UserRoute({ children }) {
         return <Navigate to={MARKETING_ROUTES.login} replace />;
     }
 
-    if (user.role === "admin") {
+    if (user.role === "admin" || user.role === "superadmin") {
         return <Navigate to={ADMIN_ROUTES.dashboard} replace />;
     }
 

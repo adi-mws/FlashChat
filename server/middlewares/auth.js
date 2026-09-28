@@ -73,13 +73,19 @@ const authenticateJWT = (req, res, next) => {
 };
 
 // Middleware for role-based authorization
-export const authorizeRole = (role) => (req, res, next) => {
+export const authorizeRole = (...roles) => (req, res, next) => {
     if (!req.user) {
         return res.status(401).json({ message: 'Unauthorized access' });
     }
 
-    if (req.user.role !== role) {
-        return res.status(403).json({ message: `Access denied, ${role} only` });
+    const allowed = roles.flat();
+    const userRole = req.user.role;
+
+    // Superadmin has access to any admin route
+    const hasPermission = allowed.includes(userRole) || (userRole === 'superadmin' && allowed.includes('admin'));
+
+    if (!hasPermission) {
+        return res.status(403).json({ message: `Access denied, requires ${allowed.join(' or ')}` });
     }
 
     next();

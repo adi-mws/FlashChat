@@ -145,7 +145,8 @@ export async function decryptMessage(encryptedMsg, currentSessionId, currentUser
 
     // Fallback: Check legacy username key if session key is not found
     if (!privateKeyJwkStr && typeof localStorage !== 'undefined') {
-      const legacyKey = localStorage.getItem(`e2ee_private_key_legacy`);
+      const legacyKey = (currentUserId ? localStorage.getItem(`e2ee_private_key_${currentUserId}`) : null) ||
+                        localStorage.getItem(`e2ee_private_key_legacy`);
       if (legacyKey) privateKeyJwkStr = legacyKey;
     }
 

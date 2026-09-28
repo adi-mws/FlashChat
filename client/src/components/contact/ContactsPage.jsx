@@ -213,7 +213,7 @@ export default function ContactsPage() {
         <div className="space-y-3">
           {loading && <Loading />}
           {!loading && data.map((friend) => (
-            <div key={friend._id} className="bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 flex items-center justify-between p-4 rounded-2xl shadow-sm animate-scale-in">
+            <div key={friend._id} className="border border-slate-200/70 dark:border-zinc-800/80 bg-slate-50/50 dark:bg-zinc-900/30 flex items-center justify-between p-4 rounded-2xl animate-scale-in transition-colors hover:border-slate-300 dark:hover:border-zinc-700">
               <div className="flex gap-3.5 items-center min-w-0">
                 <div className="relative flex-shrink-0">
                   <img src={getImageUrl(friend.pfp)} alt={friend.name} className="w-12 h-12 rounded-full object-cover border border-slate-100 dark:border-zinc-800" />
@@ -231,7 +231,7 @@ export default function ContactsPage() {
             </div>
           ))}
           {!loading && data.length === 0 && (
-            <div className="text-center p-12 text-slate-400 dark:text-zinc-500 border border-dashed border-slate-200 dark:border-zinc-800 rounded-2xl bg-white dark:bg-zinc-900/20">
+            <div className="text-center p-12 text-slate-400 dark:text-zinc-500 border border-dashed border-slate-200 dark:border-zinc-800/80 rounded-2xl bg-transparent">
               <div className="flex flex-col items-center gap-2"><Users size={28} className="text-slate-300 dark:text-zinc-700" /><p className="text-xs">No contacts found</p></div>
             </div>
           )}
@@ -244,7 +244,7 @@ export default function ContactsPage() {
     if (selectedTab === 'new') {
       return (
         <div className="space-y-4">
-          <div className="p-4 bg-slate-100/60 dark:bg-zinc-800/40 rounded-xl border border-slate-200/40 dark:border-zinc-800/60">
+          <div className="p-4 bg-indigo-50/40 dark:bg-indigo-950/20 rounded-xl border border-indigo-100/60 dark:border-indigo-900/40">
             <p className="text-xs text-slate-500 dark:text-zinc-400 leading-relaxed flex items-start gap-2">
               <AlertCircle size={15} className="text-indigo-500 flex-shrink-0 mt-0.5" />
               <span>Search for users by their username below. Once you send a request, they can accept it to establish a conversation.</span>
@@ -252,7 +252,7 @@ export default function ContactsPage() {
           </div>
           {loading && <div className="flex justify-center p-8"><div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div></div>}
           {!loading && newUserResult && newUserResult.map((u) => (
-            <div key={u._id} className="bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 flex items-center justify-between p-4 rounded-2xl shadow-sm animate-scale-in">
+            <div key={u._id} className="border border-slate-200/70 dark:border-zinc-800/80 bg-slate-50/50 dark:bg-zinc-900/30 flex items-center justify-between p-4 rounded-2xl animate-scale-in transition-colors hover:border-slate-300 dark:hover:border-zinc-700">
               <div className="flex gap-3.5 items-center min-w-0">
                 <img src={getImageUrl(u.pfp)} alt={u.name} className="w-12 h-12 rounded-full object-cover border border-slate-100 dark:border-zinc-800" />
                 <div className="min-w-0">
@@ -278,7 +278,7 @@ export default function ContactsPage() {
           const targetUser = req;
           if (!targetUser) return null;
           return (
-            <div key={req._id} className="bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 flex items-center justify-between p-4 rounded-2xl shadow-sm animate-scale-in">
+            <div key={req._id} className="border border-slate-200/70 dark:border-zinc-800/80 bg-slate-50/50 dark:bg-zinc-900/30 flex items-center justify-between p-4 rounded-2xl animate-scale-in transition-colors hover:border-slate-300 dark:hover:border-zinc-700">
               <div className="flex gap-3.5 items-center min-w-0">
                 <img src={getImageUrl(targetUser.pfp)} alt={targetUser.name} className="w-12 h-12 rounded-full object-cover border border-slate-100 dark:border-zinc-800" />
                 <div className="min-w-0">
@@ -301,7 +301,7 @@ export default function ContactsPage() {
           );
         })}
         {!loading && data.length === 0 && (
-          <div className="text-center p-12 text-slate-400 dark:text-zinc-500 border border-dashed border-slate-200 dark:border-zinc-800 rounded-2xl bg-white dark:bg-zinc-900/20">
+          <div className="text-center p-12 text-slate-400 dark:text-zinc-500 border border-dashed border-slate-200 dark:border-zinc-800/80 rounded-2xl bg-transparent">
             {selectedTab === 'received' ? (
               <div className="flex flex-col items-center gap-2"><UserCheck2 size={28} className="text-slate-300 dark:text-zinc-700" /><p className="text-xs">No pending friend requests</p></div>
             ) : (
@@ -316,40 +316,68 @@ export default function ContactsPage() {
   const hasNewFriendRequests = incomingRequests.length > 0;
 
   return (
-    <div className="w-full h-full flex flex-col bg-slate-50/50 dark:bg-zinc-950/40 overflow-y-auto animate-fade-in">
-      <AppHeader title={"Contacts"}>
-        <div className="relative max-w-[180px] sm:max-w-xs w-full mr-2">
-          <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400 dark:text-zinc-500"><Search size={14} /></div>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={selectedTab === 'new' ? 'Search username...' : selectedTab === 'friends' ? 'Search contacts...' : 'Search requests...'}
-            className="w-full pl-8 pr-3 py-1.5 text-xs bg-slate-100 dark:bg-zinc-900 text-slate-800 dark:text-zinc-100 rounded-xl border border-slate-200 dark:border-zinc-800/80 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder-slate-400 dark:placeholder-zinc-500 shadow-sm"
-          />
-        </div>
-      </AppHeader>
+    <div className="w-full h-full flex flex-col bg-white dark:bg-zinc-950 overflow-y-auto animate-fade-in">
+      <AppHeader title={"Contacts"} />
 
-      <div className="max-w-2xl w-full mx-auto p-4 space-y-6">
-        <div className="flex bg-slate-100 dark:bg-zinc-900/60 p-1 rounded-2xl">
-          {[
-            { id: 'friends', label: 'My Contacts' },
-            { id: 'received', label: 'Requests' },
-            { id: 'sent', label: 'Sent Requests' },
-            { id: 'new', label: 'Add Contacts' },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => { setSelectedTab(tab.id); setSearchQuery(''); }}
-              className={`flex-1 py-2 px-3 text-xs font-semibold rounded-xl transition duration-150 relative cursor-pointer ${selectedTab === tab.id ? 'bg-white dark:bg-zinc-800 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'}`}
-            >
-              {tab.label}
-              {tab.id === 'received' && hasNewFriendRequests && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-zinc-800 animate-ping"></span>
-              )}
-            </button>
-          ))}
+      <div className="w-full p-4 sm:p-6 md:p-8 space-y-6">
+        {/* Controls: Search bar above tabs on mobile, flex row on desktop */}
+        <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3.5">
+          {/* Tabs Navigation */}
+          <div className="order-2 md:order-1 flex bg-slate-100/80 dark:bg-zinc-900/50 p-1 rounded-2xl overflow-x-auto no-scrollbar border border-slate-200/60 dark:border-zinc-800/60">
+            {[
+              { id: 'friends', label: 'My Contacts' },
+              { id: 'received', label: 'Requests' },
+              { id: 'sent', label: 'Sent Requests' },
+              { id: 'new', label: 'Add Contacts' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => { setSelectedTab(tab.id); setSearchQuery(''); }}
+                className={`flex-1 md:flex-initial py-2 px-3 sm:px-4 text-xs font-semibold rounded-xl transition duration-150 relative cursor-pointer whitespace-nowrap ${
+                  selectedTab === tab.id
+                    ? 'bg-white dark:bg-zinc-800 text-indigo-600 dark:text-indigo-400 font-semibold'
+                    : 'text-slate-500 dark:text-zinc-400 hover:text-slate-800 dark:hover:text-zinc-200'
+                }`}
+              >
+                {tab.label}
+                {tab.id === 'received' && hasNewFriendRequests && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-red-500 ring-2 ring-white dark:ring-zinc-800 animate-ping"></span>
+                )}
+              </button>
+            ))}
+          </div>
+
+          {/* Search Bar */}
+          <div className="order-1 md:order-2 relative w-full md:w-72 lg:w-80 flex-shrink-0">
+            <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none text-slate-400 dark:text-zinc-500">
+              <Search size={15} />
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder={
+                selectedTab === 'new'
+                  ? 'Search username...'
+                  : selectedTab === 'friends'
+                  ? 'Search contacts...'
+                  : 'Search requests...'
+              }
+              className="w-full pl-9 pr-8 py-2 text-xs sm:text-sm bg-slate-50 dark:bg-zinc-900/60 text-slate-800 dark:text-zinc-100 rounded-xl border border-slate-200 dark:border-zinc-800/80 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder-slate-400 dark:placeholder-zinc-500"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute inset-y-0 right-2.5 flex items-center text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 transition"
+                title="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
+          </div>
         </div>
+
         <div className="min-h-0">{renderContent()}</div>
       </div>
     </div>

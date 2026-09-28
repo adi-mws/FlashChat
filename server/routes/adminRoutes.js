@@ -5,30 +5,39 @@ import {
   getAdminUsers,
   toggleUserStatus,
   updateUserRole,
-  claimAdminAccess,
-  getBootstrapStatus,
+  setAdminPassword,
   clearAllMessages,
+  deleteAllChatsAndContacts,
   clearAllUploads,
   deleteNonAdminUsers,
   purgeSystemEverything,
 } from '../controllers/adminController.js';
+import {
+  adminLogin,
+  adminRegister,
+  adminLogout,
+  getAdminBootstrapStatus,
+} from '../controllers/adminAuthController.js';
 
 const router = express.Router();
 
-// Check if initial Supreme Admin bootstrap has already been performed
-router.get('/bootstrap-status', getBootstrapStatus);
-
-// One-time admin claim (strictly disabled once an admin already exists)
-router.post('/claim-admin', optionalAuthenticateJWT, claimAdminAccess);
+// Dedicated Admin Authentication & Registration Endpoints
+router.get('/bootstrap-status', getAdminBootstrapStatus);
+router.post('/login', adminLogin);
+router.post('/register', optionalAuthenticateJWT, adminRegister);
+router.post('/claim-admin', optionalAuthenticateJWT, adminRegister);
+router.post('/logout', adminLogout);
 
 // Supreme Admin-Only Endpoints
 router.get('/metrics', authenticateJWT, authorizeRole('admin'), getAdminMetrics);
 router.get('/users', authenticateJWT, authorizeRole('admin'), getAdminUsers);
 router.put('/users/:userId/toggle-status', authenticateJWT, authorizeRole('admin'), toggleUserStatus);
 router.put('/users/:userId/role', authenticateJWT, authorizeRole('admin'), updateUserRole);
+router.post('/set-password', authenticateJWT, authorizeRole('admin'), setAdminPassword);
 
 // Supreme Danger / Delete Zones (System Purge & Factory Reset for new version)
 router.post('/danger/clear-messages', authenticateJWT, authorizeRole('admin'), clearAllMessages);
+router.post('/danger/delete-all-chats', authenticateJWT, authorizeRole('admin'), deleteAllChatsAndContacts);
 router.post('/danger/clear-uploads', authenticateJWT, authorizeRole('admin'), clearAllUploads);
 router.post('/danger/delete-users', authenticateJWT, authorizeRole('admin'), deleteNonAdminUsers);
 router.post('/danger/purge-all', authenticateJWT, authorizeRole('admin'), purgeSystemEverything);

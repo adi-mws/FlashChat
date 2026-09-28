@@ -11,6 +11,7 @@ import { GoogleLogin } from "@react-oauth/google";
 import UserNameForm from "./UserNameForm";
 import CompanionQRLoginModal from "../auth/CompanionQRLoginModal";
 import { AlertCircle, CheckCircle2, Flame, QrCode } from "lucide-react";
+import { getOrCreateDeviceId } from "../../lib/e2ee/keyStore";
 
 export default function LoginForm() {
   const {
@@ -39,14 +40,14 @@ export default function LoginForm() {
     try {
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/auth/login`,
-        data,
+        { ...data, deviceId: getOrCreateDeviceId() },
         { withCredentials: true }
       );
 
       if (response.status === 200) {
         const loggedUser = response.data.user;
         dispatch(setUser(loggedUser));
-        if (loggedUser?.role === 'admin') {
+        if (loggedUser?.role === 'admin' || loggedUser?.role === 'superadmin') {
           navigate('/flsh-ad-pnl');
         } else {
           navigate(CHAT_ROUTES.root);
@@ -71,7 +72,7 @@ export default function LoginForm() {
           try {
             const r = await axios.post(
               `${import.meta.env.VITE_API_URL}/auth/google`,
-              { token: credentialResponse.credential, available: response.data.available },
+              { token: credentialResponse.credential, available: response.data.available, deviceId: getOrCreateDeviceId() },
               { withCredentials: true }
             );
 
@@ -79,7 +80,7 @@ export default function LoginForm() {
               const userData = r.data.user;
               dispatch(setUser(userData));
               handleAlert("success", "Login Successful!");
-              if (userData?.role === 'admin') {
+              if (userData?.role === 'admin' || userData?.role === 'superadmin') {
                 navigate('/flsh-ad-pnl');
               } else {
                 navigate(CHAT_ROUTES.root);

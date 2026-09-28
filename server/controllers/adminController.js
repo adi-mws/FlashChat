@@ -34,7 +34,7 @@ export const getAdminMetrics = async (req, res) => {
     const totalUsers = await User.countDocuments();
     const activeUsers = await User.countDocuments({ isDeactivated: { $ne: true } });
     const deactivatedUsers = await User.countDocuments({ isDeactivated: true });
-    const adminCount = await User.countDocuments({ role: 'admin' });
+    const adminCount = await User.countDocuments({ role: { $in: ['admin', 'superadmin'] } });
 
     // Active sockets / live online count
     const liveOnlineCount = socketUserMap?.size || 0;
@@ -281,28 +281,47 @@ export const toggleUserStatus = async (req, res) => {
 /**
  * PUT /api/admin/users/:userId/role
  * Promotes or demotes a user role ('admin' | 'user').
+ * Only the unique Super Admin can appoint or revoke admins.
  */
 export const updateUserRole = async (req, res) => {
   try {
     const { userId } = req.params;
     const { role } = req.body;
     const adminId = req.user.id;
+    const adminRole = req.user.role;
+
+    if (adminRole !== 'superadmin') {
+      return res.status(403).json({ message: "Only the Super Admin can appoint or revoke administrator privileges." });
+    }
 
     if (!['admin', 'user'].includes(role)) {
-      return res.status(400).json({ message: "Invalid role. Must be 'admin' or 'user'." });
+      return res.status(400).json({ message: "Invalid role. Role can only be changed between 'admin' and 'user'." });
     }
 
-    if (userId.toString() === adminId.toString() && role === 'user') {
-      return res.status(400).json({ message: "You cannot demote yourself from admin." });
+    const targetUser = await User.findById(userId);
+    if (!targetUser) return res.status(404).json({ message: "User not found." });
+
+    if (targetUser.role === 'superadmin') {
+      return res.status(403).json({ message: "The Super Admin account cannot be modified or demoted." });
     }
 
-    const user = await User.findByIdAndUpdate(userId, { role }, { new: true }).select('name username email role');
-    if (!user) return res.status(404).json({ message: "User not found." });
+    if (targetUser._id.toString() === adminId.toString()) {
+      return res.status(400).json({ message: "You cannot change your own role." });
+    }
+
+    targetUser.role = role;
+    await targetUser.save();
 
     return res.status(200).json({
       success: true,
-      message: `User role updated to ${role}.`,
-      user
+      message: `User @${targetUser.username} role updated to ${role}.`,
+      user: {
+        _id: targetUser._id,
+        name: targetUser.name,
+        username: targetUser.username,
+        email: targetUser.email,
+        role: targetUser.role
+      }
     });
   } catch (error) {
     console.error("Error in updateUserRole:", error);
@@ -312,14 +331,17 @@ export const updateUserRole = async (req, res) => {
 
 /**
  * GET /api/admin/bootstrap-status
- * Checks if the system has already been initialized with a Supreme Admin.
+ * Checks if the system has already been initialized with a Super Admin.
  */
 export const getBootstrapStatus = async (req, res) => {
   try {
-    const totalAdmins = await User.countDocuments({ role: 'admin' });
+    const totalSuperAdmins = await User.countDocuments({ role: 'superadmin' });
+    const totalAdmins = await User.countDocuments({ role: { $in: ['admin', 'superadmin'] } });
     return res.status(200).json({
       success: true,
-      isBootstrapped: totalAdmins > 0
+      isBootstrapped: totalSuperAdmins > 0 || totalAdmins > 0,
+      hasSuperAdmin: totalSuperAdmins > 0,
+      totalAdmins,
     });
   } catch (error) {
     return res.status(500).json({ success: false, message: "Failed to check bootstrap status" });
@@ -329,27 +351,39 @@ export const getBootstrapStatus = async (req, res) => {
 /**
  * POST /api/admin/claim-admin
  * Initial administrator bootstrap with Master Passkey.
- * Supports both:
- * 1) Authenticated user claiming Supreme Admin with { masterKey }
- * 2) Unauthenticated visitor claiming Supreme Admin with { username, password, masterKey }
- * Once an admin exists in the system, master key claim is PERMANENTLY DISABLED.
+ * Enforces:
+ * 1) Super Admin can only be ONE person in the entire database.
+ * 2) Once a superadmin exists, the Master Key option is PERMANENTLY DISABLED.
+ * 3) Requires setting a secure password for the Super Admin account.
  */
 export const claimAdminAccess = async (req, res) => {
   try {
-    const { masterKey, username, password } = req.body;
+    const { masterKey, username, password, confirmPassword, name, email } = req.body;
 
-    const totalAdmins = await User.countDocuments({ role: 'admin' });
+    const totalSuperAdmins = await User.countDocuments({ role: 'superadmin' });
 
-    // Permanently disable once an admin already exists in the system
-    if (totalAdmins > 0) {
+    // Permanently disable once a super admin exists
+    if (totalSuperAdmins > 0) {
       return res.status(403).json({
-        message: "Supreme Admin has already been initialized. Master key option is permanently disabled."
+        message: "The Super Admin has already been initialized. Master Passkey claim is permanently disabled."
       });
     }
 
     const MASTER_SECRET = process.env.ADMIN_MASTER_KEY || "FLASHCHAT_SUPREME_2026";
     if (!masterKey || masterKey !== MASTER_SECRET) {
       return res.status(403).json({ message: "Invalid Master Passkey. Access rejected." });
+    }
+
+    if (!password || password.length < 6) {
+      return res.status(400).json({
+        message: "A secure Super Admin password of at least 6 characters is required."
+      });
+    }
+
+    if (confirmPassword && password !== confirmPassword) {
+      return res.status(400).json({
+        message: "Password and Confirm Password do not match."
+      });
     }
 
     let userToPromote = null;
@@ -365,57 +399,75 @@ export const claimAdminAccess = async (req, res) => {
         $or: [{ username: trimmedUser }, { email: trimmedUser }]
       });
 
+      // If user does not exist, automatically create the new Super Admin account
       if (!userToPromote) {
-        return res.status(404).json({
-          message: `User "${trimmedUser}" not found. Please enter a valid registered username or email.`
+        const hashedPassword = await bcrypt.hash(password, 10);
+        userToPromote = await User.create({
+          username: trimmedUser,
+          name: name ? name.trim() : trimmedUser,
+          email: email ? email.trim() : `${trimmedUser}@flashchat.admin`,
+          password: hashedPassword,
+          role: 'superadmin',
         });
-      }
-
-      // If user has a password set, verify credentials
-      if (userToPromote.password && password) {
-        const isMatch = await bcrypt.compare(password, userToPromote.password);
-        if (!isMatch) {
-          return res.status(401).json({ message: "Invalid user account password." });
-        }
+        await Account.create({
+          user: userToPromote._id,
+          provider: 'credentials',
+        });
       }
     } else {
       return res.status(400).json({
-        message: "Please enter your username/email or sign in first to claim admin privileges."
+        message: "Please enter a username or sign in first to claim Super Admin authority."
       });
     }
 
     if (!userToPromote) {
-      return res.status(404).json({ message: "User not found to grant admin privileges." });
+      return res.status(404).json({ message: "User not found to grant Super Admin privileges." });
     }
 
-    userToPromote.role = 'admin';
+    // Set role to superadmin and establish the hashed password
+    userToPromote.role = 'superadmin';
+    userToPromote.password = await bcrypt.hash(password, 10);
     await userToPromote.save();
 
-    // If unauthenticated, establish session & issue JWT cookie
-    let activeSessionId = req.user?.sessionId;
-    if (!req.user?.id) {
-      const session = buildSession(req, userToPromote._id);
-      await session.save();
-      activeSessionId = session.sessionId;
+    // Ensure credentials account exists so they can log in directly anytime
+    await Account.findOneAndUpdate(
+      { user: userToPromote._id, provider: 'credentials' },
+      { user: userToPromote._id, provider: 'credentials' },
+      { upsert: true }
+    );
 
-      const token = jwt.sign(
-        {
-          id: userToPromote._id,
-          username: userToPromote.username,
-          role: userToPromote.role,
-          sessionId: session.sessionId
-        },
-        process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRES_IN || '48h' }
-      );
+    // Build session and save Mongoose model properly
+    const sessionData = buildSession(req, userToPromote);
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const session = new Session({
+      user: userToPromote._id,
+      sessionId: sessionData.sessionId,
+      expiresAt,
+      lastSeenAt: new Date(),
+      ip: sessionData.ip,
+      browser: sessionData.browser,
+      os: sessionData.os,
+      userAgent: sessionData.userAgent,
+    });
+    await session.save();
 
-      const cookieOptions = getCookieOptions();
-      res.cookie('token', token, cookieOptions);
-    }
+    const token = jwt.sign(
+      {
+        id: userToPromote._id,
+        username: userToPromote.username,
+        role: userToPromote.role,
+        sessionId: session.sessionId
+      },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+    );
+
+    const cookieOptions = getCookieOptions(7 * 24 * 60 * 60 * 1000);
+    res.cookie('token', token, cookieOptions);
 
     return res.status(200).json({
       success: true,
-      message: "Supreme Admin privileges granted successfully! Welcome to the console.",
+      message: "Super Admin privileges granted and password configured successfully! Welcome to the console.",
       user: {
         id: userToPromote._id,
         _id: userToPromote._id,
@@ -424,12 +476,48 @@ export const claimAdminAccess = async (req, res) => {
         email: userToPromote.email,
         pfp: userToPromote.pfp,
         role: userToPromote.role,
-        sessionId: activeSessionId,
+        sessionId: session.sessionId,
       }
     });
   } catch (error) {
     console.error("Error in claimAdminAccess:", error);
-    return res.status(500).json({ message: "Failed to grant admin privileges.", error: error.message });
+    return res.status(500).json({ message: "Failed to grant Super Admin privileges.", error: error.message });
+  }
+};
+
+/**
+ * POST /api/admin/set-password
+ * Allows the logged-in Super Admin or Admin to set or change their direct login password.
+ */
+export const setAdminPassword = async (req, res) => {
+  try {
+    const { password, confirmPassword } = req.body;
+    if (!password || password.length < 6) {
+      return res.status(400).json({ message: "Password must be at least 6 characters long." });
+    }
+    if (confirmPassword && password !== confirmPassword) {
+      return res.status(400).json({ message: "Passwords do not match." });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User account not found." });
+
+    user.password = await bcrypt.hash(password, 10);
+    await user.save();
+
+    await Account.findOneAndUpdate(
+      { user: user._id, provider: 'credentials' },
+      { user: user._id, provider: 'credentials' },
+      { upsert: true }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: "Password updated successfully! You can now log in with this password."
+    });
+  } catch (error) {
+    console.error("Error in setAdminPassword:", error);
+    return res.status(500).json({ message: "Failed to update password", error: error.message });
   }
 };
 
@@ -502,6 +590,75 @@ export const clearAllMessages = async (req, res) => {
 };
 
 /**
+ * POST /api/admin/danger/delete-all-chats
+ * Completely deletes all direct chats, group chats, message history,
+ * purges media attachments, and wipes contacts & friend requests for all users
+ * (including admins and superadmin), returning the entire messaging and contact system to a clean zero
+ * while keeping all registered user accounts intact.
+ */
+export const deleteAllChatsAndContacts = async (req, res) => {
+  try {
+    const { confirmPhrase } = req.body;
+    if (confirmPhrase !== "DELETE_ALL_CHATS_AND_CONTACTS") {
+      return res.status(400).json({
+        message: 'Invalid confirmation phrase. Please confirm with "DELETE_ALL_CHATS_AND_CONTACTS".'
+      });
+    }
+
+    // 1. Delete all chat rooms (1-on-1 and groups)
+    const deleteChatsRes = await Chat.deleteMany({});
+
+    // 2. Delete all messages
+    const deleteMessagesRes = await Message.deleteMany({});
+
+    // 3. Purge chat uploads from disk
+    const attachmentsDir = path.join(process.cwd(), 'uploads', 'attachments');
+    const mediaDir = path.join(process.cwd(), 'uploads', 'media');
+    const resAttachments = cleanDirectoryContents(attachmentsDir);
+    const resMedia = cleanDirectoryContents(mediaDir);
+    const totalFreedFiles = resAttachments.fileCount + resMedia.fileCount;
+    const totalFreedBytes = resAttachments.bytesFreed + resMedia.bytesFreed;
+
+    // 4. Wipe contacts, friend requests, and sent requests across ALL users (including admins and superadmin)
+    const updateUsersRes = await User.updateMany({}, {
+      $set: {
+        contacts: [],
+        friendRequests: [],
+        sentRequests: []
+      }
+    });
+
+    // 5. Broadcast real-time events to all active sockets
+    io?.emit("all_chats_deleted", {
+      deletedAt: new Date(),
+      purgedBy: req.user?.username || "Supreme Admin"
+    });
+    io?.emit("all_messages_purged", {
+      purgedAt: new Date(),
+      purgedBy: req.user?.username || "Supreme Admin"
+    });
+    io?.emit("contacts_reset", {
+      resetAt: new Date(),
+      purgedBy: req.user?.username || "Supreme Admin"
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `Complete chat reset accomplished! Deleted ${deleteChatsRes.deletedCount} chat(s), wiped ${deleteMessagesRes.deletedCount} message(s), purged ${totalFreedFiles} attachment(s) (${formatBytes(totalFreedBytes)}), and cleared contacts for ${updateUsersRes.modifiedCount} user(s).`,
+      deletedChatsCount: deleteChatsRes.deletedCount,
+      deletedMessagesCount: deleteMessagesRes.deletedCount,
+      freedUploadsCount: totalFreedFiles,
+      freedBytes: totalFreedBytes,
+      formattedFreed: formatBytes(totalFreedBytes),
+      resetUsersCount: updateUsersRes.modifiedCount
+    });
+  } catch (error) {
+    console.error("Error in deleteAllChatsAndContacts:", error);
+    return res.status(500).json({ success: false, message: "Failed to delete chats and contacts", error: error.message });
+  }
+};
+
+/**
  * POST /api/admin/danger/clear-uploads
  * Completely deletes all uploaded files (attachments & media) across all chats from disk.
  */
@@ -556,8 +713,8 @@ export const deleteNonAdminUsers = async (req, res) => {
       });
     }
 
-    // 1. Fetch non-admin users
-    const nonAdminUsers = await User.find({ role: { $ne: 'admin' } }).select('_id pfp username');
+    // 1. Fetch non-admin users (preserve both admin and superadmin)
+    const nonAdminUsers = await User.find({ role: { $nin: ['admin', 'superadmin'] } }).select('_id pfp username');
     const nonAdminIds = nonAdminUsers.map((u) => u._id);
 
     if (nonAdminIds.length === 0) {
@@ -614,7 +771,7 @@ export const deleteNonAdminUsers = async (req, res) => {
 
     // 7. Clean up admin contacts, friend requests, and sent requests
     await User.updateMany(
-      { role: 'admin' },
+      { role: { $in: ['admin', 'superadmin'] } },
       {
         $pull: {
           contacts: { $in: nonAdminIds },
@@ -665,8 +822,8 @@ export const purgeSystemEverything = async (req, res) => {
     const totalFreedFiles = resAttachments.fileCount + resMedia.fileCount;
     const totalFreedBytes = resAttachments.bytesFreed + resMedia.bytesFreed;
 
-    // 3. Find and purge non-admin users
-    const nonAdminUsers = await User.find({ role: { $ne: 'admin' } }).select('_id pfp');
+    // 3. Find and purge non-admin users (preserve both admin and superadmin)
+    const nonAdminUsers = await User.find({ role: { $nin: ['admin', 'superadmin'] } }).select('_id pfp');
     const nonAdminIds = nonAdminUsers.map((u) => u._id);
 
     // Delete non-admin pfps
@@ -703,7 +860,7 @@ export const purgeSystemEverything = async (req, res) => {
 
     // Clean up admin contacts, friend requests, and reset all chats
     await User.updateMany(
-      { role: 'admin' },
+      { role: { $in: ['admin', 'superadmin'] } },
       {
         $set: { contacts: [], friendRequests: [], sentRequests: [] }
       }

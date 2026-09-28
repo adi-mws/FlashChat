@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
-import { selectUser, updateUser, backupE2EEKeys } from '../../redux/slices/authSlice';
+import { selectUser, updateUser, backupE2EEKeys, logoutUser } from '../../redux/slices/authSlice';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { getImageUrl } from '../../lib/imageUtils';
 import { useNotification } from '../../hooks/useNotification';
-import { Pencil, X, Check, ArrowLeft, Camera, Calendar, Mail, User, Info, ShieldCheck, MonitorSmartphone, History, CheckCircle2, ShieldAlert, Key, Lock, Eye, EyeOff, RefreshCw, Copy, Download, Sparkles, RotateCcw } from 'lucide-react';
-import { ACCOUNT_ROUTES, SETTINGS_ROUTES } from '../../../routes/routes';
+import { Pencil, X, Check, ArrowLeft, Camera, Calendar, Mail, User, Info, ShieldCheck, MonitorSmartphone, History, CheckCircle2, ShieldAlert, Key, Lock, Eye, EyeOff, RefreshCw, Copy, Download, Sparkles, RotateCcw, LogOut, ArrowRight, Smartphone, Laptop, Globe, Wifi } from 'lucide-react';
+import { ACCOUNT_ROUTES, SETTINGS_ROUTES, MARKETING_ROUTES } from '../../../routes/routes';
 import AppHeader from '../layout/AppHeader';
 import Loading from '../global/Loading';
 import { generate12WordRecoveryPhrase, downloadBackupFile, normalizeRecoveryPhrase } from '../../lib/e2ee';
@@ -33,8 +33,69 @@ export default function Profile({ edit = false, targetUserId }) {
     const [generatedMnemonic, setGeneratedMnemonic] = useState(null);
     const [copiedPhrase, setCopiedPhrase] = useState(false);
     const [backupTab, setBackupTab] = useState('words'); // 'words' | 'custom'
+    const [loggingOut, setLoggingOut] = useState(false);
+    const [currentSession, setCurrentSession] = useState(null);
 
     const isOwnProfile = edit || targetUserId === user?.id || (!targetUserId && chatId === user?.id);
+
+    useEffect(() => {
+        if (!isOwnProfile) return;
+        const fetchCurrentSession = async () => {
+            try {
+                const res = await axios.get(`${import.meta.env.VITE_API_URL}/auth/sessions`, {
+                    withCredentials: true,
+                });
+                const devices = res.data?.devices || [];
+                const current = devices.find((d) => d.isCurrent) || devices[0];
+                if (current) {
+                    setCurrentSession(current);
+                }
+            } catch (err) {
+                console.error('Failed to fetch session details:', err);
+            }
+        };
+        fetchCurrentSession();
+    }, [isOwnProfile]);
+
+    const getDetectedBrowser = () => {
+        if (currentSession?.browser && currentSession.browser !== 'Unknown') return currentSession.browser;
+        const ua = navigator.userAgent;
+        if (ua.includes('Edg/')) return 'Edge';
+        if (ua.includes('Chrome')) return 'Chrome';
+        if (ua.includes('Firefox')) return 'Firefox';
+        if (ua.includes('Safari')) return 'Safari';
+        return 'Web Browser';
+    };
+
+    const getDetectedOS = () => {
+        if (currentSession?.os && currentSession.os !== 'Unknown') return currentSession.os;
+        const ua = navigator.userAgent;
+        if (ua.includes('Win')) return 'Windows';
+        if (ua.includes('Mac')) return 'macOS';
+        if (ua.includes('Linux')) return 'Linux';
+        if (ua.includes('Android')) return 'Android';
+        if (ua.includes('iPhone') || ua.includes('iPad')) return 'iOS';
+        return 'Desktop';
+    };
+
+    const isMobileDevice = () => {
+        const os = getDetectedOS().toLowerCase();
+        return os.includes('android') || os.includes('ios') || /mobi|iphone|ipad|android/i.test(navigator.userAgent);
+    };
+
+    const handleLogout = async () => {
+        try {
+            setLoggingOut(true);
+            await dispatch(logoutUser()).unwrap();
+            showNotification('Signed out successfully', 'info');
+            navigate(MARKETING_ROUTES.login, { replace: true });
+        } catch (error) {
+            console.error('Logout error:', error);
+            navigate(MARKETING_ROUTES.login, { replace: true });
+        } finally {
+            setLoggingOut(false);
+        }
+    };
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -173,12 +234,12 @@ export default function Profile({ edit = false, targetUserId }) {
     };
 
     return (
-        <div className="w-full h-full flex flex-col bg-slate-50/50 dark:bg-zinc-950/40 overflow-y-auto animate-fade-in">
+        <div className="w-full h-full flex flex-col bg-white dark:bg-zinc-950 overflow-y-auto animate-fade-in">
             <AppHeader title={"Profile & Settings"}>
                 {isOwnProfile && !isEditing && (
                     <button
                         onClick={() => setIsEditing(true)}
-                        className="flex items-center gap-1.5 py-1.5 px-3.5 dark:bg-zinc-950 active:scale-95 text-white font-medium text-sm rounded-xl shadow-sm transition"
+                        className="flex items-center gap-1.5 py-1.5 px-3.5 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 active:scale-95 text-slate-800 dark:text-zinc-200 font-medium text-xs sm:text-sm rounded-xl border border-slate-200/60 dark:border-zinc-800/80 transition cursor-pointer"
                     >
                         <Pencil size={13} /> Edit
                     </button>
@@ -186,9 +247,9 @@ export default function Profile({ edit = false, targetUserId }) {
             </AppHeader>
 
             {loading ? <Loading /> :
-                <div className="max-w-4xl w-full mx-auto p-4 sm:p-6 space-y-6">
+                <div className="w-full p-4 sm:p-6 md:p-8 space-y-6">
                     {/* Main Identity Card */}
-                    <div className="bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row items-center gap-6">
+                    <div className="border border-slate-200/70 dark:border-zinc-800/80 bg-slate-50/40 dark:bg-zinc-900/30 rounded-2xl p-6 flex flex-col sm:flex-row items-center gap-6">
                         <div className="relative group flex-shrink-0">
                             <div
                                 onClick={() => !isEditing && setShowEnlargedImage(true)}
@@ -238,8 +299,8 @@ export default function Profile({ edit = false, targetUserId }) {
                     </div>
 
                     {/* Form Fields Card */}
-                    <div className="bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 rounded-2xl p-6 shadow-sm space-y-5">
-                        <h4 className="text-sm font-bold text-slate-800 dark:text-zinc-200 tracking-wide uppercase border-b border-slate-100 dark:border-zinc-800 pb-2">Profile Information</h4>
+                    <div className="border border-slate-200/70 dark:border-zinc-800/80 bg-slate-50/40 dark:bg-zinc-900/30 rounded-2xl p-6 space-y-5">
+                        <h4 className="text-sm font-bold text-slate-800 dark:text-zinc-200 tracking-wide uppercase border-b border-slate-200/60 dark:border-zinc-800 pb-2">Profile Information</h4>
 
                         {/* Display Name */}
                         <div className="space-y-1.5">
@@ -255,7 +316,7 @@ export default function Profile({ edit = false, targetUserId }) {
                                     onChange={(e) => handleChange('name', e.target.value)}
                                 />
                             ) : (
-                                <p className="text-sm text-slate-800 dark:text-zinc-200 bg-slate-50/50 dark:bg-zinc-950/40 border border-slate-100 dark:border-zinc-900 rounded-xl px-4 py-2.5 font-medium">
+                                <p className="text-sm text-slate-800 dark:text-zinc-200 bg-slate-100/60 dark:bg-zinc-900/50 border border-slate-200/60 dark:border-zinc-800/60 rounded-xl px-4 py-2.5 font-medium">
                                     {profile.name}
                                 </p>
                             )}
@@ -275,7 +336,7 @@ export default function Profile({ edit = false, targetUserId }) {
                                     onChange={(e) => handleChange('about', e.target.value)}
                                 />
                             ) : (
-                                <p className="text-sm text-slate-700 dark:text-zinc-300 bg-slate-50/50 dark:bg-zinc-950/40 border border-slate-100 dark:border-zinc-900 rounded-xl px-4 py-2.5 whitespace-pre-wrap leading-relaxed">
+                                <p className="text-sm text-slate-700 dark:text-zinc-300 bg-slate-100/60 dark:bg-zinc-900/50 border border-slate-200/60 dark:border-zinc-800/60 rounded-xl px-4 py-2.5 whitespace-pre-wrap leading-relaxed">
                                     {profile.about || 'FlashChat User'}
                                 </p>
                             )}
@@ -285,19 +346,19 @@ export default function Profile({ edit = false, targetUserId }) {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div className="space-y-1.5">
                                 <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400 flex items-center gap-1.5"><User size={13} /> Username</label>
-                                <p className="text-sm text-slate-500 dark:text-zinc-400 bg-slate-100/50 dark:bg-zinc-950/20 border border-slate-100 dark:border-zinc-900 rounded-xl px-4 py-2.5 font-medium cursor-not-allowed">@{profile.username}</p>
+                                <p className="text-sm text-slate-500 dark:text-zinc-400 bg-slate-100/40 dark:bg-zinc-900/30 border border-slate-200/50 dark:border-zinc-800/60 rounded-xl px-4 py-2.5 font-medium cursor-not-allowed">@{profile.username}</p>
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400 flex items-center gap-1.5"><Mail size={13} /> Email Address</label>
-                                <p className="text-sm text-slate-500 dark:text-zinc-400 bg-slate-100/50 dark:bg-zinc-950/20 border border-slate-100 dark:border-zinc-900 rounded-xl px-4 py-2.5 font-medium cursor-not-allowed truncate">{profile.email || 'Private'}</p>
+                                <p className="text-sm text-slate-500 dark:text-zinc-400 bg-slate-100/40 dark:bg-zinc-900/30 border border-slate-200/50 dark:border-zinc-800/60 rounded-xl px-4 py-2.5 font-medium cursor-not-allowed truncate">{profile.email || 'Private'}</p>
                             </div>
                         </div>
                     </div>
 
                     {/* Privacy & Settings Card */}
                     {isOwnProfile && (
-                        <div className="bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 rounded-2xl p-6 shadow-sm space-y-4">
-                            <h4 className="text-sm font-bold text-slate-800 dark:text-zinc-200 tracking-wide uppercase border-b border-slate-100 dark:border-zinc-800 pb-2">Privacy & Account Options</h4>
+                        <div className="border border-slate-200/70 dark:border-zinc-800/80 bg-slate-50/40 dark:bg-zinc-900/30 rounded-2xl p-6 space-y-4">
+                            <h4 className="text-sm font-bold text-slate-800 dark:text-zinc-200 tracking-wide uppercase border-b border-slate-200/60 dark:border-zinc-800 pb-2">Privacy & Account Options</h4>
 
                             <div className="flex items-center justify-between gap-4 py-1">
                                 <div className="space-y-0.5">
@@ -320,7 +381,7 @@ export default function Profile({ edit = false, targetUserId }) {
                                 </label>
                             </div>
 
-                            <div onClick={() => navigate(ACCOUNT_ROUTES.contacts)} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-950/20 hover:bg-slate-100/50 dark:hover:bg-zinc-950/60 transition cursor-pointer">
+                            <div onClick={() => navigate(ACCOUNT_ROUTES.contacts)} className="flex items-center justify-between p-3 rounded-xl border border-slate-200/60 dark:border-zinc-800/60 bg-slate-100/40 dark:bg-zinc-900/40 hover:bg-slate-100/80 dark:hover:bg-zinc-900/70 transition cursor-pointer">
                                 <div className="space-y-0.5">
                                     <p className="text-xs font-semibold text-slate-800 dark:text-zinc-200">Manage Contacts</p>
                                     <p className="text-[11px] text-slate-500 dark:text-zinc-400">View sent or pending friend requests and manage list</p>
@@ -328,7 +389,7 @@ export default function Profile({ edit = false, targetUserId }) {
                                 <i className="fa-solid fa-chevron-right text-xs text-slate-400" />
                             </div>
 
-                            <div onClick={() => navigate(SETTINGS_ROUTES.linkedDevices)} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-950/20 hover:bg-slate-100/50 dark:hover:bg-zinc-950/60 transition cursor-pointer">
+                            <div onClick={() => navigate(SETTINGS_ROUTES.linkedDevices)} className="flex items-center justify-between p-3 rounded-xl border border-slate-200/60 dark:border-zinc-800/60 bg-slate-100/40 dark:bg-zinc-900/40 hover:bg-slate-100/80 dark:hover:bg-zinc-900/70 transition cursor-pointer">
                                 <div className="space-y-0.5">
                                     <p className="text-xs font-semibold text-slate-800 dark:text-zinc-200">Linked Devices</p>
                                     <p className="text-[11px] text-slate-500 dark:text-zinc-500">Manage other browser sessions and devices signed into this account</p>
@@ -336,7 +397,7 @@ export default function Profile({ edit = false, targetUserId }) {
                                 <MonitorSmartphone size={16} className="text-slate-400 dark:text-zinc-500" />
                             </div>
 
-                            <div onClick={() => navigate(SETTINGS_ROUTES.updateHistory)} className="flex items-center justify-between p-3 rounded-xl border border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-950/20 hover:bg-slate-100/50 dark:hover:bg-zinc-950/60 transition cursor-pointer">
+                            <div onClick={() => navigate(SETTINGS_ROUTES.updateHistory)} className="flex items-center justify-between p-3 rounded-xl border border-slate-200/60 dark:border-zinc-800/60 bg-slate-100/40 dark:bg-zinc-900/40 hover:bg-slate-100/80 dark:hover:bg-zinc-900/70 transition cursor-pointer">
                                 <div className="space-y-0.5">
                                     <p className="text-xs font-semibold text-slate-800 dark:text-zinc-200">Update History</p>
                                     <p className="text-[11px] text-slate-500 dark:text-zinc-500">View FlashChat release notes and version changelog</p>
@@ -348,7 +409,7 @@ export default function Profile({ edit = false, targetUserId }) {
 
                     {/* E2EE Backup & Key Recovery Card */}
                     {isOwnProfile && (
-                        <div className="bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 rounded-2xl p-6 shadow-sm space-y-5">
+                        <div className="border border-slate-200/70 dark:border-zinc-800/80 bg-slate-50/40 dark:bg-zinc-900/30 rounded-2xl p-6 space-y-5">
                             <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-3">
                                 <div>
                                     <h4 className="text-sm font-bold text-slate-800 dark:text-zinc-200 tracking-wide uppercase">
@@ -476,6 +537,52 @@ export default function Profile({ edit = false, targetUserId }) {
                                     </button>
                                 </form>
                             )}
+                        </div>
+                    )}
+
+                    {/* Active Session & Log Out */}
+                    {isOwnProfile && (
+                        <div className="border border-slate-200/70 dark:border-zinc-800/80 bg-slate-50/40 dark:bg-zinc-900/30 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                            <div className="flex items-center gap-3.5 min-w-0">
+                                <div className="h-10 w-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 flex-shrink-0">
+                                    {isMobileDevice() ? <Smartphone size={20} /> : <Laptop size={20} />}
+                                </div>
+                                <div className="min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <p className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-zinc-200">
+                                            {getDetectedBrowser()} on {getDetectedOS()}
+                                        </p>
+                                        {currentSession?.ip && (
+                                            <span className="text-[11px] font-mono text-slate-400 dark:text-zinc-500">
+                                                ({currentSession.ip})
+                                            </span>
+                                        )}
+                                    </div>
+                                    <p className="text-[11px] text-slate-500 dark:text-zinc-400 flex items-center gap-1.5 mt-0.5">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+                                        Current Session • Signed in as @{profile.username}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <button
+                                type="button"
+                                onClick={handleLogout}
+                                disabled={loggingOut}
+                                className="w-full sm:w-auto px-4 py-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/30 dark:hover:bg-rose-900/40 text-rose-600 dark:text-rose-400 font-semibold text-xs rounded-xl border border-rose-200/60 dark:border-rose-900/50 transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 flex-shrink-0"
+                            >
+                                {loggingOut ? (
+                                    <>
+                                        <RefreshCw size={13} className="animate-spin" />
+                                        <span>Signing out...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <LogOut size={13} />
+                                        <span>Log Out</span>
+                                    </>
+                                )}
+                            </button>
                         </div>
                     )}
 

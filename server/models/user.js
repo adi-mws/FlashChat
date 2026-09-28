@@ -62,7 +62,7 @@ const userSchema = new mongoose.Schema({
   // Moderation & Access Control
   role: {
     type: String,
-    enum: ['user', 'admin'],
+    enum: ['user', 'admin', 'superadmin'],
     default: 'user',
   },
   isDeactivated: {

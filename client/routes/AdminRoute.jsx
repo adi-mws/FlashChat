@@ -34,8 +34,9 @@ export default function AdminRoute({ children }) {
         return children;
     }
 
-    // Only redirect if an admin already exists AND user is not an admin
-    if (isBootstrapped && user && user.role !== "admin") {
+    // Only redirect if an admin already exists AND user is not an admin or superadmin
+    const isAnAdmin = user?.role === "admin" || user?.role === "superadmin";
+    if (isBootstrapped && user && !isAnAdmin) {
         return <Navigate to={CHAT_ROUTES.root} replace />;
     }
 
