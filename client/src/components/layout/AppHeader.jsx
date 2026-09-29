@@ -9,7 +9,7 @@ export default function AppHeader({ title, children }) {
             <div className="flex items-center gap-3">
                 <button
                     onClick={() => navigate(-1)}
-                    className="p-2 rounded-xl text-slate-600 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-900 transition"
+                    className="p-2 rounded-xl block sm:hidden text-slate-600 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-900 transition"
                     title="Go Back"
                 >
                     <ArrowLeft size={20} />

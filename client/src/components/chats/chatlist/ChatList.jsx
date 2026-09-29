@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
-import { Search, Plus } from "lucide-react";
+import { Search } from "lucide-react";
 import {
   selectChats,
   selectSelectedChat,
@@ -35,11 +35,9 @@ export default function ChatList() {
   const user = useSelector(selectUser);
   const navigate = useNavigate();
   const sideBarRef = useRef(null);
-  const dropdownRef = useRef(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredChats, setFilteredChats] = useState([]);
   const [selectedFilter, setSelectedFilter] = useState("all");
-  const [showGroupOptions, setShowGroupOptions] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showJoinModal, setShowJoinModal] = useState(false);
   const drafts = useSelector(selectDrafts);
@@ -87,15 +85,6 @@ export default function ChatList() {
     return timeB - timeA;
   });
 
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setShowGroupOptions(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   useEffect(() => {
     if (!Array.isArray(chats)) {
@@ -135,12 +124,15 @@ export default function ChatList() {
   return (
     <div
       ref={sideBarRef}
-      className="ChatList flex flex-col h-screen w-full bg-white dark:bg-zinc-950 border-r border-slate-200/50 dark:border-zinc-900 select-none overflow-hidden"
+      className="ChatList flex flex-col h-full w-full bg-white dark:bg-zinc-950 border-r border-slate-200/50 dark:border-zinc-900 select-none overflow-hidden"
     >
-      <ChatListHeader />
+      <ChatListHeader
+        onCreateGroup={() => setShowCreateModal(true)}
+        onJoinGroup={() => setShowJoinModal(true)}
+      />
 
       {/* Search Bar */}
-      <div className="relative flex items-center px-4 py-2 border-b border-slate-100 dark:border-zinc-900/60 flex-shrink-0">
+      <div className="relative flex items-center px-2 py-2 border-b border-slate-100 dark:border-zinc-900/60 flex-shrink-0">
         <Search className="absolute left-7 text-slate-400 dark:text-zinc-500 w-4 h-4 pointer-events-none" />
         <input
           type="text"
@@ -152,7 +144,7 @@ export default function ChatList() {
       </div>
 
       {/* Filters */}
-      <div className="px-1 flex items-center gap-2 my-1 relative">
+      <div className="px-2 flex items-center gap-2 my-1 relative">
         <button
           type="button"
           onClick={() => setSelectedFilter("all")}
@@ -186,43 +178,6 @@ export default function ChatList() {
         >
           Groups
         </button>
-
-        {/* Plus / Create Group Button */}
-        <div ref={dropdownRef} className="relative ml-auto">
-          <button
-            type="button"
-            onClick={() => setShowGroupOptions(!showGroupOptions)}
-            className="rounded-xl border border-slate-200 dark:border-zinc-800 text-xs p-2 hover:bg-slate-100 dark:hover:bg-zinc-900 transition text-slate-600 dark:text-zinc-400 cursor-pointer"
-            title="Group Actions"
-          >
-            <Plus size={16} />
-          </button>
-
-          {showGroupOptions && (
-            <div className="absolute right-0 mt-1.5 w-40 bg-white dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-800/80 rounded-xl shadow-lg py-1.5 z-50 animate-scale-in">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowCreateModal(true);
-                  setShowGroupOptions(false);
-                }}
-                className="w-full text-left px-3.5 py-2 text-xs text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800/60 transition cursor-pointer"
-              >
-                Create Group Chat
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowJoinModal(true);
-                  setShowGroupOptions(false);
-                }}
-                className="w-full text-left px-3.5 py-2 text-xs text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800/60 transition cursor-pointer"
-              >
-                Join Group
-              </button>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* Chat list (scrollable) */}

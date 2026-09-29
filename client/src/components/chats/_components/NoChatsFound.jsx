@@ -7,8 +7,8 @@ export default function NoChatsFound({ children }) {
   const navigate = useNavigate();
 
   return (
-    <div className="nochatsfound-wrapper flex-1 h-full flex items-center justify-center p-8 bg-slate-50/50 dark:bg-zinc-950/40 animate-fade-in">
-      <div className="w-full max-w-sm p-6 bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 rounded-2xl shadow-xl flex flex-col items-center text-center">
+    <div className="nochatsfound-wrapper flex-1 h-full flex  p-8 bg-slate-50/50 dark:bg-zinc-950 animate-fade-in">
+      <div className="w-full max-w-sm p-6 bg-white dark:bg-zinc-950 rounded-2xl shadow-xl flex flex-col items-center text-center">
         <div className="w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 flex items-center justify-center text-indigo-500 mb-4">
           <UserPlus2 size={24} />
         </div>
@@ -23,7 +23,7 @@ export default function NoChatsFound({ children }) {
 
         <button
           type="button"
-          className="mt-6 w-full py-2.5 px-4 bg-indigo-500 hover:bg-indigo-600 active:scale-95 text-white font-medium text-sm rounded-xl shadow-md shadow-indigo-500/10 transition-all duration-200 cursor-pointer"
+          className="mt-6 w-full py-2 px-4 bg-zinc-950 border border-indigo-600  active:scale-95 text-white font-medium text-xs rounded-xl shadow-md hover:shadow-indigo-500/10 transition-all duration-200 cursor-pointer"
           onClick={() => navigate(ACCOUNT_ROUTES.contacts)}
         >
           Add Contacts

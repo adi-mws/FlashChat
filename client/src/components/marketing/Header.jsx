@@ -41,7 +41,7 @@ export default function Header() {
     <>
       <div className="header-relative h-[60px] w-full"></div>
       <header className="header fixed top-0 left-0 bg-zinc-950 border-b border-zinc-900 z-100 text-sm shadow-sm flex px-5 sm:px-10 h-[60px] w-full justify-between flex-row items-center">
-        <div className="flex items-center flex-row gap-2">
+        <Link to={MARKETING_ROUTES.landing} className="flex items-center flex-row gap-2" onlinc>
           <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-indigo-500 text-white shadow-sm shadow-indigo-500/20">
             <Flame size={18} fill="white" />
           </div>
@@ -52,7 +52,7 @@ export default function Header() {
           <span className="text-slate-500 dark:text-white text-xs dark:bg-zinc-800/50 bg-slate-200/50 px-2 py-1 rounded-md">
             v3.2.1
           </span>
-        </div>
+        </Link>
 
         {/* Navigation Links */}
         <nav className={`nav-links ${menuOpen ? "open" : ""} flex flex-row gap-4`}>
