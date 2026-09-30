@@ -377,17 +377,11 @@ export default function ContactsPage() {
                 >
                   <div className="flex gap-3 sm:gap-3.5 items-center min-w-0">
                     <div className="relative flex-shrink-0">
-                      {req.pfp ? (
-                        <img
-                          src={getImageUrl(req.pfp)}
-                          alt={req.name || req.username}
-                          className="w-11 h-11 sm:w-12 sm:h-12 rounded-full object-cover border border-slate-100 dark:border-zinc-800"
-                        />
-                      ) : (
-                        <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-indigo-50 dark:bg-zinc-800 flex items-center justify-center font-bold text-xs uppercase text-indigo-500 border border-slate-200/60 dark:border-zinc-700/60">
-                          {(req.name || req.username || 'U').substring(0, 1)}
-                        </div>
-                      )}
+                      <img
+                        src={getImageUrl(req.pfp)}
+                        alt={req.name || req.username}
+                        className="w-11 h-11 sm:w-12 sm:h-12 rounded-full object-cover border border-slate-100 dark:border-zinc-800"
+                      />
                       {isReceived && (
                         <span
                           className="absolute -top-0.5 -right-0.5 w-3 h-3 rounded-full bg-indigo-500 border-2 border-white dark:border-zinc-900"

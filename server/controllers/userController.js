@@ -39,13 +39,20 @@ export const searchUsers = async (req, res) => {
     currentUser.sentRequests.forEach(req => excludedUserIds.add(req.to.toString()));
 
     // Perform search on users not in excluded list
-    const users = await User.find({
+    const foundUsers = await User.find({
       _id: { $nin: Array.from(excludedUserIds) },
       $or: [
         { username: { $regex: username, $options: "i" } },
         { name: { $regex: username, $options: "i" } }
       ]
     }).select("username name pfp _id");
+
+    const users = foundUsers.map((u) => ({
+      _id: u._id,
+      username: u.username,
+      name: u.name,
+      pfp: isGoogleAvatarUrl(u.pfp) ? '' : u.pfp,
+    }));
 
     res.status(200).json({ users });
 
@@ -55,6 +62,15 @@ export const searchUsers = async (req, res) => {
   }
 };
 
+const isGoogleAvatarUrl = (url) => {
+  if (!url || typeof url !== 'string') return false;
+  return (
+    url.includes('googleusercontent.com') ||
+    url.includes('ggpht.com') ||
+    /google\.[a-z.]+\/.*photo/i.test(url)
+  );
+};
+
 // Helper function to format user data safely
 const formatUser = (user) => ({
   _id: user._id,
@@ -62,7 +78,7 @@ const formatUser = (user) => ({
   name: user.name,
   email: user.email,
   about: user.about,
-  pfp: user.pfp,
+  pfp: isGoogleAvatarUrl(user.pfp) ? '' : user.pfp,
   lastOnline: user.lastOnline,
   showLastMessageInList: user.showLastMessageInList,
   createdAt: user.createdAt,
@@ -200,7 +216,7 @@ export const getFriendRequests = async (req, res) => {
         _id: request.from._id,
         name: request.from.name,
         username: request.from.username,
-        pfp: request.from.pfp,
+        pfp: isGoogleAvatarUrl(request.from.pfp) ? '' : request.from.pfp,
         about: request.from.about,
         lastOnline: request.from.lastOnline,
         createdAt: request.createdAt || new Date(),
@@ -407,7 +423,7 @@ export const getSentRequests = async (req, res) => {
         _id: request.to._id,
         name: request.to.name,
         username: request.to.username,
-        pfp: request.to.pfp,
+        pfp: isGoogleAvatarUrl(request.to.pfp) ? '' : request.to.pfp,
         about: request.to.about,
         lastOnline: request.to.lastOnline,
         createdAt: request.createdAt || new Date(),
@@ -525,7 +541,10 @@ export const getFriendsList = async (req, res) => {
     }
 
     res.status(200).json({
-      friends: user.contacts || []
+      friends: (user.contacts || []).map((c) => ({
+        ...c,
+        pfp: isGoogleAvatarUrl(c.pfp) ? '' : c.pfp,
+      }))
     });
   } catch (error) {
     console.error("Error in getFriendsList:", error);

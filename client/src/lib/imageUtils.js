@@ -1,5 +1,19 @@
+export function isGoogleProfilePic(url) {
+  if (!url || typeof url !== 'string') return false;
+  return (
+    url.includes('googleusercontent.com') ||
+    url.includes('ggpht.com') ||
+    /google\.[a-z.]+\/.*photo/i.test(url)
+  );
+}
+
 export function getImageUrl(imagePath, fallback = '/imgs/pfp-img.jpeg') {
   const baseUrl = import.meta.env.VITE_BACKEND_URL;
+
+  // Never show Google profile picture; fallback to default person image
+  if (isGoogleProfilePic(imagePath)) {
+    return fallback;
+  }
 
   // If it's already an absolute URL, return it
   if (typeof imagePath === 'string' && /^https?:\/\//i.test(imagePath)) {

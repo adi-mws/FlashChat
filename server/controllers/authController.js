@@ -205,6 +205,11 @@ export const loginUser = async (req, res) => {
       });
     }
 
+    if (user.pfp && isGoogleAvatarUrl(user.pfp)) {
+      user.pfp = '';
+      await user.save();
+    }
+
     const account = await ensureAccount({
       user,
       provider: 'credentials',
@@ -247,6 +252,15 @@ export const loginUser = async (req, res) => {
 };
 
 
+
+export const isGoogleAvatarUrl = (url) => {
+  if (!url || typeof url !== 'string') return false;
+  return (
+    url.includes('googleusercontent.com') ||
+    url.includes('ggpht.com') ||
+    /google\.[a-z.]+\/.*photo/i.test(url)
+  );
+};
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 export const googleAuthPreCheck = async (req, res) => {
@@ -304,12 +318,8 @@ export const googleAuth = async (req, res) => {
       return res.status(401).json({ message: 'You are not authorized to login here ' });
     }
 
-      let updated = false;
-      if (!user.pfp && picture) {
-        user.pfp = picture;
-        updated = true;
-      }
-      if (updated) {
+      if (user.pfp && isGoogleAvatarUrl(user.pfp)) {
+        user.pfp = '';
         await user.save();
       }
 
@@ -357,6 +367,11 @@ export const googleAuth = async (req, res) => {
       const existingUserByEmail = await User.findOne({ email });
       if (existingUserByEmail) {
         // If email already exists, link Google ID and log them in
+        if (existingUserByEmail.pfp && isGoogleAvatarUrl(existingUserByEmail.pfp)) {
+          existingUserByEmail.pfp = '';
+          await existingUserByEmail.save();
+        }
+
         const account = await ensureAccount({
           user: existingUserByEmail,
           provider: 'google',
@@ -394,7 +409,7 @@ export const googleAuth = async (req, res) => {
         username,
         name,
         email,
-        pfp: picture,
+        pfp: '', // Never save Google profile picture; use default person image until manually changed
       });
       const account = await ensureAccount({
         user: newUser,
@@ -562,6 +577,11 @@ export const verifyUserDetails = async (req, res) => {
         user = await User.findById(decoded.id);
         if (!user) {
           return res.status(404).json({ message: 'User not found' });
+        }
+
+        if (user.pfp && isGoogleAvatarUrl(user.pfp)) {
+          user.pfp = '';
+          await user.save();
         }
 
         if (user.isDeactivated) {

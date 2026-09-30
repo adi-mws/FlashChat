@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { getImageUrl } from '../../lib/imageUtils';
 
 export default function SearchUsers({ showSearchUsers, setShowSearchUsers, createNewChat }) {
     const [search, setSearch] = useState('');
@@ -84,7 +85,7 @@ export default function SearchUsers({ showSearchUsers, setShowSearchUsers, creat
                                         key={user?.id}
                                         className="p-3 hover:bg-zinc-100 border-b-1 border-zinc-300 dark:border-zinc-800 dark:hover:bg-zinc-900 transition cursor-pointer flex gap-5"
                                     >
-                                        <img src={user?.pfp} alt="profile_pic" className='text-sm w-10 h-10 rounded-full' />
+                                        <img src={getImageUrl(user?.pfp)} alt="profile_pic" className='text-sm w-10 h-10 rounded-full object-cover' />
                                         <div className="flex flex-col flex-1/3">
                                             <span className="name dark:text-white text-lg">{user?.name}</span>
                                             <span className="usernam dark:font-normal font-bold text-primary">{user?.username}</span>
