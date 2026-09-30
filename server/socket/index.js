@@ -257,14 +257,16 @@ export const initSocket = (server) => {
         const populatedMsg = await newMessage.populate("sender", "_id name username pfp");
 
         let messageTarget = io.to(chatId).to(getUserRoom(socket.user.id));
-        if (chat && chat.isGroupChat) {
+        if (chat && Array.isArray(chat.participants)) {
           chat.participants.forEach(pId => {
-            if (pId.toString() !== socket.user.id.toString()) {
-              messageTarget = messageTarget.to(getUserRoom(pId.toString()));
+            const pIdStr = (pId?._id || pId)?.toString();
+            if (pIdStr && pIdStr !== socket.user.id.toString()) {
+              messageTarget = messageTarget.to(getUserRoom(pIdStr));
             }
           });
-        } else if (receiverId) {
-          messageTarget = messageTarget.to(getUserRoom(receiverId));
+        }
+        if (receiverId) {
+          messageTarget = messageTarget.to(getUserRoom(receiverId.toString()));
         }
         messageTarget.emit("newMessage", populatedMsg);
       } catch (error) {

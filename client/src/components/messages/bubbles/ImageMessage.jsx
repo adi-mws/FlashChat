@@ -1,13 +1,13 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, RefreshCw } from "lucide-react";
 import TimeBadge from "./TimeBadge";
 import useDecryptedAttachment from "./useDecryptedAttachment";
 import ImageViewer from "../ImageViewer";
 
 /**
  * ImageMessage
- * E2EE encrypted image bubble with lightbox zoom and upload progress overlay.
+ * E2EE encrypted image bubble with lightbox zoom, resilient fallback, and upload progress overlay.
  */
 export default function ImageMessage({ message, isSender, time }) {
   const mimeType = message.fileName?.toLowerCase().endsWith(".png")
@@ -18,15 +18,24 @@ export default function ImageMessage({ message, isSender, time }) {
     ? "image/gif"
     : "image/jpeg";
 
-  const { blobUrl, loading, error } = useDecryptedAttachment(
+  const { blobUrl, loading, error, retry } = useDecryptedAttachment(
     message.attachmentUrl,
     message.attachmentEncryption,
     mimeType,
     message.localBlobUrl
   );
 
+  const [imgError, setImgError] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
+
+  // Reset imgError if blobUrl changes
+  useEffect(() => {
+    setImgError(false);
+  }, [blobUrl]);
+
   const caption = message.content || "";
+  const hasError = (error || imgError) && !message.isSending;
+  const isImageReady = Boolean(blobUrl && !hasError);
 
   const bubble = isSender
     ? "bg-primary-2 text-white rounded-br-none"
@@ -39,32 +48,45 @@ export default function ImageMessage({ message, isSender, time }) {
           message.isSending ? "ring-2 ring-indigo-500/50" : ""
         }`}
       >
-        {/* Image Display Area - Standard width box filled by image with standard max-height */}
+        {/* Image Display Area */}
         <div
-          onClick={() => !message.isSending && blobUrl && setViewerOpen(true)}
+          onClick={() => isImageReady && !message.isSending && setViewerOpen(true)}
           className={`relative w-full bg-zinc-800/80 overflow-hidden ${
-            blobUrl && !message.isSending ? "cursor-pointer group/img" : ""
+            isImageReady && !message.isSending ? "cursor-pointer group/img" : ""
           }`}
           style={{ minHeight: 160 }}
         >
-          {loading && !message.isSending && (
+          {loading && !message.isSending && !blobUrl && (
             <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/80 z-10 min-h-[160px]">
               <div className="w-8 h-8 rounded-full border-2 border-zinc-600 border-t-indigo-400 animate-spin" />
             </div>
           )}
 
-          {error && !message.isSending && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900/80 z-10 gap-1 min-h-[160px]">
-              <AlertCircle size={20} className="text-red-400" />
-              <span className="text-[10px] text-red-300">Failed to load image</span>
+          {hasError && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900/90 z-10 gap-2 min-h-[160px] p-4 text-center">
+              <AlertCircle size={22} className="text-red-400" />
+              <span className="text-xs text-zinc-300 font-medium">Failed to load photo</span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setImgError(false);
+                  retry?.();
+                }}
+                className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 active:scale-95 text-xs text-zinc-200 border border-zinc-700 transition cursor-pointer flex items-center gap-1.5"
+              >
+                <RefreshCw size={12} />
+                Retry
+              </button>
             </div>
           )}
 
-          {blobUrl && !error && (
+          {isImageReady && (
             <>
               <img
                 src={blobUrl}
-                alt={message.fileName || "Image"}
+                alt={message.fileName || "Photo"}
+                onError={() => setImgError(true)}
                 className={`w-full h-auto min-h-[160px] max-h-[360px] object-cover block transition-transform duration-200 group-hover/img:scale-[1.01] ${
                   message.isSending
                     ? "opacity-75 cursor-default"
@@ -135,7 +157,7 @@ export default function ImageMessage({ message, isSender, time }) {
           )}
 
           {/* Time overlay for pure images */}
-          {!caption && blobUrl && !message.isSending && (
+          {!caption && isImageReady && !message.isSending && (
             <div className="absolute bottom-1.5 right-1.5">
               <TimeBadge time={time} isSender={isSender} message={message} overlay />
             </div>

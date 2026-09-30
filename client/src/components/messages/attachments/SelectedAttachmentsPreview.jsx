@@ -1,6 +1,13 @@
 import { X, File as FileIcon, Send, ChevronLeft, ChevronRight } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+const isImageFile = (file) => {
+  if (!file) return false;
+  if (file.type && file.type.startsWith("image/")) return true;
+  const name = file.name || "";
+  return /\.(jpe?g|png|webp|gif|svg|bmp|ico|heic|heif)$/i.test(name);
+};
+
 /* ─────────────────────────────────────────────────────────────
    Stable object-URL per attachment index
 ───────────────────────────────────────────────────────────── */
@@ -12,7 +19,7 @@ function useObjectUrls(attachments) {
     const next = {};
     (attachments || []).forEach((att, i) => {
       const file = att.file;
-      if (file?.type?.startsWith("image/")) {
+      if (isImageFile(file)) {
         if (prevRef.current[i]?.file === file) {
           next[i] = prevRef.current[i].url;
         } else {
@@ -105,8 +112,9 @@ export default function SelectedAttachmentsPreview({
 
   const active = attachmentsList[activeIndex];
   const activeFile = active?.file;
-  const isImage = activeFile?.type?.startsWith("image/");
+  const isImage = isImageFile(activeFile);
   const previewUrl = urls[activeIndex];
+  const [brokenPreviewUrls, setBrokenPreviewUrls] = useState({});
 
   const removeAttachment = (index) => {
     const next = attachmentsList.filter((_, i) => i !== index);
@@ -188,11 +196,12 @@ export default function SelectedAttachmentsPreview({
 
         {/* Preview */}
         <div className="flex-1 flex items-center justify-center w-full min-h-0">
-          {isImage && previewUrl ? (
+          {isImage && previewUrl && !brokenPreviewUrls[previewUrl] ? (
             <img
               key={previewUrl}
               src={previewUrl}
-              alt={activeFile?.name}
+              alt={activeFile?.name || "Photo preview"}
+              onError={() => setBrokenPreviewUrls((p) => ({ ...p, [previewUrl]: true }))}
               className="max-w-full object-contain rounded-xl shadow-2xl select-none"
               style={{ maxHeight: "calc(100vh - 300px)" }}
             />
@@ -239,7 +248,7 @@ export default function SelectedAttachmentsPreview({
         >
           {attachmentsList.map((att, i) => {
             const f = att.file;
-            const isImg = f?.type?.startsWith("image/");
+            const isImg = isImageFile(f);
             const thumbUrl = urls[i];
             const isActive = i === activeIndex;
 
@@ -253,8 +262,13 @@ export default function SelectedAttachmentsPreview({
                     : "opacity-60 hover:opacity-85"
                 }`}
               >
-                {isImg && thumbUrl ? (
-                  <img src={thumbUrl} alt={f?.name} className="w-full h-full object-cover" />
+                {isImg && thumbUrl && !brokenPreviewUrls[thumbUrl] ? (
+                  <img
+                    src={thumbUrl}
+                    alt={f?.name || "Thumbnail"}
+                    onError={() => setBrokenPreviewUrls((p) => ({ ...p, [thumbUrl]: true }))}
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   <div className="w-full h-full bg-zinc-700 flex flex-col items-center justify-center gap-1">
                     <FileIcon size={18} className="text-zinc-400" />

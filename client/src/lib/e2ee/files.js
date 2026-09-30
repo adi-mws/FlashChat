@@ -115,24 +115,54 @@ export async function decryptFile(url, attachmentEncryption, currentSessionId, m
   }
 
   let sessionKeyObj = null;
+  let privateKeyJwkStr = null;
+
   if (currentSessionId) {
     sessionKeyObj = encryptedKeys.find(k => k.sessionId === currentSessionId);
+    if (sessionKeyObj) {
+      privateKeyJwkStr = getSessionPrivateKey(currentSessionId);
+    }
   }
 
-  // Fallback: Check for legacy userId envelope
-  if (!sessionKeyObj && currentUserId) {
-    sessionKeyObj = encryptedKeys.find(k => !k.sessionId && k.userId?.toString() === currentUserId.toString());
+  // Fallback 1: Match by userId
+  if (!privateKeyJwkStr && currentUserId) {
+    const userMatch = encryptedKeys.find(k => k.userId?.toString() === currentUserId.toString());
+    if (userMatch) {
+      sessionKeyObj = userMatch;
+      if (userMatch.sessionId) {
+        privateKeyJwkStr = getSessionPrivateKey(userMatch.sessionId);
+      }
+    }
+  }
+
+  // Fallback 2: Check any session envelope in encryptedKeys that has a local private key stored
+  if (!privateKeyJwkStr) {
+    for (const entry of encryptedKeys) {
+      if (entry.sessionId) {
+        const keyCandidate = getSessionPrivateKey(entry.sessionId);
+        if (keyCandidate) {
+          sessionKeyObj = entry;
+          privateKeyJwkStr = keyCandidate;
+          break;
+        }
+      }
+    }
+  }
+
+  // Fallback 3: Legacy userId key in localStorage
+  if (!privateKeyJwkStr && currentUserId && typeof localStorage !== 'undefined') {
+    const legacyKey = localStorage.getItem(`e2ee_private_key_${currentUserId}`) ||
+                      localStorage.getItem(`e2ee_private_key_legacy`);
+    if (legacyKey) {
+      privateKeyJwkStr = legacyKey;
+      if (!sessionKeyObj) {
+        sessionKeyObj = encryptedKeys.find(k => k.userId?.toString() === currentUserId.toString()) || encryptedKeys[0];
+      }
+    }
   }
 
   if (!sessionKeyObj) {
     throw new Error("NO_SESSION_KEY_ENVELOPE");
-  }
-
-  let privateKeyJwkStr = currentSessionId ? getSessionPrivateKey(currentSessionId) : null;
-  if (!privateKeyJwkStr && currentUserId && typeof localStorage !== 'undefined') {
-    const legacyKey = localStorage.getItem(`e2ee_private_key_${currentUserId}`) ||
-                      localStorage.getItem(`e2ee_private_key_legacy`);
-    if (legacyKey) privateKeyJwkStr = legacyKey;
   }
 
   if (!privateKeyJwkStr) {
