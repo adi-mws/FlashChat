@@ -226,6 +226,22 @@ export const removeGroupMember = createAsyncThunk(
   }
 );
 
+export const addGroupMembers = createAsyncThunk(
+  'chats/addGroupMembers',
+  async ({ chatId, memberIds }, { rejectWithValue }) => {
+    try {
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/chats/groups/add-members`,
+        { chatId, memberIds },
+        { withCredentials: true }
+      );
+      return response.data.group;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  }
+);
+
 // Slice 
 
 const chatsSlice = createSlice({
@@ -596,6 +612,13 @@ const chatsSlice = createSlice({
             c._id === chatId ? { ...c, ...group } : c
           );
         }
+      })
+      // addGroupMembers
+      .addCase(addGroupMembers.fulfilled, (state, action) => {
+        const updated = action.payload;
+        state.chats = state.chats.map(c =>
+          c._id === updated._id ? { ...c, ...updated } : c
+        );
       });
   },
 });

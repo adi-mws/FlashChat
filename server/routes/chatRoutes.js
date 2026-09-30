@@ -18,6 +18,7 @@ import {
   updateGroupSettings,
   manageGroupAdmins,
   removeGroupMember,
+  addGroupMembers,
 } from '../controllers/chatController.js';
 
 router.get('/:chatId/recipients',   authenticateJWT, getChatEncryptionRecipients);
@@ -35,6 +36,7 @@ router.post('/groups/invite-link',   authenticateJWT, generateGroupInviteLink);
 router.put('/groups/settings',       authenticateJWT, updateGroupSettings);
 router.put('/groups/admins',         authenticateJWT, manageGroupAdmins);
 router.post('/groups/remove-member', authenticateJWT, removeGroupMember);
+router.post('/groups/add-members',   authenticateJWT, addGroupMembers);
 
 // Attachment upload  (file bytes are already E2EE-encrypted by the client)
 router.post(

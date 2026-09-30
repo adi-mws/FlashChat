@@ -164,6 +164,13 @@ export default function SocketManager() {
       dispatch(setUserStoppedTyping({ chatId, userId }));
     };
 
+    const handleFriendAcceptedGlobally = (payload) => {
+      if (payload?.chat) {
+        dispatch(prependChat(payload.chat));
+      }
+      dispatch(fetchChats(user));
+    };
+
     socket.on('newMessage', handleNewMessage);
     socket.on('receiverSeenMessage', handleReceiverSeenMessage);
     socket.on('message-deleted', handleMessageDeleted);
@@ -177,6 +184,8 @@ export default function SocketManager() {
     socket.on('groupMemberLeft', handleGroupUpdate);
     socket.on('kickedFromGroup', handleGroupUpdate);
     socket.on('chatCreated', handleChatCreated);
+    socket.on('friendRequestAccepted', handleFriendAcceptedGlobally);
+    socket.on('contactAdded', handleFriendAcceptedGlobally);
 
     return () => {
       socket.off('newMessage', handleNewMessage);
@@ -192,6 +201,8 @@ export default function SocketManager() {
       socket.off('groupMemberLeft', handleGroupUpdate);
       socket.off('kickedFromGroup', handleGroupUpdate);
       socket.off('chatCreated', handleChatCreated);
+      socket.off('friendRequestAccepted', handleFriendAcceptedGlobally);
+      socket.off('contactAdded', handleFriendAcceptedGlobally);
     };
   }, [user, selectedChat, dispatch, showNotification]);
 

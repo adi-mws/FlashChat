@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import {
   selectChats,
+  setSelectedChat,
   updateGroupSettings,
   manageGroupAdmins,
   removeGroupMember,
@@ -13,6 +14,7 @@ import { useNotification } from '../../../hooks/useNotification';
 import { CHAT_ROUTES } from '../../../../routes/routes';
 import AppHeader from '../../layout/AppHeader';
 import { getImageUrl } from '../../../lib/imageUtils';
+import AddMembersModal from './AddMembersModal';
 import {
   Users,
   Shield,
@@ -24,7 +26,10 @@ import {
   X,
   UserX,
   ShieldAlert,
-  UserCheck
+  ShieldCheck,
+  UserPlus,
+  MoreVertical,
+  MessageSquare
 } from 'lucide-react';
 
 export default function GroupInfo() {
@@ -43,8 +48,32 @@ export default function GroupInfo() {
   const [isEditingDesc, setIsEditingDesc] = useState(false);
   const [editedDesc, setEditedDesc] = useState(group?.groupDescription || '');
 
+  // Add members modal state
+  const [isAddMembersOpen, setIsAddMembersOpen] = useState(false);
+
+  // Dropdown menu state
+  const [activeDropdownMemberId, setActiveDropdownMemberId] = useState(null);
+  const dropdownRef = useRef(null);
+
   // Loading/submitting states
   const [submitting, setSubmitting] = useState(false);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setActiveDropdownMemberId(null);
+      }
+    };
+    if (activeDropdownMemberId) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside);
+    };
+  }, [activeDropdownMemberId]);
 
   if (!group || !group.isGroupChat) {
     return (
@@ -161,7 +190,7 @@ export default function GroupInfo() {
         manageGroupAdmins({ chatId: group._id, targetUserId: memberId, action })
       ).unwrap();
       showNotification(
-        `Member ${isAdmin ? 'demoted from admin' : 'promoted to admin'}`,
+        `Member ${isAdmin ? 'dismissed from admin role' : 'promoted to group admin'}`,
         'success'
       );
     } catch (err) {
@@ -209,6 +238,29 @@ export default function GroupInfo() {
       } finally {
         setSubmitting(false);
       }
+    }
+  };
+
+  const handleDirectMessage = (memberId) => {
+    const directChat = chats.find(
+      (c) =>
+        !c.isGroupChat &&
+        c.participants?.some(
+          (p) => (p._id || p)?.toString() === memberId?.toString()
+        )
+    );
+    if (directChat) {
+      dispatch(setSelectedChat(directChat._id));
+      navigate(CHAT_ROUTES.chat(directChat._id));
+    } else {
+      showNotification('No existing 1-on-1 chat found with this contact.', 'info');
+    }
+  };
+
+  const handleCopyUsername = (username) => {
+    if (username) {
+      navigator.clipboard.writeText(`@${username}`);
+      showNotification(`Copied @${username} to clipboard`, 'success');
     }
   };
 
@@ -341,8 +393,12 @@ export default function GroupInfo() {
         {(group.allowMembersToInvite || isGroupAdmin) && (
           <div className="bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 rounded-2xl p-6 shadow-sm space-y-4">
             <div>
-              <h4 className="text-sm font-bold text-slate-800 dark:text-zinc-200 tracking-wide uppercase border-b border-slate-100 dark:border-zinc-800 pb-2">Group Invite Link</h4>
-              <p className="text-[11px] text-slate-500 dark:text-zinc-500 mt-1">Anyone with this link can join the group chat session.</p>
+              <h4 className="text-sm font-bold text-slate-800 dark:text-zinc-200 tracking-wide uppercase border-b border-slate-100 dark:border-zinc-800 pb-2">
+                Group Invite Link
+              </h4>
+              <p className="text-[11px] text-slate-500 dark:text-zinc-500 mt-1">
+                Anyone with this link can join the group chat session.
+              </p>
             </div>
 
             <div className="flex gap-2 items-center">
@@ -373,12 +429,18 @@ export default function GroupInfo() {
         {/* Group Administrative Settings (Admin Only) */}
         {isGroupAdmin && (
           <div className="bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 rounded-2xl p-6 shadow-sm space-y-5">
-            <h4 className="text-sm font-bold text-slate-800 dark:text-zinc-200 tracking-wide uppercase border-b border-slate-100 dark:border-zinc-800 pb-2">Group Settings</h4>
+            <h4 className="text-sm font-bold text-slate-800 dark:text-zinc-200 tracking-wide uppercase border-b border-slate-100 dark:border-zinc-800 pb-2">
+              Group Settings
+            </h4>
 
             <div className="flex items-center justify-between py-1">
               <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-800 dark:text-zinc-200">Allow Members to Invite</p>
-                <p className="text-[10px] text-slate-500 dark:text-zinc-500 mt-0.5">Let ordinary group members copy the invite link to add users.</p>
+                <p className="text-xs font-bold text-slate-800 dark:text-zinc-200">
+                  Allow Members to Invite
+                </p>
+                <p className="text-[10px] text-slate-500 dark:text-zinc-500 mt-0.5">
+                  Let ordinary group members copy the invite link to add users.
+                </p>
               </div>
               <button
                 onClick={handleToggleInvitePermission}
@@ -397,8 +459,12 @@ export default function GroupInfo() {
 
             <div className="flex items-center justify-between py-1 border-t border-slate-100 dark:border-zinc-800/85 pt-4">
               <div className="min-w-0">
-                <p className="text-xs font-bold text-slate-800 dark:text-zinc-200">Member Limit</p>
-                <p className="text-[10px] text-slate-500 dark:text-zinc-500 mt-0.5">Set the maximum size limit allowed for this group chat.</p>
+                <p className="text-xs font-bold text-slate-800 dark:text-zinc-200">
+                  Member Limit
+                </p>
+                <p className="text-[10px] text-slate-500 dark:text-zinc-500 mt-0.5">
+                  Set the maximum size limit allowed for this group chat.
+                </p>
               </div>
               <input
                 type="number"
@@ -415,11 +481,25 @@ export default function GroupInfo() {
 
         {/* Members List */}
         <div className="bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 rounded-2xl p-6 shadow-sm space-y-4">
-          <div className="flex justify-between items-center border-b border-slate-100 dark:border-zinc-800 pb-2">
-            <h4 className="text-sm font-bold text-slate-800 dark:text-zinc-200 tracking-wide uppercase">Group Members</h4>
-            <span className="text-[11px] px-2.5 py-0.5 bg-slate-150 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 font-semibold rounded-full">
-              {group.participants?.length || 0} / {group.memberLimit || 100}
-            </span>
+          <div className="flex justify-between items-center border-b border-slate-100 dark:border-zinc-800 pb-3">
+            <div className="flex items-center gap-2">
+              <h4 className="text-sm font-bold text-slate-800 dark:text-zinc-200 tracking-wide uppercase">
+                Group Members
+              </h4>
+              <span className="text-[11px] px-2.5 py-0.5 bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-zinc-400 font-semibold rounded-full">
+                {group.participants?.length || 0} / {group.memberLimit || 100}
+              </span>
+            </div>
+
+            {(isGroupAdmin || group.allowMembersToInvite) && (
+              <button
+                onClick={() => setIsAddMembersOpen(true)}
+                className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white text-xs font-semibold flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+              >
+                <UserPlus size={14} />
+                <span>Add Members</span>
+              </button>
+            )}
           </div>
 
           <div className="divide-y divide-slate-100 dark:divide-zinc-850">
@@ -428,9 +508,10 @@ export default function GroupInfo() {
               const isMemberAdmin = group.groupAdmins?.some(
                 (admin) => (admin._id || admin) === member._id
               );
+              const isMenuOpen = activeDropdownMemberId === member._id;
 
               return (
-                <div key={member._id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                <div key={member._id} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0 relative">
                   {member.pfp ? (
                     <img
                       src={getImageUrl(member.pfp)}
@@ -459,31 +540,114 @@ export default function GroupInfo() {
                     </p>
                   </div>
 
-                  {/* Admin controls for other members */}
-                  {isGroupAdmin && !isSelf && (
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => handlePromoteDemote(member._id, isMemberAdmin)}
-                        disabled={submitting}
-                        className={`p-1.5 rounded-lg transition active:scale-95 flex items-center gap-1 cursor-pointer ${
-                          isMemberAdmin
-                            ? 'text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950/20'
-                            : 'text-emerald-600 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950/20'
-                        }`}
-                        title={isMemberAdmin ? 'Demote from Admin' : 'Make Group Admin'}
+                  {/* Vertical ellipses menu trigger */}
+                  <div className="relative">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveDropdownMemberId(isMenuOpen ? null : member._id);
+                      }}
+                      className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+                      title="More options"
+                    >
+                      <MoreVertical size={16} />
+                    </button>
+
+                    {/* Member Options Dropdown */}
+                    {isMenuOpen && (
+                      <div
+                        ref={dropdownRef}
+                        className="absolute right-0 top-full mt-1.5 z-40 w-48 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl shadow-xl p-1.5 space-y-0.5 animate-in fade-in zoom-in-95"
                       >
-                        {isMemberAdmin ? <ShieldAlert size={14} /> : <UserCheck size={14} />}
-                      </button>
-                      <button
-                        onClick={() => handleKickMember(member._id)}
-                        disabled={submitting}
-                        className="p-1.5 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/20 rounded-lg transition active:scale-95 cursor-pointer"
-                        title="Remove from Group"
-                      >
-                        <UserX size={14} />
-                      </button>
-                    </div>
-                  )}
+                        {/* Admin privileges on other members */}
+                        {isGroupAdmin && !isSelf && (
+                          <>
+                            {isMemberAdmin ? (
+                              <button
+                                onClick={() => {
+                                  setActiveDropdownMemberId(null);
+                                  handlePromoteDemote(member._id, true);
+                                }}
+                                disabled={submitting}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-lg transition text-left cursor-pointer"
+                              >
+                                <ShieldAlert size={14} className="text-amber-500" />
+                                <span>Dismiss as Admin</span>
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setActiveDropdownMemberId(null);
+                                  handlePromoteDemote(member._id, false);
+                                }}
+                                disabled={submitting}
+                                className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/30 rounded-lg transition text-left cursor-pointer"
+                              >
+                                <ShieldCheck size={14} className="text-indigo-500" />
+                                <span>Make Group Admin</span>
+                              </button>
+                            )}
+
+                            <button
+                              onClick={() => {
+                                setActiveDropdownMemberId(null);
+                                handleKickMember(member._id);
+                              }}
+                              disabled={submitting}
+                              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition text-left cursor-pointer"
+                            >
+                              <UserX size={14} className="text-red-500" />
+                              <span>Remove from Group</span>
+                            </button>
+
+                            <div className="h-px bg-slate-100 dark:border-zinc-800 my-1" />
+                          </>
+                        )}
+
+                        {/* General contact options */}
+                        {!isSelf && (
+                          <>
+                            <button
+                              onClick={() => {
+                                setActiveDropdownMemberId(null);
+                                handleDirectMessage(member._id);
+                              }}
+                              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800/70 rounded-lg transition text-left cursor-pointer"
+                            >
+                              <MessageSquare size={14} className="text-slate-400 dark:text-zinc-400" />
+                              <span>Direct Message</span>
+                            </button>
+
+                            <button
+                              onClick={() => {
+                                setActiveDropdownMemberId(null);
+                                handleCopyUsername(member.username);
+                              }}
+                              className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800/70 rounded-lg transition text-left cursor-pointer"
+                            >
+                              <Copy size={14} className="text-slate-400 dark:text-zinc-400" />
+                              <span>Copy @{member.username}</span>
+                            </button>
+                          </>
+                        )}
+
+                        {/* Self actions */}
+                        {isSelf && (
+                          <button
+                            onClick={() => {
+                              setActiveDropdownMemberId(null);
+                              handleLeaveGroupAction();
+                            }}
+                            disabled={submitting}
+                            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition text-left cursor-pointer"
+                          >
+                            <LogOut size={14} className="text-red-500" />
+                            <span>Leave Group</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -493,8 +657,12 @@ export default function GroupInfo() {
         {/* Danger Zone Actions */}
         <div className="bg-red-50/30 dark:bg-red-950/5 border border-red-200/40 dark:border-red-900/30 rounded-2xl p-6 shadow-sm space-y-4">
           <div>
-            <h4 className="text-sm font-bold text-red-700 dark:text-red-400 tracking-wide uppercase border-b border-red-150 dark:border-red-900/30 pb-2">Danger Zone</h4>
-            <p className="text-[11px] text-slate-500 dark:text-zinc-500 mt-1">Actions that immediately alter your membership status.</p>
+            <h4 className="text-sm font-bold text-red-700 dark:text-red-400 tracking-wide uppercase border-b border-red-150 dark:border-red-900/30 pb-2">
+              Danger Zone
+            </h4>
+            <p className="text-[11px] text-slate-500 dark:text-zinc-500 mt-1">
+              Actions that immediately alter your membership status.
+            </p>
           </div>
 
           <button
@@ -506,6 +674,13 @@ export default function GroupInfo() {
           </button>
         </div>
       </div>
+
+      {/* Add Members Modal */}
+      <AddMembersModal
+        group={group}
+        isOpen={isAddMembersOpen}
+        onClose={() => setIsAddMembersOpen(false)}
+      />
     </div>
   );
 }

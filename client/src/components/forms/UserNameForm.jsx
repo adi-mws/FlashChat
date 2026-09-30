@@ -5,7 +5,7 @@ import useDebounce from '../../hooks/useDebounce';
 import { useDispatch } from 'react-redux';
 import { setUser } from '../../redux/slices/authSlice';
 import { useNotification } from '../../hooks/useNotification';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { CHAT_ROUTES } from '../../../routes/routes';
 import { getOrCreateDeviceId } from '../../lib/e2ee/keyStore';
 import { Sparkles, AtSign, CheckCircle2, AlertCircle, RefreshCw, ArrowRight } from 'lucide-react';
@@ -19,6 +19,9 @@ export default function UserNameForm({ showForm, setShowForm, credentialResponse
     reset,
     setValue,
   } = useForm({ mode: 'onChange' });
+
+  const [searchParams] = useSearchParams();
+  const redirectUrl = searchParams.get('redirect');
 
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState(null);
@@ -57,6 +60,8 @@ export default function UserNameForm({ showForm, setShowForm, credentialResponse
 
         if (loggedUser?.role === 'admin' || loggedUser?.role === 'superadmin') {
           navigate('/flsh-ad-pnl');
+        } else if (redirectUrl && redirectUrl.startsWith('/')) {
+          navigate(redirectUrl);
         } else {
           navigate(CHAT_ROUTES.root);
         }

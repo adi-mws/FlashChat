@@ -29,6 +29,7 @@ export const CHAT_ROUTES = {
     root: `${APP_ROOT}/chats`,
     chat: (chatId) => `/chat/${chatId}`,
     group: (groupId) => `/group/${groupId}`,
+    join: (code) => (code ? `/join?code=${code}` : '/join'),
 };
 
 export const SPARK_ROUTES = {

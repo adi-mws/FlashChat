@@ -494,11 +494,25 @@ export const joinGroupByInviteCode = async (req, res) => {
         }
 
         // Check if user is already a member
-        if (group.participants.includes(userId)) {
+        const isAlreadyMember = group.participants.some(
+            p => (p?._id || p).toString() === userId.toString()
+        );
+        if (isAlreadyMember) {
+            const existingPopulatedGroup = await Chat.findById(group._id)
+                .populate({
+                    path: "participants",
+                    select: "username name pfp lastOnline"
+                })
+                .populate({
+                    path: "groupAdmins",
+                    select: "username name pfp lastOnline"
+                });
+
             return res.status(200).json({
                 success: true,
                 message: "You are already a member of this group",
-                chatId: group._id
+                chatId: group._id,
+                group: existingPopulatedGroup
             });
         }
 
@@ -807,6 +821,124 @@ export const removeGroupMember = async (req, res) => {
     } catch (err) {
         console.error("removeGroupMember error:", err);
         res.status(500).json({ success: false, message: "Server error removing member", error: err.message });
+    }
+};
+
+export const addGroupMembers = async (req, res) => {
+    try {
+        const { chatId, memberIds } = req.body;
+        const userId = req.user.id;
+
+        if (!chatId) {
+            return res.status(400).json({ success: false, message: "Chat ID is required" });
+        }
+
+        const group = await Chat.findById(chatId);
+        if (!group || !group.isGroupChat) {
+            return res.status(404).json({ success: false, message: "Group chat not found" });
+        }
+
+        // Check permissions: only admins can add members (or if members are allowed to invite)
+        const isAdmin = group.groupAdmins.some(adminId => adminId.toString() === userId.toString());
+        if (!isAdmin && !group.allowMembersToInvite) {
+            return res.status(403).json({ success: false, message: "Only group admins can add members" });
+        }
+
+        const membersToAdd = Array.isArray(memberIds) ? memberIds : [memberIds].filter(Boolean);
+        if (membersToAdd.length === 0) {
+            return res.status(400).json({ success: false, message: "At least one member must be selected" });
+        }
+
+        // Filter out members who are already participants
+        const existingMemberIds = group.participants.map(p => p.toString());
+        const newMembers = membersToAdd.filter(id => id && !existingMemberIds.includes(id.toString()));
+
+        if (newMembers.length === 0) {
+            return res.status(400).json({ success: false, message: "Selected users are already members of this group" });
+        }
+
+        // Check member limit
+        const limit = group.memberLimit || 100;
+        if (group.participants.length + newMembers.length > limit) {
+            return res.status(400).json({
+                success: false,
+                message: `Adding ${newMembers.length} member(s) would exceed the group limit of ${limit}`
+            });
+        }
+
+        // Add new participants
+        newMembers.forEach(id => group.participants.push(id));
+        await group.save();
+
+        const populatedGroup = await Chat.findById(chatId)
+            .populate({
+                path: "participants",
+                select: "username name pfp lastOnline"
+            })
+            .populate({
+                path: "groupAdmins",
+                select: "username name pfp lastOnline"
+            })
+            .populate({
+                path: "lastMessage",
+                select: "content sender createdAt encryption readBy type attachmentUrl fileName",
+                populate: {
+                    path: "sender",
+                    select: "name"
+                }
+            });
+
+        const requesterUser = await User.findById(userId).select("name username");
+
+        const chatPayload = {
+            _id: populatedGroup._id,
+            isGroupChat: true,
+            groupName: populatedGroup.groupName,
+            groupDescription: populatedGroup.groupDescription,
+            groupPhoto: populatedGroup.groupPhoto,
+            groupAdmins: populatedGroup.groupAdmins,
+            inviteCode: populatedGroup.inviteCode,
+            allowMembersToInvite: populatedGroup.allowMembersToInvite,
+            memberLimit: populatedGroup.memberLimit,
+            participants: populatedGroup.participants,
+            lastMessage: populatedGroup.lastMessage || null,
+            unreadCount: 0,
+            updatedAt: populatedGroup.updatedAt,
+            addedBy: {
+                _id: userId,
+                name: requesterUser?.name,
+                username: requesterUser?.username
+            }
+        };
+
+        // Notify new members with chatCreated so the chat appears in their chat list immediately
+        newMembers.forEach(memberId => {
+            const idStr = memberId.toString();
+            io?.to(getUserRoom(idStr)).emit("chatCreated", chatPayload);
+            io?.to(idStr).emit("chatCreated", chatPayload);
+        });
+
+        // Notify all group participants (existing and newly added)
+        group.participants.forEach(memberId => {
+            const idStr = memberId.toString();
+            const payload = {
+                chatId: group._id,
+                newMembers,
+                participants: populatedGroup.participants,
+                group: populatedGroup
+            };
+            io?.to(getUserRoom(idStr)).emit("groupMemberJoined", payload);
+            io?.to(idStr).emit("groupMemberJoined", payload);
+        });
+
+        res.status(200).json({
+            success: true,
+            message: `Added ${newMembers.length} member${newMembers.length > 1 ? 's' : ''} successfully`,
+            group: populatedGroup
+        });
+    } catch (err) {
+        console.error("addGroupMembers error:", err);
+        res.status(500).json({ success: false, message: "Server error adding group members", error: err.message });
     }
 };
 

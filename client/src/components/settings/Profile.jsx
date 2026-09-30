@@ -423,21 +423,13 @@ export default function Profile({ edit = false, targetUserId }) {
                                         Zero-knowledge recovery to decrypt message history across logins
                                     </p>
                                 </div>
-                                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 ${user.encryptedPrivateKey
-                                        ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
-                                        : "bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400"
-                                    }`}>
-                                    <Lock size={10} />
-                                    {user.encryptedPrivateKey ? "Active & Sealed" : "Unbacked"}
-                                </span>
+                              
                             </div>
 
                             {user.encryptedPrivateKey ? (
                                 <div className="space-y-4">
                                     <div className="flex items-start gap-3.5 p-4 rounded-xl border border-emerald-100 bg-emerald-50/50 dark:border-emerald-500/20 dark:bg-emerald-500/5 text-emerald-800 dark:text-emerald-400">
-                                        <div className="h-5 w-5 mt-0.5 flex-shrink-0 flex items-center justify-center rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">
-                                            <CheckCircle2 size={16} />
-                                        </div>
+                                      
                                         <div className="space-y-1">
                                             <p className="text-xs font-bold text-slate-800 dark:text-zinc-200">Zero-Knowledge Backup Active</p>
                                             <p className="text-[11px] text-emerald-700/80 dark:text-emerald-400/80 leading-relaxed">

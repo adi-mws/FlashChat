@@ -163,9 +163,9 @@ export const sendFriendRequest = async (req, res) => {
   const alreadySent = fromUser.sentRequests.find(r => r.to.toString() === toUserId);
   if (alreadySent) return res.status(400).json({ message: "Request already sent" });
 
-  // Push request into both users
-  fromUser.sentRequests.push({ to: toUserId });
-  toUser.friendRequests.push({ from: fromUserId });
+  const now = new Date();
+  fromUser.sentRequests.push({ to: toUserId, createdAt: now });
+  toUser.friendRequests.push({ from: fromUserId, createdAt: now });
 
   await fromUser.save();
   await toUser.save();
@@ -175,7 +175,9 @@ export const sendFriendRequest = async (req, res) => {
       _id: fromUser._id,
       name: fromUser.name,
       username: fromUser.username,
-      pfp: fromUser.pfp
+      pfp: fromUser.pfp,
+      about: fromUser.about,
+      createdAt: now,
     });
   }
 
@@ -184,16 +186,31 @@ export const sendFriendRequest = async (req, res) => {
 };
 
 export const getFriendRequests = async (req, res) => {
-  const userId = req.user.id;
+  try {
+    const userId = req.user.id;
 
-  const user = await User.findById(userId)
-    .select("friendRequests")
-    .populate("friendRequests.from", "name username pfp")
-    .lean();
+    const user = await User.findById(userId)
+      .select("friendRequests")
+      .populate("friendRequests.from", "name username pfp about lastOnline")
+      .lean();
 
-  return res.status(200).json(
-    user.friendRequests.map(request => request.from)
-  );
+    const requests = (user?.friendRequests || [])
+      .filter(request => request?.from)
+      .map(request => ({
+        _id: request.from._id,
+        name: request.from.name,
+        username: request.from.username,
+        pfp: request.from.pfp,
+        about: request.from.about,
+        lastOnline: request.from.lastOnline,
+        createdAt: request.createdAt || new Date(),
+      }));
+
+    return res.status(200).json(requests);
+  } catch (err) {
+    console.error("Error fetching friend requests:", err);
+    return res.status(500).json({ message: "Failed to fetch friend requests" });
+  }
 };
 
 
@@ -209,8 +226,12 @@ export const acceptFriendRequest = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
 
     // Add each other to contacts if not already
-    if (!toUser.contacts.includes(fromUserId)) toUser.contacts.push(fromUserId);
-    if (!fromUser.contacts.includes(toUserId)) fromUser.contacts.push(toUserId);
+    if (!toUser.contacts.some(c => c.toString() === fromUserId.toString())) {
+      toUser.contacts.push(fromUserId);
+    }
+    if (!fromUser.contacts.some(c => c.toString() === toUserId.toString())) {
+      fromUser.contacts.push(toUserId);
+    }
 
     // Remove the friend request
     toUser.friendRequests = toUser.friendRequests.filter(r => r.from.toString() !== fromUserId);
@@ -266,17 +287,46 @@ export const acceptFriendRequest = async (req, res) => {
       updatedAt: chat.updatedAt,
     };
 
+    const toUserContact = {
+      _id: toUser._id,
+      name: toUser.name,
+      username: toUser.username,
+      pfp: toUser.pfp,
+      about: toUser.about,
+      lastOnline: toUser.lastOnline,
+    };
+
+    const fromUserContact = {
+      _id: fromUser._id,
+      name: fromUser.name,
+      username: fromUser.username,
+      pfp: fromUser.pfp,
+      about: fromUser.about,
+      lastOnline: fromUser.lastOnline,
+    };
+
     if (io) {
       io.to(getUserRoom(fromUserId)).emit("friendRequestAccepted", {
         _id: toUser._id,
         name: toUser.name,
         username: toUser.username,
+        pfp: toUser.pfp,
+        about: toUser.about,
+        lastOnline: toUser.lastOnline,
+        friend: toUserContact,
+        chat: formattedChat,
+      });
+
+      io.to(getUserRoom(toUserId)).emit("contactAdded", {
+        friend: fromUserContact,
         chat: formattedChat,
       });
     }
+
     res.status(200).json({
       message: "Friend request accepted",
       chat: formattedChat,
+      friend: fromUserContact,
     });
   } catch (err) {
     console.error("Error accepting friend request:", err);
@@ -346,13 +396,25 @@ export const getSentRequests = async (req, res) => {
     const user = await User.findById(userId)
       .populate({
         path: 'sentRequests.to',
-        select: 'name username pfp',
+        select: 'name username pfp about lastOnline',
       })
-      .select('sentRequests');
-    console.log(user.sentRequests)
+      .select('sentRequests')
+      .lean();
+
+    const sentRequests = (user?.sentRequests || [])
+      .filter(request => request?.to)
+      .map(request => ({
+        _id: request.to._id,
+        name: request.to.name,
+        username: request.to.username,
+        pfp: request.to.pfp,
+        about: request.to.about,
+        lastOnline: request.to.lastOnline,
+        createdAt: request.createdAt || new Date(),
+      }));
 
     res.status(200).json({
-      sentRequests: user.sentRequests.map(r => r.to)
+      sentRequests
     });
   } catch (err) {
     console.error('Error fetching sent requests:', err);

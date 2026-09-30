@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Flame, MoreVertical, UserPlus, LogIn } from "lucide-react";
-import { CHAT_ROUTES } from "../../../../routes/routes";
+import { CHAT_ROUTES, SETTINGS_ROUTES } from "../../../../routes/routes";
 
-export default function ChatListHeader({ onCreateGroup, onJoinGroup }) {
+export default function ChatListHeader({ onCreateGroup }) {
   const [showMenu, setShowMenu] = useState(false);
   const menuRef = useRef(null);
   const btnRef = useRef(null);
-
+  const navigate = useNavigate();
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -75,19 +75,16 @@ export default function ChatListHeader({ onCreateGroup, onJoinGroup }) {
               }}
               className="w-full flex items-center gap-2.5 px-3 py-2 text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800/70 rounded-xl transition cursor-pointer text-left font-medium"
             >
-              <UserPlus size={15} className="text-indigo-500 flex-shrink-0" />
               <span>Create Group Chat</span>
             </button>
             <button
               type="button"
               onClick={() => {
-                setShowMenu(false);
-                if (onJoinGroup) onJoinGroup();
+                navigate(SETTINGS_ROUTES.linkedDevices);
               }}
               className="w-full flex items-center gap-2.5 px-3 py-2 text-slate-700 dark:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800/70 rounded-xl transition cursor-pointer text-left font-medium"
             >
-              <LogIn size={15} className="text-emerald-500 flex-shrink-0" />
-              <span>Join Group</span>
+              <span>Linked Devices</span>
             </button>
           </div>
         )}

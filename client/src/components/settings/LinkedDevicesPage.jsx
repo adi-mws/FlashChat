@@ -137,12 +137,7 @@ export default function LinkedDevicesPage() {
                             </p>
                         </div>
                     </div>
-                    <button
-                        onClick={() => setShowLinkModal(true)}
-                        className="px-3.5 py-2 bg-indigo-500 hover:bg-indigo-600 active:scale-[0.98] text-white text-xs font-semibold rounded-xl shadow-sm transition inline-flex items-center gap-1.5 cursor-pointer flex-shrink-0"
-                    >
-                        <QrCode size={14} /> Link New Device
-                    </button>
+                   
                 </div>
 
                 {/* Devices List Section */}

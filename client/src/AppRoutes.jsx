@@ -30,6 +30,7 @@ import DesktopLayout from "./layouts/DesktopLayout";
 import Conversation from "./components/chats/conversation/Conversation";
 import E2EESyncModal from "./components/global/E2EESyncModal";
 import SupremeAdminPanel from "./components/admin/SupremeAdminPanel";
+import JoinGroupPage from "./components/chats/_components/JoinGroupPage";
 
 export default function AppRoutes() {
     const user = useSelector(selectUser);
@@ -57,6 +58,10 @@ export default function AppRoutes() {
                     <Route path="forgot-password" element={<ForgotPassword />} />
                     <Route path="about" element={<AboutPage />} />
                 </Route>
+
+                {/* Direct Group Invite Link Entry */}
+                <Route path="/join" element={<JoinGroupPage />} />
+                <Route path="/join/:code" element={<JoinGroupPage />} />
 
                 {/* Protected User App Routes (Admins are strictly blocked and redirected to /flsh-ad-pnl) */}
                 {isMobile ? (

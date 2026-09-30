@@ -27,7 +27,6 @@ const getRelativeDateString = (dateString) => {
 const E2EEInfoBadge = () => (
     <div className="flex justify-center my-4 animate-fade-in select-none">
         <div className="flex items-center gap-2 max-w-[320px] sm:max-w-md px-4 py-2.5 rounded-xl bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/10 dark:border-amber-500/20 text-amber-600 dark:text-amber-400/80 text-[10px] font-semibold text-center shadow-sm leading-normal">
-            <Lock size={12} className="shrink-0 text-amber-500" />
             <span>
                 Messages are end-to-end encrypted. No one outside of this chat, not even FlashChat, can read or listen to them.
             </span>

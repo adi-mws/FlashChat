@@ -1,4 +1,4 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { selectUser } from "../src/redux/slices/authSlice";
 import { MARKETING_ROUTES, ADMIN_ROUTES } from "./routes";
@@ -11,9 +11,11 @@ import { MARKETING_ROUTES, ADMIN_ROUTES } from "./routes";
  */
 export default function UserRoute({ children }) {
     const user = useSelector(selectUser);
+    const location = useLocation();
 
     if (!user) {
-        return <Navigate to={MARKETING_ROUTES.login} replace />;
+        const returnUrl = location.pathname + location.search;
+        return <Navigate to={`${MARKETING_ROUTES.login}?redirect=${encodeURIComponent(returnUrl)}`} replace />;
     }
 
     if (user.role === "admin" || user.role === "superadmin") {

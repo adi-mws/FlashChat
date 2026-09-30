@@ -24,7 +24,6 @@ import NoChatsFound from "../_components/NoChatsFound";
 import ChatListHeader from "./ChatListHeader";
 import ChatItem from "./ChatItem";
 import CreateGroupModal from "./CreateGroupModal";
-import JoinGroupModal from "./JoinGroupModal";
 
 export default function ChatList() {
   const dispatch = useDispatch();
@@ -39,7 +38,6 @@ export default function ChatList() {
   const [filteredChats, setFilteredChats] = useState([]);
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showJoinModal, setShowJoinModal] = useState(false);
   const drafts = useSelector(selectDrafts);
   const activeMessage = useSelector(selectActiveMessage);
   const activeAttachements = useSelector(selectActiveAttachements);
@@ -128,7 +126,6 @@ export default function ChatList() {
     >
       <ChatListHeader
         onCreateGroup={() => setShowCreateModal(true)}
-        onJoinGroup={() => setShowJoinModal(true)}
       />
 
       {/* Search Bar */}
@@ -203,7 +200,6 @@ export default function ChatList() {
 
       {/* Modals */}
       {showCreateModal && <CreateGroupModal onClose={() => setShowCreateModal(false)} />}
-      {showJoinModal && <JoinGroupModal onClose={() => setShowJoinModal(false)} />}
     </div>
   );
 }
