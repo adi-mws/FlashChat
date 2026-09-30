@@ -5,7 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
 import { getImageUrl } from '../../lib/imageUtils';
 import { useNotification } from '../../hooks/useNotification';
-import { Pencil, X, Check, ArrowLeft, Camera, Calendar, Mail, User, Info, ShieldCheck, MonitorSmartphone, History, CheckCircle2, ShieldAlert, Key, Lock, Eye, EyeOff, RefreshCw, Copy, Download, Sparkles, RotateCcw, LogOut, ArrowRight, Smartphone, Laptop, Globe, Wifi } from 'lucide-react';
+import { Pencil, X, Check, ArrowLeft, Camera, Calendar, Mail, User, Users, Info, ShieldCheck, MonitorSmartphone, History, CheckCircle2, ShieldAlert, Key, Lock, Eye, EyeOff, RefreshCw, Copy, Download, Sparkles, RotateCcw, LogOut, ArrowRight, Smartphone, Laptop, Globe, Wifi } from 'lucide-react';
 import { ACCOUNT_ROUTES, SETTINGS_ROUTES, MARKETING_ROUTES } from '../../../routes/routes';
 import AppHeader from '../layout/AppHeader';
 import Loading from '../global/Loading';
@@ -247,13 +247,13 @@ export default function Profile({ edit = false, targetUserId }) {
             </AppHeader>
 
             {loading ? <Loading /> :
-                <div className="w-full p-4 sm:p-6 md:p-8 space-y-6">
-                    {/* Main Identity Card */}
-                    <div className="border border-slate-200/70 dark:border-zinc-800/80 bg-slate-50/40 dark:bg-zinc-900/30 rounded-2xl p-6 flex flex-col sm:flex-row items-center gap-6">
+                <div className="w-full max-w-3xl mx-auto p-4 sm:p-6 md:p-8 space-y-8">
+                    {/* Main Identity */}
+                    <div className="flex flex-col sm:flex-row items-center gap-6 pb-8 border-b border-slate-100 dark:border-zinc-900">
                         <div className="relative group flex-shrink-0">
                             <div
                                 onClick={() => !isEditing && setShowEnlargedImage(true)}
-                                className={`w-32 h-32 rounded-full overflow-hidden border-2 border-slate-100 dark:border-zinc-800 shadow-sm ${!isEditing ? 'cursor-zoom-in' : ''}`}
+                                className={`w-28 h-28 sm:w-32 sm:h-32 rounded-full overflow-hidden border-2 border-slate-200/80 dark:border-zinc-800 shadow-sm ${!isEditing ? 'cursor-zoom-in' : ''}`}
                             >
                                 <img
                                     src={imagePreview || getImageUrl(profile.pfp)}
@@ -288,7 +288,7 @@ export default function Profile({ edit = false, targetUserId }) {
 
                         <div className="text-center sm:text-left min-w-0 flex-1">
                             <h4 className="text-xl font-bold text-slate-800 dark:text-zinc-100 truncate">{profile.name}</h4>
-                            <p className="text-sm text-indigo-500 font-semibold mb-3">@{profile.username}</p>
+                            <p className="text-sm text-indigo-500 font-semibold mb-2">@{profile.username}</p>
                             <div className="flex flex-wrap justify-center sm:justify-start gap-3 text-xs text-slate-400 dark:text-zinc-500">
                                 <span className="flex items-center gap-1.5">
                                     <Calendar size={13} />
@@ -298,72 +298,74 @@ export default function Profile({ edit = false, targetUserId }) {
                         </div>
                     </div>
 
-                    {/* Form Fields Card */}
-                    <div className="border border-slate-200/70 dark:border-zinc-800/80 bg-slate-50/40 dark:bg-zinc-900/30 rounded-2xl p-6 space-y-5">
-                        <h4 className="text-sm font-bold text-slate-800 dark:text-zinc-200 tracking-wide uppercase border-b border-slate-200/60 dark:border-zinc-800 pb-2">Profile Information</h4>
+                    {/* Profile Information */}
+                    <div className="space-y-4 pb-8 border-b border-slate-100 dark:border-zinc-900">
+                        <h4 className="text-xs font-bold text-slate-400 dark:text-zinc-500 tracking-wider uppercase">Profile Information</h4>
 
                         {/* Display Name */}
-                        <div className="space-y-1.5">
+                        <div className="space-y-1">
                             <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400 flex items-center gap-1.5">
                                 <User size={13} /> Full Name
                             </label>
                             {isOwnProfile && isEditing ? (
                                 <input
-                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-150 text-sm"
+                                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-transparent text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-150 text-sm"
                                     type="text"
                                     placeholder="Enter display name"
                                     value={editedProfile.name || ''}
                                     onChange={(e) => handleChange('name', e.target.value)}
                                 />
                             ) : (
-                                <p className="text-sm text-slate-800 dark:text-zinc-200 bg-slate-100/60 dark:bg-zinc-900/50 border border-slate-200/60 dark:border-zinc-800/60 rounded-xl px-4 py-2.5 font-medium">
+                                <p className="text-sm font-semibold text-slate-800 dark:text-zinc-200 py-1">
                                     {profile.name}
                                 </p>
                             )}
                         </div>
 
                         {/* About */}
-                        <div className="space-y-1.5">
+                        <div className="space-y-1">
                             <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400 flex items-center gap-1.5">
                                 <Info size={13} /> About
                             </label>
                             {isOwnProfile && isEditing ? (
                                 <textarea
-                                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-150 text-sm resize-none"
+                                    className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-transparent text-slate-800 dark:text-zinc-100 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-150 text-sm resize-none"
                                     rows={3}
                                     placeholder="Write something about yourself..."
                                     value={editedProfile.about || ''}
                                     onChange={(e) => handleChange('about', e.target.value)}
                                 />
                             ) : (
-                                <p className="text-sm text-slate-700 dark:text-zinc-300 bg-slate-100/60 dark:bg-zinc-900/50 border border-slate-200/60 dark:border-zinc-800/60 rounded-xl px-4 py-2.5 whitespace-pre-wrap leading-relaxed">
+                                <p className="text-sm text-slate-700 dark:text-zinc-300 whitespace-pre-wrap leading-relaxed py-1">
                                     {profile.about || 'FlashChat User'}
                                 </p>
                             )}
                         </div>
 
                         {/* Read-only details */}
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400 flex items-center gap-1.5"><User size={13} /> Username</label>
-                                <p className="text-sm text-slate-500 dark:text-zinc-400 bg-slate-100/40 dark:bg-zinc-900/30 border border-slate-200/50 dark:border-zinc-800/60 rounded-xl px-4 py-2.5 font-medium cursor-not-allowed">@{profile.username}</p>
+                        {isOwnProfile && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                                <div className="space-y-1">
+                                    <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400 flex items-center gap-1.5"><User size={13} /> Username</label>
+                                    <p className="text-sm font-medium text-slate-700 dark:text-zinc-300 py-1">@{profile.username}</p>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400 flex items-center gap-1.5"><Mail size={13} /> Email Address</label>
+                                    <p className="text-sm font-medium text-slate-700 dark:text-zinc-300 py-1 truncate">{profile.email || 'Private'}</p>
+                                </div>
                             </div>
-                            <div className="space-y-1.5">
-                                <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400 flex items-center gap-1.5"><Mail size={13} /> Email Address</label>
-                                <p className="text-sm text-slate-500 dark:text-zinc-400 bg-slate-100/40 dark:bg-zinc-900/30 border border-slate-200/50 dark:border-zinc-800/60 rounded-xl px-4 py-2.5 font-medium cursor-not-allowed truncate">{profile.email || 'Private'}</p>
-                            </div>
-                        </div>
+                        )}
                     </div>
 
-                    {/* Privacy & Settings Card */}
+                    {/* Privacy & Account Options */}
                     {isOwnProfile && (
-                        <div className="border border-slate-200/70 dark:border-zinc-800/80 bg-slate-50/40 dark:bg-zinc-900/30 rounded-2xl p-6 space-y-4">
-                            <h4 className="text-sm font-bold text-slate-800 dark:text-zinc-200 tracking-wide uppercase border-b border-slate-200/60 dark:border-zinc-800 pb-2">Privacy & Account Options</h4>
+                        <div className="space-y-4 pb-8 border-b border-slate-100 dark:border-zinc-900">
+                            <h4 className="text-xs font-bold text-slate-400 dark:text-zinc-500 tracking-wider uppercase">Privacy & Account Options</h4>
 
                             <div className="flex items-center justify-between gap-4 py-1">
                                 <div className="space-y-0.5">
                                     <label className="text-sm font-semibold text-slate-800 dark:text-zinc-200 flex items-center gap-1.5">
-                                        <ShieldCheck size={15} className="text-indigo-500" /> Show Last Message in Chat List
+                                        Show Last Message in Chat List
                                     </label>
                                     <p className="text-xs text-slate-500 dark:text-zinc-400 max-w-md">
                                         Toggle to show or hide your latest messages in the chat sidebar.
@@ -381,54 +383,55 @@ export default function Profile({ edit = false, targetUserId }) {
                                 </label>
                             </div>
 
-                            <div onClick={() => navigate(ACCOUNT_ROUTES.contacts)} className="flex items-center justify-between p-3 rounded-xl border border-slate-200/60 dark:border-zinc-800/60 bg-slate-100/40 dark:bg-zinc-900/40 hover:bg-slate-100/80 dark:hover:bg-zinc-900/70 transition cursor-pointer">
-                                <div className="space-y-0.5">
-                                    <p className="text-xs font-semibold text-slate-800 dark:text-zinc-200">Manage Contacts</p>
-                                    <p className="text-[11px] text-slate-500 dark:text-zinc-400">View sent or pending friend requests and manage list</p>
+                            <div className="space-y-1 pt-1">
+                                <div onClick={() => navigate(ACCOUNT_ROUTES.contacts)} className="flex items-center justify-between py-3 rounded-xl transition cursor-pointer">
+                                    <div className="space-y-0.5">
+                                        <p className="text-xs font-semibold text-slate-800 dark:text-zinc-200">Manage Contacts</p>
+                                        <p className="text-[11px] text-slate-500 dark:text-zinc-400">View sent or pending friend requests and manage list</p>
+                                    </div>
+                                    <Users size={16} className="text-slate-400 dark:text-zinc-500" />
                                 </div>
-                                <i className="fa-solid fa-chevron-right text-xs text-slate-400" />
-                            </div>
 
-                            <div onClick={() => navigate(SETTINGS_ROUTES.linkedDevices)} className="flex items-center justify-between p-3 rounded-xl border border-slate-200/60 dark:border-zinc-800/60 bg-slate-100/40 dark:bg-zinc-900/40 hover:bg-slate-100/80 dark:hover:bg-zinc-900/70 transition cursor-pointer">
-                                <div className="space-y-0.5">
-                                    <p className="text-xs font-semibold text-slate-800 dark:text-zinc-200">Linked Devices</p>
-                                    <p className="text-[11px] text-slate-500 dark:text-zinc-500">Manage other browser sessions and devices signed into this account</p>
+                                <div onClick={() => navigate(SETTINGS_ROUTES.linkedDevices)} className="flex items-center justify-between py-3 rounded-xl transition cursor-pointer">
+                                    <div className="space-y-0.5">
+                                        <p className="text-xs font-semibold text-slate-800 dark:text-zinc-200">Linked Devices</p>
+                                        <p className="text-[11px] text-slate-500 dark:text-zinc-500">Manage other browser sessions and devices signed into this account</p>
+                                    </div>
+                                    <MonitorSmartphone size={16} className="text-slate-400 dark:text-zinc-500" />
                                 </div>
-                                <MonitorSmartphone size={16} className="text-slate-400 dark:text-zinc-500" />
-                            </div>
 
-                            <div onClick={() => navigate(SETTINGS_ROUTES.updateHistory)} className="flex items-center justify-between p-3 rounded-xl border border-slate-200/60 dark:border-zinc-800/60 bg-slate-100/40 dark:bg-zinc-900/40 hover:bg-slate-100/80 dark:hover:bg-zinc-900/70 transition cursor-pointer">
-                                <div className="space-y-0.5">
-                                    <p className="text-xs font-semibold text-slate-800 dark:text-zinc-200">Update History</p>
-                                    <p className="text-[11px] text-slate-500 dark:text-zinc-500">View FlashChat release notes and version changelog</p>
+                                <div onClick={() => navigate(SETTINGS_ROUTES.updateHistory)} className="flex items-center justify-between py-3 rounded-xl transition cursor-pointer">
+                                    <div className="space-y-0.5">
+                                        <p className="text-xs font-semibold text-slate-800 dark:text-zinc-200">Update History</p>
+                                        <p className="text-[11px] text-slate-500 dark:text-zinc-500">View FlashChat release notes and version changelog</p>
+                                    </div>
+                                    <History size={16} className="text-slate-400 dark:text-zinc-500" />
                                 </div>
-                                <History size={16} className="text-slate-400 dark:text-zinc-500" />
                             </div>
                         </div>
                     )}
 
-                    {/* E2EE Backup & Key Recovery Card */}
+                    {/* E2EE Backup & Key Recovery */}
                     {isOwnProfile && (
-                        <div className="border border-slate-200/70 dark:border-zinc-800/80 bg-slate-50/40 dark:bg-zinc-900/30 rounded-2xl p-6 space-y-5">
-                            <div className="flex items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-3">
+                        <div className="space-y-5 pb-8 border-b border-slate-100 dark:border-zinc-900">
+                            <div className="flex items-center justify-between">
                                 <div>
-                                    <h4 className="text-sm font-bold text-slate-800 dark:text-zinc-200 tracking-wide uppercase">
+                                    <h4 className="text-xs font-bold text-slate-400 dark:text-zinc-500 tracking-wider uppercase">
                                         End-to-End Encryption Backup
                                     </h4>
-                                    <p className="text-[11px] text-slate-500 dark:text-zinc-500">
+                                    <p className="text-[11px] text-slate-500 dark:text-zinc-500 mt-0.5">
                                         Zero-knowledge recovery to decrypt message history across logins
                                     </p>
                                 </div>
-                                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 ${
-                                    user.encryptedPrivateKey
+                                <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 ${user.encryptedPrivateKey
                                         ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400"
                                         : "bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400"
-                                }`}>
+                                    }`}>
                                     <Lock size={10} />
                                     {user.encryptedPrivateKey ? "Active & Sealed" : "Unbacked"}
                                 </span>
                             </div>
-                            
+
                             {user.encryptedPrivateKey ? (
                                 <div className="space-y-4">
                                     <div className="flex items-start gap-3.5 p-4 rounded-xl border border-emerald-100 bg-emerald-50/50 dark:border-emerald-500/20 dark:bg-emerald-500/5 text-emerald-800 dark:text-emerald-400">
@@ -445,17 +448,17 @@ export default function Profile({ edit = false, targetUserId }) {
 
                                     {/* Rotation and Update Options */}
                                     <div className="flex items-center gap-3 flex-wrap pt-1">
-                                        <button 
+                                        <button
                                             type="button"
                                             onClick={handleOpenMnemonicModal}
                                             className="px-3.5 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-semibold shadow-sm transition flex items-center gap-1.5 cursor-pointer"
                                         >
                                             <RotateCcw size={13} /> Rotate Recovery Key (12 Words)
                                         </button>
-                                        <button 
+                                        <button
                                             type="button"
                                             onClick={() => setShowBackupForm(!showBackupForm)}
-                                            className="px-3 py-2 rounded-xl border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 text-xs font-semibold transition cursor-pointer"
+                                            className="px-3 py-2 rounded-xl border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-900 text-xs font-semibold transition cursor-pointer"
                                         >
                                             {showBackupForm ? "Hide Form" : "Custom Passphrase"}
                                         </button>
@@ -464,9 +467,6 @@ export default function Profile({ edit = false, targetUserId }) {
                             ) : (
                                 <div className="space-y-4">
                                     <div className="flex items-start gap-3.5 p-4 rounded-xl border border-amber-100 bg-amber-50/50 dark:border-amber-500/20 dark:bg-amber-500/5 text-amber-800 dark:text-amber-400">
-                                        <div className="h-5 w-5 mt-0.5 flex-shrink-0 flex items-center justify-center rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
-                                            <ShieldAlert size={16} />
-                                        </div>
                                         <div className="space-y-1">
                                             <p className="text-xs font-bold text-slate-800 dark:text-zinc-200">No Recovery Backup Found</p>
                                             <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80 leading-relaxed">
@@ -476,17 +476,17 @@ export default function Profile({ edit = false, targetUserId }) {
                                     </div>
 
                                     <div className="flex items-center gap-3 flex-wrap">
-                                        <button 
+                                        <button
                                             type="button"
                                             onClick={handleOpenMnemonicModal}
                                             className="px-4 py-2.5 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-semibold shadow-md shadow-indigo-500/15 transition flex items-center gap-2 cursor-pointer"
                                         >
                                             <Sparkles size={14} /> Generate 12-Word Recovery Key
                                         </button>
-                                        <button 
+                                        <button
                                             type="button"
                                             onClick={() => setShowBackupForm(!showBackupForm)}
-                                            className="px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 text-xs font-semibold transition cursor-pointer"
+                                            className="px-3.5 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 text-slate-600 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-900 text-xs font-semibold transition cursor-pointer"
                                         >
                                             Use Custom Passphrase
                                         </button>
@@ -496,7 +496,7 @@ export default function Profile({ edit = false, targetUserId }) {
 
                             {/* Custom Backup Form */}
                             {showBackupForm && (
-                                <form onSubmit={handleCreateBackup} className="space-y-4 pt-3 border-t border-slate-100 dark:border-zinc-800/60 animate-fade-in">
+                                <form onSubmit={handleCreateBackup} className="space-y-4 pt-3 border-t border-slate-100 dark:border-zinc-900 animate-fade-in">
                                     <div className="space-y-1.5">
                                         <label className="text-xs font-semibold text-slate-500 dark:text-zinc-400 flex items-center gap-1.5">
                                             <Key size={13} /> Custom Security Passphrase
@@ -507,7 +507,7 @@ export default function Profile({ edit = false, targetUserId }) {
                                                 placeholder="Enter at least 6 characters"
                                                 value={backupPassphrase}
                                                 onChange={(e) => setBackupPassphrase(e.target.value)}
-                                                className="w-full pl-4 pr-10 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800/80 bg-slate-50 dark:bg-zinc-950 placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-150 text-sm"
+                                                className="w-full pl-4 pr-10 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-800 bg-transparent placeholder-slate-400 dark:placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all duration-150 text-sm"
                                                 required
                                                 minLength={6}
                                                 disabled={backingUp}
@@ -542,9 +542,9 @@ export default function Profile({ edit = false, targetUserId }) {
 
                     {/* Active Session & Log Out */}
                     {isOwnProfile && (
-                        <div className="border border-slate-200/70 dark:border-zinc-800/80 bg-slate-50/40 dark:bg-zinc-900/30 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-1">
                             <div className="flex items-center gap-3.5 min-w-0">
-                                <div className="h-10 w-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/60 flex items-center justify-center text-indigo-600 dark:text-indigo-400 flex-shrink-0">
+                                <div className="h-10 w-10 rounded-xl bg-slate-100 dark:bg-zinc-900 flex items-center justify-center text-slate-600 dark:text-zinc-300 flex-shrink-0">
                                     {isMobileDevice() ? <Smartphone size={20} /> : <Laptop size={20} />}
                                 </div>
                                 <div className="min-w-0">
@@ -552,11 +552,11 @@ export default function Profile({ edit = false, targetUserId }) {
                                         <p className="text-xs sm:text-sm font-semibold text-slate-800 dark:text-zinc-200">
                                             {getDetectedBrowser()} on {getDetectedOS()}
                                         </p>
-                                        {currentSession?.ip && (
+                                        {/* {currentSession?.ip && (
                                             <span className="text-[11px] font-mono text-slate-400 dark:text-zinc-500">
                                                 ({currentSession.ip})
                                             </span>
-                                        )}
+                                        )} */}
                                     </div>
                                     <p className="text-[11px] text-slate-500 dark:text-zinc-400 flex items-center gap-1.5 mt-0.5">
                                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>

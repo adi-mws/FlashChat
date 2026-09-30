@@ -39,9 +39,7 @@ export default function ChatListHeader({ onCreateGroup, onJoinGroup }) {
         to={CHAT_ROUTES.root}
         className="logo text-lg font-bold dark:text-white flex gap-2 items-center tracking-tight select-none"
       >
-        <div className="flex items-center justify-center h-8 w-8 rounded-lg bg-indigo-500 text-white shadow-sm shadow-indigo-500/20">
-          <Flame size={18} fill="white" />
-        </div>
+      
         <span className="text-slate-900 dark:text-white font-bold">FlashChat</span>
       </Link>
 

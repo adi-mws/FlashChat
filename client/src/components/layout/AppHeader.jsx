@@ -5,7 +5,7 @@ import { ArrowLeft } from 'lucide-react';
 export default function AppHeader({ title, children }) {
     const navigate = useNavigate();
     return (
-        <div className="h-[75px] flex items-center px-4 py-2 sm:px-8 border-b border-slate-200/50 dark:border-zinc-900 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md sticky top-0 z-10 justify-between">
+        <div className="min-h-[65px] flex items-center px-4 py-3.5 sm:px-8 border-b border-slate-200/50 dark:border-zinc-900 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md sticky top-0 z-10 justify-between">
             <div className="flex items-center gap-3">
                 <button
                     onClick={() => navigate(-1)}

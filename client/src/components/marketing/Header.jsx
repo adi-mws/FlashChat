@@ -50,7 +50,7 @@ export default function Header() {
           </span>
 
           <span className="text-slate-500 dark:text-white text-xs dark:bg-zinc-800/50 bg-slate-200/50 px-2 py-1 rounded-md">
-            v3.2.1
+            v3.4
           </span>
         </Link>
 

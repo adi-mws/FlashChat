@@ -3,7 +3,7 @@ import axios from 'axios';
 import { ArrowLeft, Plus, UserCheck2, UserMinus2, Send, Search, Check, X, AlertCircle, MessageSquare, Users } from 'lucide-react';
 import { getImageUrl } from '../../lib/imageUtils';
 import { useNotification } from '../../hooks/useNotification';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectChats, selectSelectedChat, selectOnlineUsers, setSelectedChat, prependChat } from '../../redux/slices/chatsSlice';
 import { CHAT_ROUTES } from '../../../routes/routes';
@@ -13,7 +13,9 @@ import { socket } from '../../lib/socket';
 
 export default function ContactsPage() {
   const dispatch = useDispatch();
-  const [selectedTab, setSelectedTab] = useState('friends');
+  const [params, setSearchParams] = useSearchParams();
+  const rawTab = params.get('tab')?.toLowerCase();
+  const selectedTab = ['friends', 'received', 'sent', 'discover'].includes(rawTab) ? rawTab : 'friends';
   const [searchQuery, setSearchQuery] = useState('');
   const [friendsList, setFriendsList] = useState([]);
   const [incomingRequests, setIncomingRequests] = useState([]);
@@ -78,14 +80,26 @@ export default function ContactsPage() {
   };
 
   useEffect(() => {
-    if (selectedTab === 'friends') fetchFriends();
-    if (selectedTab === 'received') fetchIncoming();
-    if (selectedTab === 'sent') fetchSent();
+    switch (selectedTab) {
+      case 'friends':
+        fetchFriends();
+        break;
+
+      case 'received':
+        fetchIncoming();
+        break;
+
+      case 'sent':
+        fetchSent();
+        break;
+    }
   }, [selectedTab]);
+
+  
 
   useEffect(() => {
     const searchNewUser = async () => {
-      if (selectedTab === 'new' && searchQuery.trim()) {
+      if (selectedTab === 'discover' && searchQuery.trim()) {
         try {
           setLoading(true);
           const res = await axios.get(`${import.meta.env.VITE_API_URL}/user/get-users?username=${searchQuery}`, { withCredentials: true });
@@ -241,7 +255,7 @@ export default function ContactsPage() {
 
     const data = selectedTab === 'received' ? filteredData(incomingRequests) : selectedTab === 'sent' ? filteredData(sentRequests) : [];
 
-    if (selectedTab === 'new') {
+    if (selectedTab === 'discover') {
       return (
         <div className="space-y-4">
           <div className="p-4 bg-indigo-50/40 dark:bg-indigo-950/20 rounded-xl border border-indigo-100/60 dark:border-indigo-900/40">
@@ -328,11 +342,11 @@ export default function ContactsPage() {
               { id: 'friends', label: 'My Contacts' },
               { id: 'received', label: 'Requests' },
               { id: 'sent', label: 'Sent Requests' },
-              { id: 'new', label: 'Add Contacts' },
+              { id: 'discover', label: 'Add Contacts' },
             ].map((tab) => (
               <button
                 key={tab.id}
-                onClick={() => { setSelectedTab(tab.id); setSearchQuery(''); }}
+                onClick={() => { setSearchParams({ tab: tab.id }); setSearchQuery(''); }}
                 className={`flex-1 md:flex-initial py-2 px-3 sm:px-4 text-xs font-semibold rounded-xl transition duration-150 relative cursor-pointer whitespace-nowrap ${
                   selectedTab === tab.id
                     ? 'bg-white dark:bg-zinc-800 text-indigo-600 dark:text-indigo-400 font-semibold'
@@ -357,7 +371,7 @@ export default function ContactsPage() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={
-                selectedTab === 'new'
+                selectedTab === 'discover'
                   ? 'Search username...'
                   : selectedTab === 'friends'
                   ? 'Search contacts...'

@@ -13,7 +13,7 @@ const userSchema = new mongoose.Schema({
     default: ''
   },
   lastOnline: {
-    type: Date,
+  type: Date,
     default: Date.now
   },
   showLastMessageInList: {

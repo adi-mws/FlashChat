@@ -24,7 +24,7 @@ export default function NoChatsFound({ children }) {
         <button
           type="button"
           className="mt-6 w-full py-2 px-4 bg-zinc-950 border border-indigo-600  active:scale-95 text-white font-medium text-xs rounded-xl shadow-md hover:shadow-indigo-500/10 transition-all duration-200 cursor-pointer"
-          onClick={() => navigate(ACCOUNT_ROUTES.contacts)}
+          onClick={() => navigate(`${ACCOUNT_ROUTES.contacts}?tab=discover`)}
         >
           Add Contacts
         </button>

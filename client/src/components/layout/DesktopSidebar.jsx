@@ -93,15 +93,11 @@ export default function DesktopSidebar() {
         <button
           type="button"
           onClick={() => navigate(CHAT_ROUTES.root)}
-          className="relative group p-2 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white shadow-md shadow-indigo-500/25 hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer focus:outline-none"
+          className="relative group p-2 rounded-xl bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white shadow-md shadow-indigo-500/25 hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer focus:outline-none"
           title="FlashChat"
           aria-label="FlashChat Home"
         >
           <Flame size={20} className="fill-white" />
-          {/* Tooltip */}
-          <span className="pointer-events-none absolute left-full ml-3 px-2 py-1 bg-zinc-900/90 dark:bg-zinc-100 text-white dark:text-zinc-900 text-[11px] font-semibold rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap z-50 translate-x-1 group-hover:translate-x-0">
-            FlashChat
-          </span>
         </button>
 
         <div className="w-7 h-px bg-slate-200/80 dark:bg-zinc-800/80 my-0.5" />
@@ -116,11 +112,10 @@ export default function DesktopSidebar() {
             <button
               type="button"
               onClick={() => navigate(CHAT_ROUTES.root)}
-              className={`relative p-2.5 rounded-2xl transition-all duration-200 cursor-pointer focus:outline-none ${
-                isChatsActive
-                  ? "bg-indigo-500/10 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 shadow-xs"
-                  : "text-slate-400 dark:text-zinc-500 hover:text-slate-800 dark:hover:text-zinc-200 hover:bg-slate-200/60 dark:hover:bg-zinc-900"
-              }`}
+              className={`relative p-2.5 rounded-2xl transition-all duration-200 cursor-pointer focus:outline-none ${isChatsActive
+                ? "bg-indigo-500/10 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 shadow-xs"
+                : "text-slate-400 dark:text-zinc-500 hover:text-slate-800 dark:hover:text-zinc-200 hover:bg-slate-200/60 dark:hover:bg-zinc-900"
+                }`}
               aria-label="Chats"
             >
               <MessageSquare size={20} />
@@ -131,7 +126,7 @@ export default function DesktopSidebar() {
               )}
             </button>
             {/* Tooltip */}
-            <span className="pointer-events-none absolute left-full ml-3 px-2.5 py-1 bg-zinc-900/90 dark:bg-zinc-100 text-white dark:text-zinc-900 text-[11px] font-medium rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap z-50 translate-x-1 group-hover:translate-x-0">
+            <span className="pointer-events-none absolute left-full ml-0 px-2.5 py-1 bg-zinc-900/90 text-white text-[11px] font-medium rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap z-50 translate-x-1 group-hover:translate-x-0">
               Chats
             </span>
           </div>
@@ -144,17 +139,17 @@ export default function DesktopSidebar() {
             <button
               type="button"
               onClick={() => navigate(SPARK_ROUTES.root)}
-              className={`relative p-2.5 rounded-2xl transition-all duration-200 cursor-pointer focus:outline-none ${
-                isSparksActive
-                  ? "bg-indigo-500/10 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 shadow-xs"
-                  : "text-slate-400 dark:text-zinc-500 hover:text-slate-800 dark:hover:text-zinc-200 hover:bg-slate-200/60 dark:hover:bg-zinc-900"
-              }`}
+              className={`relative p-2.5 rounded-2xl transition-all duration-200 cursor-pointer focus:outline-none ${isSparksActive
+                ? "bg-indigo-500/10 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 shadow-xs"
+                : "text-slate-400 dark:text-zinc-500 hover:text-slate-800 dark:hover:text-zinc-200 hover:bg-slate-200/60 dark:hover:bg-zinc-900"
+                }`}
               aria-label="Sparks"
             >
               <Sparkles size={20} />
             </button>
             {/* Tooltip */}
-            <span className="pointer-events-none absolute left-full ml-3 px-2.5 py-1 bg-zinc-900/90 dark:bg-zinc-100 text-white dark:text-zinc-900 text-[11px] font-medium rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap z-50 translate-x-1 group-hover:translate-x-0">
+            <span className="pointer-events-none absolute left-full ml-0 px-2.5 py-1 bg-zinc-900/90 text-white text-[11px] font-medium rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap z-50 translate-x-1 group-hover:translate-x-0">
+
               Sparks
             </span>
           </div>
@@ -167,17 +162,17 @@ export default function DesktopSidebar() {
             <button
               type="button"
               onClick={() => navigate(ACCOUNT_ROUTES.contacts)}
-              className={`relative p-2.5 rounded-2xl transition-all duration-200 cursor-pointer focus:outline-none ${
-                isContactsActive
-                  ? "bg-indigo-500/10 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 shadow-xs"
-                  : "text-slate-400 dark:text-zinc-500 hover:text-slate-800 dark:hover:text-zinc-200 hover:bg-slate-200/60 dark:hover:bg-zinc-900"
-              }`}
+              className={`relative p-2.5 rounded-2xl transition-all duration-200 cursor-pointer focus:outline-none ${isContactsActive
+                ? "bg-indigo-500/10 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 shadow-xs"
+                : "text-slate-400 dark:text-zinc-500 hover:text-slate-800 dark:hover:text-zinc-200 hover:bg-slate-200/60 dark:hover:bg-zinc-900"
+                }`}
               aria-label="Contacts"
             >
               <Users size={20} />
             </button>
             {/* Tooltip */}
-            <span className="pointer-events-none absolute left-full ml-3 px-2.5 py-1 bg-zinc-900/90 dark:bg-zinc-100 text-white dark:text-zinc-900 text-[11px] font-medium rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap z-50 translate-x-1 group-hover:translate-x-0">
+            <span className="pointer-events-none absolute left-full ml-0 px-2.5 py-1 bg-zinc-900/90 text-white text-[11px] font-medium rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap z-50 translate-x-1 group-hover:translate-x-0">
+
               Contacts
             </span>
           </div>
@@ -190,17 +185,16 @@ export default function DesktopSidebar() {
             <button
               type="button"
               onClick={() => navigate(SETTINGS_ROUTES.profile)}
-              className={`relative p-2.5 rounded-2xl transition-all duration-200 cursor-pointer focus:outline-none ${
-                isSettingsActive
-                  ? "bg-indigo-500/10 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 shadow-xs"
-                  : "text-slate-400 dark:text-zinc-500 hover:text-slate-800 dark:hover:text-zinc-200 hover:bg-slate-200/60 dark:hover:bg-zinc-900"
-              }`}
+              className={`relative p-2.5 rounded-2xl transition-all duration-200 cursor-pointer focus:outline-none ${isSettingsActive
+                ? "bg-indigo-500/10 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 shadow-xs"
+                : "text-slate-400 dark:text-zinc-500 hover:text-slate-800 dark:hover:text-zinc-200 hover:bg-slate-200/60 dark:hover:bg-zinc-900"
+                }`}
               aria-label="Settings"
             >
               <Settings size={20} />
             </button>
             {/* Tooltip */}
-            <span className="pointer-events-none absolute left-full ml-3 px-2.5 py-1 bg-zinc-900/90 dark:bg-zinc-100 text-white dark:text-zinc-900 text-[11px] font-medium rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap z-50 translate-x-1 group-hover:translate-x-0">
+            <span className="pointer-events-none absolute left-full ml-0 px-2.5 py-1 bg-zinc-900/90 text-white text-[11px] font-medium rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap z-50 translate-x-1 group-hover:translate-x-0">
               Settings
             </span>
           </div>
@@ -214,17 +208,16 @@ export default function DesktopSidebar() {
               <button
                 type="button"
                 onClick={() => navigate(ADMIN_ROUTES.dashboard)}
-                className={`relative p-2.5 rounded-2xl transition-all duration-200 cursor-pointer focus:outline-none ${
-                  isAdminActive
-                    ? "bg-amber-500/10 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 shadow-xs"
-                    : "text-slate-400 dark:text-zinc-500 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-950/20"
-                }`}
+                className={`relative p-2.5 rounded-2xl transition-all duration-200 cursor-pointer focus:outline-none ${isAdminActive
+                  ? "bg-amber-500/10 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400 shadow-xs"
+                  : "text-slate-400 dark:text-zinc-500 hover:text-amber-500 dark:hover:text-amber-400 hover:bg-amber-50/50 dark:hover:bg-amber-950/20"
+                  }`}
                 aria-label="Admin Console"
               >
                 <Shield size={20} />
               </button>
               {/* Tooltip */}
-              <span className="pointer-events-none absolute left-full ml-3 px-2.5 py-1 bg-zinc-900/90 dark:bg-zinc-100 text-white dark:text-zinc-900 text-[11px] font-medium rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap z-50 translate-x-1 group-hover:translate-x-0">
+              <span className="pointer-events-none absolute left-full ml-0 px-2.5 py-1 bg-zinc-900/90 text-white text-[11px] font-medium rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap z-50 translate-x-1 group-hover:translate-x-0">
                 Admin Console
               </span>
             </div>
@@ -255,7 +248,7 @@ export default function DesktopSidebar() {
               </button>
 
               {!showProfileMenu && (
-                <span className="pointer-events-none absolute left-full ml-3 px-2.5 py-1 bg-zinc-900/90 dark:bg-zinc-100 text-white dark:text-zinc-900 text-[11px] font-medium rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap z-50 translate-x-1 group-hover:translate-x-0">
+                <span className="pointer-events-none absolute left-full ml-2 px-2.5 py-1 bg-zinc-900/90 text-white text-[11px] font-medium rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-all duration-150 whitespace-nowrap z-50 translate-x-1 group-hover:translate-x-0">
                   Profile & Menu
                 </span>
               )}

@@ -145,39 +145,27 @@ export default function ChatList() {
 
       {/* Filters */}
       <div className="px-2 flex items-center gap-2 my-1 relative">
-        <button
-          type="button"
-          onClick={() => setSelectedFilter("all")}
-          className={`outline-0 rounded-xl py-1.5 px-3 text-[11px] font-semibold transition cursor-pointer ${
-            selectedFilter === "all"
-              ? "bg-indigo-500 text-white shadow-sm"
-              : "border border-slate-200 dark:border-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-900 text-slate-600 dark:text-zinc-400"
-          }`}
-        >
-          All
-        </button>
-        <button
-          type="button"
-          onClick={() => setSelectedFilter("unread")}
-          className={`outline-0 rounded-xl py-1.5 px-3 text-[11px] font-semibold transition cursor-pointer ${
-            selectedFilter === "unread"
-              ? "bg-indigo-500 text-white shadow-sm"
-              : "border border-slate-200 dark:border-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-900 text-slate-600 dark:text-zinc-400"
-          }`}
-        >
-          Unread
-        </button>
-        <button
-          type="button"
-          onClick={() => setSelectedFilter("groups")}
-          className={`outline-0 rounded-xl py-1.5 px-3 text-[11px] font-semibold transition cursor-pointer ${
-            selectedFilter === "groups"
-              ? "bg-indigo-500 text-white shadow-sm"
-              : "border border-slate-200 dark:border-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-900 text-slate-600 dark:text-zinc-400"
-          }`}
-        >
-          Groups
-        </button>
+        {[
+          { id: "all", label: "All" },
+          { id: "unread", label: "Unread" },
+          { id: "groups", label: "Groups" },
+        ].map((filter) => {
+          const isActive = selectedFilter === filter.id;
+          return (
+            <button
+              key={filter.id}
+              type="button"
+              onClick={() => setSelectedFilter(filter.id)}
+              className={`rounded-xl py-1.5 px-3 text-[11px] font-semibold border transition-colors duration-150 cursor-pointer focus:outline-none select-none ${
+                isActive
+                  ? "bg-indigo-500 border-indigo-500 text-white shadow-xs"
+                  : "border-slate-200/80 dark:border-zinc-800 bg-transparent text-slate-600 dark:text-zinc-400 hover:bg-slate-100 dark:hover:bg-zinc-900 hover:text-slate-900 dark:hover:text-zinc-200"
+              }`}
+            >
+              {filter.label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Chat list (scrollable) */}

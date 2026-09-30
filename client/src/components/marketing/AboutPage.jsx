@@ -12,6 +12,62 @@ export default function AboutPage() {
   useEffect(() => {
     setUpdates([
       {
+        version: '3.4.0',
+        date: 'September 29, 2026',
+        title: 'Modern Desktop Sidebar & Real-Time Presence Polish',
+        description:
+          'Introduced a dedicated, collapsible desktop navigation sidebar for quick switching between chats, contacts, calls, and account settings. Improved real-time user presence with instant offline status tracking upon browser tab closure and precise last seen timestamps. Enhanced media viewing with click-to-open attachment modals and uniform image aspect ratios.',
+      },
+      {
+        version: '3.3.0',
+        date: 'September 28, 2026',
+        title: 'Admin MasterKey Authentication & Live Typing Indicators',
+        description:
+          'Implemented MasterKey-secured authentication controllers for dedicated administrator access. Added real-time typing indicators in both active conversation views and chat list previews for live conversational visibility, alongside message hiding support for group chats.',
+      },
+      {
+        version: '3.2.0',
+        date: 'September 27, 2026',
+        title: 'Supreme Admin Panel & Group Conversation Controls',
+        description:
+          'Launched the Supreme Admin Dashboard for comprehensive user administration, moderation controls, and system health inspection. Added the ability to clear chat history in group rooms and resolved group invitation and member joining errors.',
+      },
+      {
+        version: '3.1.0',
+        date: 'September 20, 2026',
+        title: 'Multi-Device End-to-End Encryption & Key Recovery',
+        description:
+          'Rolled out full client-side End-to-End Encryption (E2EE) powered by Web Crypto APIs. Supports seamless cryptographic key sync across authenticated devices, alongside zero-knowledge encrypted backups for account recovery across new logins.',
+      },
+      {
+        version: '3.0.0',
+        date: 'September 12, 2026',
+        title: 'Group Chats & Collaborative Rooms',
+        description:
+          'Introduced multi-participant group messaging to FlashChat. Users can create custom group chats, configure group info and avatars, manage member participants, and converse in real-time with synchronized group delivery.',
+      },
+      {
+        version: '2.6.0',
+        date: 'August 28, 2026',
+        title: 'Media Attachments, In-App Camera & Encryption Badges',
+        description:
+          'Expanded chat media capabilities with instant camera snapshot support to capture and send photos directly from within the app. Added file attachment support, contextual date dividers, and visual encryption badges inside active conversations.',
+      },
+      {
+        version: '2.5.0',
+        date: 'August 18, 2026',
+        title: 'Smart Chat Drafts & Unified Conversation Ordering',
+        description:
+          'Added an automatic chat draft system that preserves unsent messages per conversation. Re-engineered chat list ordering logic based on unified timestamps for both draft edits and incoming messages.',
+      },
+      {
+        version: '2.4.0',
+        date: 'June 18, 2026',
+        title: 'Mobile Navigation Bar & Responsive Desktop Layout',
+        description:
+          'Redesigned the application layout with dedicated navigation bars for mobile devices and clean desktop interfaces. Unified profile views, streamlined responsive transitions, and refined file structures.',
+      },
+      {
         version: '2.3.0',
         date: 'June 2, 2026',
         title: 'Multi-Device Sync & Session Management',
@@ -50,9 +106,9 @@ export default function AboutPage() {
   }, []);
 
   return (
-    <div className={`w-full ${inChat ? 'h-full bg-slate-50/50 dark:bg-zinc-950/40 overflow-hidden' : 'min-h-screen bg-slate-50 dark:bg-zinc-950'} flex flex-col transition-colors duration-200`}>
+    <div className={`w-full ${inChat ? 'h-full bg-white dark:bg-zinc-950 overflow-hidden' : 'min-h-screen bg-white dark:bg-zinc-950'} flex flex-col transition-colors duration-200`}>
       {inChat ? (
-        <div className="h-[64px] flex items-center px-4 py-2 sm:px-8 border-b border-slate-200/50 dark:border-zinc-900 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md sticky top-0 z-10">
+        <div className="min-h-[65px] flex items-center px-4 py-3.5 sm:px-8 border-b border-slate-200/50 dark:border-zinc-900 bg-white/95 dark:bg-zinc-950/95 backdrop-blur-md sticky top-0 z-10 justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={() => navigate(-1)}
@@ -68,10 +124,10 @@ export default function AboutPage() {
           </div>
         </div>
       ) : (
-        <div className="max-w-4xl mx-auto w-full px-4 pt-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="max-w-3xl mx-auto w-full px-4 pt-10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <button
             onClick={() => navigate(MARKETING_ROUTES.landing)}
-            className="flex items-center gap-2 p-2 px-4 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-sm transition hover:scale-[1.02] active:scale-95 cursor-pointer"
+            className="flex items-center gap-2 p-2 px-4 rounded-xl text-xs font-semibold text-slate-600 hover:text-slate-800 dark:text-zinc-400 dark:hover:text-zinc-200 bg-transparent border border-slate-200 dark:border-zinc-800 transition hover:bg-slate-100 dark:hover:bg-zinc-900 cursor-pointer"
           >
             <ArrowLeft size={14} /> Back to Home
           </button>
@@ -82,19 +138,19 @@ export default function AboutPage() {
         </div>
       )}
 
-      <div className={`max-w-4xl w-full mx-auto p-4 sm:p-6 md:p-8 flex-1 ${inChat ? 'overflow-y-auto' : ''}`}>
-        <div className="relative border-l border-indigo-100 dark:border-indigo-900/60 ml-4 sm:ml-6 pl-6 sm:pl-8 space-y-10">
+      <div className={`max-w-3xl w-full mx-auto p-4 sm:p-6 md:p-8 flex-1 ${inChat ? 'overflow-y-auto' : ''}`}>
+        <div className="relative border-l border-slate-200 dark:border-zinc-800 ml-3 sm:ml-5 pl-6 sm:pl-8 space-y-10">
           {updates.map((item, index) => (
             <div key={index} className="relative group">
               {/* Timeline dot */}
-              <span className="absolute -left-[41px] sm:-left-[49px] top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-indigo-50 text-indigo-500 border-4 border-slate-50 dark:border-zinc-950 dark:bg-indigo-950/50 dark:text-indigo-400 group-hover:scale-110 transition duration-200">
-                <GitCommit size={14} />
+              <span className="absolute -left-[37px] sm:-left-[45px] top-1 flex h-7 w-7 items-center justify-center rounded-full bg-indigo-50 dark:bg-indigo-950/60 text-indigo-500 dark:text-indigo-400 border-4 border-white dark:border-zinc-950 transition duration-200">
+                <GitCommit size={13} />
               </span>
 
-              <div className="bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 rounded-2xl p-5 sm:p-6 shadow-sm hover:shadow-md dark:shadow-zinc-950/20 transition duration-200 flex flex-col gap-3">
+              <div className="flex flex-col gap-2">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
-                    <span className="bg-indigo-500 text-white text-[10px] font-bold tracking-wider rounded-lg py-1 px-2.5 shadow-sm">
+                  <div className="flex items-center gap-2.5">
+                    <span className="bg-indigo-500 text-white text-[10px] font-bold tracking-wider rounded-lg py-0.5 px-2">
                       v{item.version}
                     </span>
                     <h4 className="text-sm sm:text-base font-bold text-slate-800 dark:text-zinc-100 leading-snug">
