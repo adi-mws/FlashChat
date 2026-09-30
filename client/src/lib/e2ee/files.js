@@ -104,8 +104,16 @@ export async function encryptFile(file, encryptionRecipients = []) {
  * @param {string} [currentUserId=null] Optional fallback user ID for legacy messages
  * @returns {Promise<string>} Blob URL for display / download
  */
-export async function decryptFile(url, attachmentEncryption, currentSessionId, mimeType = "application/octet-stream", currentUserId = null) {
+export async function decryptFile(
+  url,
+  attachmentEncryption,
+  currentSessionId,
+  mimeType = "application/octet-stream",
+  currentUserId = null,
+  onProgress = null
+) {
   if (!attachmentEncryption?.isEncrypted) {
+    onProgress?.(100);
     return url;
   }
 
@@ -187,12 +195,34 @@ export async function decryptFile(url, attachmentEncryption, currentSessionId, m
     ["decrypt"]
   );
 
-  // Fetch the encrypted bytes from the server
-  const response = await fetch(url, { credentials: "include" });
-  if (!response.ok) {
-    throw new Error(`Failed to fetch attachment: ${response.statusText}`);
-  }
-  const encryptedBuffer = await response.arrayBuffer();
+  onProgress?.(5);
+
+  // Fetch the encrypted bytes from the server with real progress tracking
+  const encryptedBuffer = await new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("GET", url, true);
+    xhr.withCredentials = true;
+    xhr.responseType = "arraybuffer";
+
+    xhr.onprogress = (e) => {
+      if (e.lengthComputable && e.total > 0) {
+        const pct = Math.min(90, Math.max(5, Math.round((e.loaded / e.total) * 90)));
+        onProgress?.(pct);
+      }
+    };
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        onProgress?.(92);
+        resolve(xhr.response);
+      } else {
+        reject(new Error(`Failed to fetch attachment (${xhr.status})`));
+      }
+    };
+
+    xhr.onerror = () => reject(new Error("Network error while downloading attachment"));
+    xhr.send();
+  });
 
   const iv = base64ToArrayBuffer(ivBase64);
   const decryptedBuffer = await subtle.decrypt(
@@ -200,6 +230,8 @@ export async function decryptFile(url, attachmentEncryption, currentSessionId, m
     aesKey,
     encryptedBuffer
   );
+
+  onProgress?.(100);
 
   return URL.createObjectURL(new Blob([decryptedBuffer], { type: mimeType }));
 }

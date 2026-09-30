@@ -200,13 +200,13 @@ export default function useAttachmentUploader({ chatId, chat, user }) {
               fileName: file.name,
               fileSize: file.size,
               attachmentEncryption,
+              tempId,
             });
 
             dispatch(updateSendingMessageProgress({ tempId, progress: 100 }));
             setTimeout(() => {
               dispatch(removeSendingMessage(tempId));
-              // Notice: Do NOT revoke localBlobUrl so sender keeps seeing the image smoothly
-            }, 1000);
+            }, 400);
           } catch (err) {
             console.error("Attachment upload failed:", err);
             dispatch(markSendingMessageFailed(tempId));

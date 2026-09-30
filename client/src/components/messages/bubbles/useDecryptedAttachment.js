@@ -52,6 +52,7 @@ export default function useDecryptedAttachment(
   const initialBlobUrl = localBlobUrl || cachedUrl || null;
   const [blobUrl, setBlobUrl] = useState(initialBlobUrl);
   const [loading, setLoading] = useState(!initialBlobUrl && !!attachmentUrl);
+  const [downloadProgress, setDownloadProgress] = useState(initialBlobUrl ? 100 : 0);
   const [error, setError] = useState(false);
   const [retryCounter, setRetryCounter] = useState(0);
 
@@ -133,7 +134,10 @@ export default function useDecryptedAttachment(
           attachmentEncryption,
           user?.sessionId,
           mimeType,
-          user?.id || user?._id
+          user?.id || user?._id,
+          (pct) => {
+            if (!isCancelled) setDownloadProgress(pct);
+          }
         );
         return result;
       })();
@@ -147,6 +151,7 @@ export default function useDecryptedAttachment(
 
         if (!isCancelled) {
           setBlobUrl(decryptedBlobUrl);
+          setDownloadProgress(100);
           setLoading(false);
           setError(false);
         }
@@ -179,5 +184,5 @@ export default function useDecryptedAttachment(
     retryCounter,
   ]);
 
-  return { blobUrl, loading, error, retry };
+  return { blobUrl, loading, error, downloadProgress, retry };
 }

@@ -158,6 +158,7 @@ export const initSocket = (server) => {
       fileSize,
       caption,
       attachmentEncryption,
+      tempId,
     }) => {
       try {
         const chat = await Chat.findById(chatId);
@@ -268,7 +269,11 @@ export const initSocket = (server) => {
         if (receiverId) {
           messageTarget = messageTarget.to(getUserRoom(receiverId.toString()));
         }
-        messageTarget.emit("newMessage", populatedMsg);
+        const msgPayload = populatedMsg.toObject ? populatedMsg.toObject() : populatedMsg;
+        if (tempId) {
+          msgPayload.tempId = tempId;
+        }
+        messageTarget.emit("newMessage", msgPayload);
       } catch (error) {
         console.error("sendMessage error:", error);
       }

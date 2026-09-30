@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, RefreshCw, Download } from "lucide-react";
 import TimeBadge from "./TimeBadge";
 import useDecryptedAttachment from "./useDecryptedAttachment";
 import ImageViewer from "../ImageViewer";
 
 /**
  * ImageMessage
- * E2EE encrypted image bubble with lightbox zoom, resilient fallback, and upload progress overlay.
+ * E2EE encrypted image bubble with smooth progress ring, download button,
+ * download progress on receiving devices, and lightbox viewer.
  */
 export default function ImageMessage({ message, isSender, time }) {
   const mimeType = message.fileName?.toLowerCase().endsWith(".png")
@@ -18,7 +19,7 @@ export default function ImageMessage({ message, isSender, time }) {
     ? "image/gif"
     : "image/jpeg";
 
-  const { blobUrl, loading, error, retry } = useDecryptedAttachment(
+  const { blobUrl, loading, error, downloadProgress, retry } = useDecryptedAttachment(
     message.attachmentUrl,
     message.attachmentEncryption,
     mimeType,
@@ -36,6 +37,17 @@ export default function ImageMessage({ message, isSender, time }) {
   const caption = message.content || "";
   const hasError = (error || imgError) && !message.isSending;
   const isImageReady = Boolean(blobUrl && !hasError);
+
+  const handleDownload = (e) => {
+    e?.stopPropagation();
+    if (!blobUrl) return;
+    const a = document.createElement("a");
+    a.href = blobUrl;
+    a.download = message.fileName || `flashchat-photo-${Date.now()}.jpg`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  };
 
   const bubble = isSender
     ? "bg-primary-2 text-white rounded-br-none"
@@ -56,9 +68,35 @@ export default function ImageMessage({ message, isSender, time }) {
           }`}
           style={{ minHeight: 160 }}
         >
-          {loading && !message.isSending && !blobUrl && (
-            <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/80 z-10 min-h-[160px]">
-              <div className="w-8 h-8 rounded-full border-2 border-zinc-600 border-t-indigo-400 animate-spin" />
+          {/* Download & Decrypt Progress Overlay (On recipient/other device) */}
+          {loading && !message.isSending && (
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2 z-20 transition-opacity duration-300">
+              <div className="relative w-11 h-11 flex items-center justify-center">
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                  <path
+                    className="text-white/20"
+                    strokeWidth="3"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                  <path
+                    className="text-emerald-400 transition-all duration-300 ease-out"
+                    strokeDasharray={`${downloadProgress || 10}, 100`}
+                    strokeWidth="3.5"
+                    strokeLinecap="round"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                </svg>
+                <span className="absolute text-[10px] font-bold text-white tracking-tighter">
+                  {downloadProgress || 0}%
+                </span>
+              </div>
+              <span className="text-[10px] text-zinc-200 font-medium tracking-wide">
+                Downloading...
+              </span>
             </div>
           )}
 
@@ -95,8 +133,21 @@ export default function ImageMessage({ message, isSender, time }) {
               />
 
               {!message.isSending && (
-                <div className="absolute top-2 right-2 pointer-events-none opacity-80 group-hover/img:opacity-100 transition">
-                  <span className="w-7 h-7 rounded-full bg-black/50 backdrop-blur-xs flex items-center justify-center shadow-sm">
+                <div className="absolute top-2 right-2 flex items-center gap-1.5 opacity-80 group-hover/img:opacity-100 transition z-10">
+                  <button
+                    type="button"
+                    onClick={handleDownload}
+                    className="w-7 h-7 rounded-full bg-black/60 hover:bg-black/85 backdrop-blur-xs flex items-center justify-center shadow-sm text-white transition active:scale-95 cursor-pointer"
+                    title="Download photo"
+                  >
+                    <Download size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setViewerOpen(true)}
+                    className="w-7 h-7 rounded-full bg-black/60 hover:bg-black/85 backdrop-blur-xs flex items-center justify-center shadow-sm text-white transition active:scale-95 cursor-pointer"
+                    title="Expand photo"
+                  >
                     <svg
                       viewBox="0 0 24 24"
                       fill="none"
@@ -110,15 +161,15 @@ export default function ImageMessage({ message, isSender, time }) {
                         strokeLinejoin="round"
                       />
                     </svg>
-                  </span>
+                  </button>
                 </div>
               )}
             </>
           )}
 
-          {/* Sending Progress Overlay */}
+          {/* Upload Progress Overlay (On sender device) */}
           {message.isSending && (
-            <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2 z-20">
+            <div className="absolute inset-0 bg-black/45 backdrop-blur-[2px] flex flex-col items-center justify-center gap-2 z-20 transition-opacity duration-300">
               <div className="relative w-11 h-11 flex items-center justify-center">
                 <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
                   <path

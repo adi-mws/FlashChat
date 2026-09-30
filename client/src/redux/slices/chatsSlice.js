@@ -368,13 +368,22 @@ const chatsSlice = createSlice({
       // Update messages list if this chat is open
       if (state.selectedChat === chatId) {
         state.messages.push(msg);
-        // Only match-clean text messages by content.
-        // Attachment sending messages are removed explicitly by tempId.
-        const msgType = msg.type || 'text';
-        if (msgType === 'text') {
+        // Remove corresponding optimistic sending message cleanly
+        if (msg.tempId) {
           state.sendingMessages = state.sendingMessages.filter(
-            (m) => m.content !== msg.content
+            (m) => m._id !== msg.tempId
           );
+        } else if (msg.attachmentUrl) {
+          state.sendingMessages = state.sendingMessages.filter(
+            (m) => m.attachmentUrl !== msg.attachmentUrl && m.fileName !== msg.fileName
+          );
+        } else {
+          const msgType = msg.type || 'text';
+          if (msgType === 'text') {
+            state.sendingMessages = state.sendingMessages.filter(
+              (m) => m.content !== msg.content
+            );
+          }
         }
       }
 

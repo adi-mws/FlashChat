@@ -78,6 +78,7 @@ export default function SelectedAttachmentsPreview({
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [captions, setCaptions] = useState({});
+  const [brokenPreviewUrls, setBrokenPreviewUrls] = useState({});
   const captionRef = useRef(null);
   const stripRef = useRef(null);
 
@@ -114,7 +115,6 @@ export default function SelectedAttachmentsPreview({
   const activeFile = active?.file;
   const isImage = isImageFile(activeFile);
   const previewUrl = urls[activeIndex];
-  const [brokenPreviewUrls, setBrokenPreviewUrls] = useState({});
 
   const removeAttachment = (index) => {
     const next = attachmentsList.filter((_, i) => i !== index);
