@@ -12,7 +12,7 @@ import UserNameForm from "./UserNameForm";
 import CompanionQRLoginModal from "../auth/CompanionQRLoginModal";
 import { AlertCircle, CheckCircle2, Flame, QrCode } from "lucide-react";
 import { getOrCreateDeviceId } from "../../lib/e2ee/keyStore";
-
+import { useRef } from "react";
 export default function LoginForm() {
   const {
     register,
