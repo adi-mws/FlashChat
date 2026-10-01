@@ -170,16 +170,30 @@ export default function LinkDeviceScannerModal({ isOpen, onClose, onDeviceLinked
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 dark:bg-black/80 px-4 backdrop-blur-md animate-fade-in">
-      <div className="relative w-full max-w-md bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 shadow-2xl rounded-3xl p-6 sm:p-8 space-y-6 animate-scale-in text-slate-800 dark:text-zinc-100">
-        
-        {/* Close Button */}
-        <button
-          onClick={handleModalClose}
-          className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 dark:bg-black/80 backdrop-blur-md animate-fade-in p-4 sm:p-6"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) handleModalClose();
+      }}
+    >
+      <div
+        className="min-h-full flex items-center justify-center py-4 sm:py-8"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) handleModalClose();
+        }}
+      >
+        <div
+          className="relative w-full max-w-md my-auto bg-white dark:bg-zinc-900 border border-slate-200/80 dark:border-zinc-800 shadow-2xl rounded-3xl p-6 sm:p-8 space-y-6 animate-scale-in text-slate-800 dark:text-zinc-100"
+          onClick={(e) => e.stopPropagation()}
         >
-          <X size={18} />
-        </button>
+          
+          {/* Close Button */}
+          <button
+            onClick={handleModalClose}
+            className="absolute top-5 right-5 p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-zinc-200 hover:bg-slate-100 dark:hover:bg-zinc-800 transition cursor-pointer"
+          >
+            <X size={18} />
+          </button>
 
         {/* Header */}
         <div className="text-center space-y-1.5">
@@ -333,6 +347,7 @@ export default function LinkDeviceScannerModal({ isOpen, onClose, onDeviceLinked
           </div>
         )}
 
+        </div>
       </div>
     </div>
   );

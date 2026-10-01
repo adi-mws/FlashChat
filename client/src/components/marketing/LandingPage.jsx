@@ -12,11 +12,11 @@ export default function LandingPage() {
     <div className="Landing w-full flex items-center flex-col bg-slate-50 dark:bg-zinc-950 transition-colors duration-200">
       <div className="hero-section-content min-h-[90vh] flex flex-col justify-center items-center gap-8 px-4 sm:px-8 py-16 text-center max-w-5xl">
         <h1 className="hero-section-title text-4xl sm:text-6xl lg:text-7xl font-black text-slate-800 dark:text-white tracking-tight leading-none">
-          Talk One-on-One.<br />
+          Connect & Chat Freely.<br />
           <span className="text-indigo-500">Fast. Secure. Limitless.</span>
         </h1>
         <p className="hero-section-description text-slate-500 dark:text-zinc-400 max-w-2xl text-sm sm:text-base md:text-lg leading-relaxed">
-          FlashChat makes communication simple and secure. Discover friends, start conversations instantly, and enjoy private messaging protected by end-to-end encryption.
+          FlashChat brings people together with seamless direct messaging and group chats. Discover friends, create communities, and enjoy real-time conversations protected by end-to-end encryption.
         </p>
         <div className="flex gap-4 flex-col sm:flex-row items-center mt-4">
           <button
@@ -138,7 +138,7 @@ export default function LandingPage() {
             <div className="text-center md:text-left">
               <h2 className="text-lg font-black text-slate-800 dark:text-white">FlashChat</h2>
               <p className="text-xs text-slate-500 dark:text-zinc-500 mt-1">
-                One-on-one messaging. Reimagined. Simple, fast & real-time.
+                Direct & group messaging. Reimagined. Simple, fast & secure.
               </p>
             </div>
             <div className="flex gap-6 text-sm font-semibold">

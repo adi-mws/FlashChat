@@ -277,12 +277,7 @@ export default function DesktopSidebar() {
                     <p className="text-[11px] text-indigo-500 dark:text-indigo-400 font-medium truncate">
                       @{user.username}
                     </p>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-semibold uppercase tracking-wider">
-                        Online
-                      </span>
-                    </div>
+                    
                   </div>
                 </div>
 
