@@ -822,10 +822,10 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-/**
- * POST /api/auth/companion/init
- * Called by a new browser / companion device to initiate QR pairing.
- */
+/*
+  POST /api/auth/companion/init
+  Called by a new browser / companion device to initiate QR pairing.
+*/
 export const initCompanionPairing = async (req, res) => {
   try {
     const { publicKey, os, browser } = req.body;
@@ -864,10 +864,10 @@ export const initCompanionPairing = async (req, res) => {
   }
 };
 
-/**
- * GET /api/auth/companion/status/:pairingId
- * Polls pairing status if websocket is disconnected.
- */
+/*
+  GET /api/auth/companion/status/:pairingId
+  Polls pairing status if websocket is disconnected.
+*/
 export const getCompanionPairingStatus = async (req, res) => {
   try {
     const { pairingId } = req.params;
@@ -902,10 +902,10 @@ export const getCompanionPairingStatus = async (req, res) => {
   }
 };
 
-/**
- * POST /api/auth/companion/claim
- * Called by Companion Device B once approved to establish its HTTP-only auth cookie and receive its user profile.
- */
+/*
+  POST /api/auth/companion/claim
+  Called by Companion Device B once approved to establish its HTTP-only auth cookie and receive its user profile.
+*/
 export const claimCompanionPairing = async (req, res) => {
   try {
     const { pairingId } = req.body;
@@ -945,10 +945,10 @@ export const claimCompanionPairing = async (req, res) => {
   }
 };
 
-/**
- * POST /api/auth/companion/approve
- * Authenticated endpoint: called by the logged-in device to authorize the new companion device.
- */
+/*
+  POST /api/auth/companion/approve
+  Authenticated endpoint: called by the logged-in device to authorize the new companion device.
+*/
 export const approveCompanionPairing = async (req, res) => {
   try {
     const userId = req.user.id;

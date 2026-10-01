@@ -20,10 +20,10 @@ export const getAdminCookieOptions = (maxAge = null) => {
   return options;
 };
 
-/**
- * Check if the initial Super Admin bootstrap has already been performed
- * GET /api/admin/auth/bootstrap-status
- */
+/*
+  Check if the initial Super Admin bootstrap has already been performed
+  GET /api/admin/auth/bootstrap-status
+*/
 export const getAdminBootstrapStatus = async (req, res) => {
   try {
     const superAdminCount = await User.countDocuments({ role: 'superadmin' });
@@ -42,11 +42,11 @@ export const getAdminBootstrapStatus = async (req, res) => {
   }
 };
 
-/**
- * Dedicated Admin Login
- * POST /api/admin/auth/login
- * Strictly accepts admin and superadmin roles only. Standard users are denied.
- */
+/*
+  Dedicated Admin Login
+  POST /api/admin/auth/login
+  Strictly accepts admin and superadmin roles only. Standard users are denied.
+*/
 export const adminLogin = async (req, res) => {
   const { username, password } = req.body;
 
@@ -182,20 +182,20 @@ export const adminLogin = async (req, res) => {
   }
 };
 
-/**
- * Dedicated Admin Registration & Bootstrap Claim
- * POST /api/admin/auth/register
- * 
- * Flow A (Bootstrap): If no superadmin exists, allows claiming Super Admin using Master Passkey.
- * Flow B (Provisioning): If Super Admin is authenticated, allows creating new secondary Admins.
- */
+/*
+  Dedicated Admin Registration & Bootstrap Claim
+  POST /api/admin/auth/register
+
+  Flow A (Bootstrap): If no superadmin exists, allows claiming Super Admin using Master Passkey.
+  Flow B (Provisioning): If Super Admin is authenticated, allows creating new secondary Admins.
+*/
 export const adminRegister = async (req, res) => {
   const { masterKey, username, password, confirmPassword, name, email, role } = req.body;
 
   try {
     const totalSuperAdmins = await User.countDocuments({ role: 'superadmin' });
 
-    // --- Flow A: Initial Bootstrap (No Super Admin exists yet) ---
+    // Flow A: Initial Bootstrap (No Super Admin exists yet)
     if (totalSuperAdmins === 0) {
       const MASTER_SECRET = process.env.ADMIN_MASTER_KEY || "FLASHCHAT_SUPREME_2026";
 
@@ -300,7 +300,7 @@ export const adminRegister = async (req, res) => {
       });
     }
 
-    // --- Flow B: Super Admin already exists ---
+    // Flow B: Super Admin already exists
     // Unauthenticated callers cannot use masterKey anymore
     if (!req.user || req.user.role !== 'superadmin') {
       return res.status(403).json({
@@ -368,11 +368,11 @@ export const adminRegister = async (req, res) => {
   }
 };
 
-/**
- * Dedicated Admin Logout
- * POST /api/admin/auth/logout
- * Destroys session and thoroughly clears cookies
- */
+/*
+  Dedicated Admin Logout
+  POST /api/admin/auth/logout
+  Destroys session and thoroughly clears cookies
+*/
 export const adminLogout = async (req, res) => {
   try {
     const token = req.cookies?.token;
@@ -407,10 +407,10 @@ export const adminLogout = async (req, res) => {
   }
 };
 
-/**
- * Get current authenticated admin profile
- * GET /api/admin/auth/me
- */
+/*
+  Get current authenticated admin profile
+  GET /api/admin/auth/me
+*/
 export const getAdminMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');

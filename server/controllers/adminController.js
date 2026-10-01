@@ -13,9 +13,9 @@ import { getCookieOptions } from './authController.js';
 import { io } from '../socket/index.js';
 import { getUserRoom, socketUserMap } from '../socket/store.js';
 
-/**
- * Format bytes to readable string (KB, MB, GB)
- */
+/*
+  Format bytes to readable string (KB, MB, GB)
+*/
 function formatBytes(bytes) {
   if (!bytes || bytes === 0) return '0 B';
   const k = 1024;
@@ -24,10 +24,10 @@ function formatBytes(bytes) {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-/**
- * GET /api/admin/metrics
- * Comprehensive system telemetry: traffic, message volume, storage sizes, and live users.
- */
+/*
+  GET /api/admin/metrics
+  Comprehensive system telemetry: traffic, message volume, storage sizes, and live users.
+*/
 export const getAdminMetrics = async (req, res) => {
   try {
     // 1. Users Breakdown
@@ -156,10 +156,10 @@ export const getAdminMetrics = async (req, res) => {
   }
 };
 
-/**
- * GET /api/admin/users
- * Paginated and searchable users list with session counts and moderation states.
- */
+/*
+  GET /api/admin/users
+  Paginated and searchable users list with session counts and moderation states.
+*/
 export const getAdminUsers = async (req, res) => {
   try {
     const { search = '', status = 'all', page = 1, limit = 50 } = req.query;
@@ -219,11 +219,11 @@ export const getAdminUsers = async (req, res) => {
   }
 };
 
-/**
- * PUT /api/admin/users/:userId/toggle-status
- * Supreme moderation action: Deactivates / Reactivates a user account.
- * When deactivated, all active sessions and live sockets are instantly revoked.
- */
+/*
+  PUT /api/admin/users/:userId/toggle-status
+  Supreme moderation action: Deactivates / Reactivates a user account.
+  When deactivated, all active sessions and live sockets are instantly revoked.
+*/
 export const toggleUserStatus = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -278,11 +278,11 @@ export const toggleUserStatus = async (req, res) => {
   }
 };
 
-/**
- * PUT /api/admin/users/:userId/role
- * Promotes or demotes a user role ('admin' | 'user').
- * Only the unique Super Admin can appoint or revoke admins.
- */
+/*
+  PUT /api/admin/users/:userId/role
+  Promotes or demotes a user role ('admin' | 'user').
+  Only the unique Super Admin can appoint or revoke admins.
+*/
 export const updateUserRole = async (req, res) => {
   try {
     const { userId } = req.params;
@@ -329,10 +329,10 @@ export const updateUserRole = async (req, res) => {
   }
 };
 
-/**
- * GET /api/admin/bootstrap-status
- * Checks if the system has already been initialized with a Super Admin.
- */
+/*
+  GET /api/admin/bootstrap-status
+  Checks if the system has already been initialized with a Super Admin.
+*/
 export const getBootstrapStatus = async (req, res) => {
   try {
     const totalSuperAdmins = await User.countDocuments({ role: 'superadmin' });
@@ -348,14 +348,14 @@ export const getBootstrapStatus = async (req, res) => {
   }
 };
 
-/**
- * POST /api/admin/claim-admin
- * Initial administrator bootstrap with Master Passkey.
- * Enforces:
- * 1) Super Admin can only be ONE person in the entire database.
- * 2) Once a superadmin exists, the Master Key option is PERMANENTLY DISABLED.
- * 3) Requires setting a secure password for the Super Admin account.
- */
+/*
+  POST /api/admin/claim-admin
+  Initial administrator bootstrap with Master Passkey.
+  Enforces:
+  1) Super Admin can only be ONE person in the entire database.
+  2) Once a superadmin exists, the Master Key option is PERMANENTLY DISABLED.
+  3) Requires setting a secure password for the Super Admin account.
+*/
 export const claimAdminAccess = async (req, res) => {
   try {
     const { masterKey, username, password, confirmPassword, name, email } = req.body;
@@ -485,10 +485,10 @@ export const claimAdminAccess = async (req, res) => {
   }
 };
 
-/**
- * POST /api/admin/set-password
- * Allows the logged-in Super Admin or Admin to set or change their direct login password.
- */
+/*
+  POST /api/admin/set-password
+  Allows the logged-in Super Admin or Admin to set or change their direct login password.
+*/
 export const setAdminPassword = async (req, res) => {
   try {
     const { password, confirmPassword } = req.body;
@@ -521,9 +521,9 @@ export const setAdminPassword = async (req, res) => {
   }
 };
 
-/**
- * Safely purge all files inside a directory without removing the directory itself.
- */
+/*
+  Safely purge all files inside a directory without removing the directory itself.
+*/
 function cleanDirectoryContents(dirPath) {
   let fileCount = 0;
   let bytesFreed = 0;
@@ -556,10 +556,10 @@ function cleanDirectoryContents(dirPath) {
   return { fileCount, bytesFreed };
 }
 
-/**
- * POST /api/admin/danger/clear-messages
- * Completely clears ALL messages from all chats in the database and resets chat pointers.
- */
+/*
+  POST /api/admin/danger/clear-messages
+  Completely clears ALL messages from all chats in the database and resets chat pointers.
+*/
 export const clearAllMessages = async (req, res) => {
   try {
     const { confirmPhrase } = req.body;
@@ -589,13 +589,13 @@ export const clearAllMessages = async (req, res) => {
   }
 };
 
-/**
- * POST /api/admin/danger/delete-all-chats
- * Completely deletes all direct chats, group chats, message history,
- * purges media attachments, and wipes contacts & friend requests for all users
- * (including admins and superadmin), returning the entire messaging and contact system to a clean zero
- * while keeping all registered user accounts intact.
- */
+/*
+  POST /api/admin/danger/delete-all-chats
+  Completely deletes all direct chats, group chats, message history,
+  purges media attachments, and wipes contacts & friend requests for all users
+  (including admins and superadmin), returning the entire messaging and contact system to a clean zero
+  while keeping all registered user accounts intact.
+*/
 export const deleteAllChatsAndContacts = async (req, res) => {
   try {
     const { confirmPhrase } = req.body;
@@ -658,10 +658,10 @@ export const deleteAllChatsAndContacts = async (req, res) => {
   }
 };
 
-/**
- * POST /api/admin/danger/clear-uploads
- * Completely deletes all uploaded files (attachments & media) across all chats from disk.
- */
+/*
+  POST /api/admin/danger/clear-uploads
+  Completely deletes all uploaded files (attachments & media) across all chats from disk.
+*/
 export const clearAllUploads = async (req, res) => {
   try {
     const { confirmPhrase } = req.body;
@@ -699,11 +699,11 @@ export const clearAllUploads = async (req, res) => {
   }
 };
 
-/**
- * POST /api/admin/danger/delete-users
- * Deletes all registered users EXCEPT accounts with the 'admin' role.
- * Cleans up their sessions, accounts, contacts, and non-admin chats.
- */
+/*
+  POST /api/admin/danger/delete-users
+  Deletes all registered users EXCEPT accounts with the 'admin' role.
+  Cleans up their sessions, accounts, contacts, and non-admin chats.
+*/
 export const deleteNonAdminUsers = async (req, res) => {
   try {
     const { confirmPhrase } = req.body;
@@ -797,11 +797,11 @@ export const deleteNonAdminUsers = async (req, res) => {
   }
 };
 
-/**
- * POST /api/admin/danger/purge-all
- * Master Danger Zone: Wipes all messages, purges all uploaded files,
- * removes all non-admin users, and resets chats to a completely clean slate.
- */
+/*
+  POST /api/admin/danger/purge-all
+  Master Danger Zone: Wipes all messages, purges all uploaded files,
+  removes all non-admin users, and resets chats to a completely clean slate.
+*/
 export const purgeSystemEverything = async (req, res) => {
   try {
     const { confirmPhrase } = req.body;

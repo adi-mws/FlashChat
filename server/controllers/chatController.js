@@ -29,12 +29,12 @@ export const multerUpload = multer({
   limits: { fileSize: 50 * 1024 * 1024 }, // 50 MB per file
 });
 
-/**
- * POST /api/chats/upload-attachment
- * Accepts a single `file` field (multipart/form-data).
- * The file bytes are already AES-GCM encrypted on the client side.
- * Attachment encryption metadata is passed as JSON in the `attachmentEncryption` field.
- */
+/*
+  POST /api/chats/upload-attachment
+  Accepts a single `file` field (multipart/form-data).
+  The file bytes are already AES-GCM encrypted on the client side.
+  Attachment encryption metadata is passed as JSON in the `attachmentEncryption` field.
+*/
 export const uploadAttachment = async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ message: "No file uploaded" });
@@ -942,10 +942,10 @@ export const addGroupMembers = async (req, res) => {
     }
 };
 
-/**
- * GET /api/chats/:chatId/recipients
- * Resolves all active, non-expired sessions of chat participants having an E2EE public key.
- */
+/*
+  GET /api/chats/:chatId/recipients
+  Resolves all active, non-expired sessions of chat participants having an E2EE public key.
+*/
 export const getChatEncryptionRecipients = async (req, res) => {
     try {
         const { chatId } = req.params;
