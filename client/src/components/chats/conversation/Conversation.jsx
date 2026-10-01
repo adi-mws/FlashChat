@@ -4,6 +4,7 @@ import { setActiveAttachements } from "../../../redux/slices/chatsSlice";
 import { INFO_ROUTES } from "../../../routes/routes";
 import SelectChat from "../_components/SelectChat";
 import NoChatsFound from "../_components/NoChatsFound";
+import ConversationSkeleton from "../_components/ConversationSkeleton";
 import MessageList from "../../messages/MessageList";
 import ConversationHeader from "../../messages/ConversationHeader";
 import ConversationInput from "../../messages/ConversationInput";
@@ -33,6 +34,8 @@ export default function Conversation() {
     user,
     allMessages,
     loadingMessages,
+    loadingChats,
+    hasFetchedChats,
     messagesEndRef,
     navigate,
     dispatch,
@@ -75,6 +78,10 @@ export default function Conversation() {
     handleDeleteContact,
     handleLeaveGroup,
   } = useChatActions({ chatId, chat, user });
+
+  if (chatId && !chat && (!hasFetchedChats || loadingChats || chats.length === 0 || loadingMessages)) {
+    return <ConversationSkeleton onBack={() => navigate(-1)} />;
+  }
 
   if (!chat) return <NoChatsFound />;
   if (!selectedChat) return <SelectChat />;

@@ -255,6 +255,7 @@ const chatsSlice = createSlice({
     drafts: [],
     typingUsers: {}, // { [chatId]: [ { userId: string, userName: string } ] }
     loadingChats: false,
+    hasFetchedChats: false,
     activeMessage: '',
     activeAttachements: [],
     loadingMessages: false,
@@ -263,6 +264,7 @@ const chatsSlice = createSlice({
   reducers: {
     setChats(state, action) {
       state.chats = action.payload;
+      state.hasFetchedChats = true;
     },
     setSelectedChat(state, action) {
       state.selectedChat = action.payload;
@@ -519,9 +521,11 @@ const chatsSlice = createSlice({
       .addCase(fetchChats.fulfilled, (state, action) => {
         state.chats = action.payload;
         state.loadingChats = false;
+        state.hasFetchedChats = true;
       })
       .addCase(fetchChats.rejected, (state, action) => {
         state.loadingChats = false;
+        state.hasFetchedChats = true;
         state.error = action.payload;
       })
       // fetchMessages
@@ -670,6 +674,7 @@ export const selectOnlineUsers = (state) => state.chats.onlineUsers;
 export const selectMessages = (state) => state.chats.messages;
 export const selectSendingMessages = (state) => state.chats.sendingMessages;
 export const selectLoadingChats = (state) => state.chats.loadingChats;
+export const selectHasFetchedChats = (state) => state.chats.hasFetchedChats;
 export const selectLoadingMessages = (state) => state.chats.loadingMessages;
 export const selectDrafts = (state) => state.chats.drafts;
 export const selectDraft = (state, chatId) => state.chats.drafts.find(draft => draft.chatId === chatId);

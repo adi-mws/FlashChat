@@ -8,6 +8,8 @@ import {
   selectMessages,
   selectSendingMessages,
   selectLoadingMessages,
+  selectLoadingChats,
+  selectHasFetchedChats,
   setSelectedChat,
   fetchMessages,
   selectDraft,
@@ -32,6 +34,8 @@ export default function useConversation(chatId) {
   const messages = useSelector(selectMessages);
   const sendingMessages = useSelector(selectSendingMessages);
   const loadingMessages = useSelector(selectLoadingMessages);
+  const loadingChats = useSelector(selectLoadingChats);
+  const hasFetchedChats = useSelector(selectHasFetchedChats);
   const user = useSelector(selectUser);
 
   const messagesEndRef = useRef(null);
@@ -121,6 +125,8 @@ export default function useConversation(chatId) {
     sendingMessages,
     allMessages,
     loadingMessages,
+    loadingChats,
+    hasFetchedChats,
     messagesEndRef,
     scrollToBottom,
     navigate,

@@ -7,6 +7,7 @@ import {
   selectSelectedChat,
   selectOnlineUsers,
   selectLoadingChats,
+  selectHasFetchedChats,
   setSelectedChat,
   markMessagesRead,
   selectActiveMessage,
@@ -31,6 +32,8 @@ export default function ChatList() {
   const selectedChat = useSelector(selectSelectedChat);
   const onlineUsers = useSelector(selectOnlineUsers);
   const loading = useSelector(selectLoadingChats);
+  const hasFetchedChats = useSelector(selectHasFetchedChats);
+  const isInitialLoading = !hasFetchedChats || loading;
   const user = useSelector(selectUser);
   const navigate = useNavigate();
   const sideBarRef = useRef(null);
@@ -167,7 +170,7 @@ export default function ChatList() {
 
       {/* Chat list (scrollable) */}
       <div className="flex-1 overflow-y-auto min-h-0 py-1 space-y-1">
-        {loading && (
+        {isInitialLoading && (
           <div className="flex flex-col gap-2 p-4">
             {[...Array(4)].map((_, i) => (
               <div key={i} className="flex items-center gap-3 animate-pulse">
@@ -181,9 +184,9 @@ export default function ChatList() {
           </div>
         )}
 
-        {sortedChats.length === 0 && !loading ? <NoChatsFound /> : null}
+        {sortedChats.length === 0 && !isInitialLoading ? <NoChatsFound /> : null}
 
-        {!loading &&
+        {!isInitialLoading &&
           Array.isArray(sortedChats) &&
           sortedChats.map((chat) => (
             <ChatItem

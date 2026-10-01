@@ -97,6 +97,13 @@ export default function useMessageSender({ chatId, chat, user }) {
 
     stopTyping();
 
+    // Immediately clear input box and draft for instant UX
+    dispatch(setActiveMessage(""));
+    dispatch(removeDraft(chatId));
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
+
     const isGroup = chat?.isGroupChat;
     const receiverId = isGroup ? null : getReceiverId();
 
@@ -125,8 +132,6 @@ export default function useMessageSender({ chatId, chat, user }) {
           receiverId,
           encryption: encrypted.encryption,
         });
-        dispatch(setActiveMessage(""));
-        dispatch(removeDraft(chatId));
         return;
       } catch (error) {
         console.error("Encryption error, sending plaintext fallback:", error);
@@ -140,8 +145,6 @@ export default function useMessageSender({ chatId, chat, user }) {
       receiverId,
       encryption: { isEncrypted: false },
     });
-    dispatch(setActiveMessage(""));
-    dispatch(removeDraft(chatId));
   };
 
   return {
