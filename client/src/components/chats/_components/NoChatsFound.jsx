@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { UserPlus2 } from "lucide-react";
-import { ACCOUNT_ROUTES } from "../../../../routes/routes";
+import { ACCOUNT_ROUTES } from "../../../routes/routes";
 
 export default function NoChatsFound({ title = "No Chats Found", hideContactButton = false, description = "It looks like you don't have any conversations yet. Search for friends using their username to start chatting.", children }) {
   const navigate = useNavigate();

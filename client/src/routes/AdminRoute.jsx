@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import axios from "axios";
-import { selectUser } from "../src/redux/slices/authSlice";
+import { selectUser } from "../redux/slices/authSlice";
 import { CHAT_ROUTES } from "./routes";
 
 /**

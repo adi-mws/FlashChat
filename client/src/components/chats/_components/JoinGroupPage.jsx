@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { selectUser, selectAuthLoading } from '../../../redux/slices/authSlice';
 import { joinGroupByInviteCode, setSelectedChat } from '../../../redux/slices/chatsSlice';
 import { useNotification } from '../../../hooks/useNotification';
-import { CHAT_ROUTES, ADMIN_ROUTES, MARKETING_ROUTES } from '../../../../routes/routes';
+import { CHAT_ROUTES, ADMIN_ROUTES, MARKETING_ROUTES } from '../../../routes/routes';
 import { Users, Loader2, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
 
 export default function JoinGroupPage() {

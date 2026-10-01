@@ -5,7 +5,7 @@ import axios from "axios";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { setUser, initE2EEKeys } from "../../redux/slices/authSlice";
-import { CHAT_ROUTES } from "../../../routes/routes";
+import { CHAT_ROUTES } from "../../routes/routes";
 import { generateE2EEKeyPair, saveSessionPrivateKey, saveSessionPublicKey } from "../../lib/e2ee";
 import { QrCode, MonitorSmartphone, X, RefreshCw, CheckCircle2, ShieldCheck, AlertCircle, Copy, Check } from "lucide-react";
 import { createPortal } from "react-dom";

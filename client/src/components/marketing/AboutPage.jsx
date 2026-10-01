@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Calendar, GitCommit } from 'lucide-react';
-import { MARKETING_ROUTES } from '../../../routes/routes';
+import { MARKETING_ROUTES } from '../../routes/routes';
 
 export default function AboutPage() {
   const [updates, setUpdates] = useState([]);

@@ -6,7 +6,7 @@ import axios from 'axios';
 import { getImageUrl } from '../../lib/imageUtils';
 import { useNotification } from '../../hooks/useNotification';
 import { Pencil, X, Check, ArrowLeft, Camera, Calendar, Mail, User, Users, Info, ShieldCheck, MonitorSmartphone, History, CheckCircle2, ShieldAlert, Key, Lock, Eye, EyeOff, RefreshCw, Copy, Download, Sparkles, RotateCcw, LogOut, ArrowRight, Smartphone, Laptop, Globe, Wifi } from 'lucide-react';
-import { ACCOUNT_ROUTES, SETTINGS_ROUTES, MARKETING_ROUTES } from '../../../routes/routes';
+import { ACCOUNT_ROUTES, SETTINGS_ROUTES, MARKETING_ROUTES } from '../../routes/routes';
 import AppHeader from '../layout/AppHeader';
 import Loading from '../global/Loading';
 import { generate12WordRecoveryPhrase, downloadBackupFile, normalizeRecoveryPhrase } from '../../lib/e2ee';

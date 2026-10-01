@@ -6,7 +6,7 @@ import { useDispatch } from 'react-redux';
 import { setUser } from '../../redux/slices/authSlice';
 import { useNotification } from '../../hooks/useNotification';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { CHAT_ROUTES } from '../../../routes/routes';
+import { CHAT_ROUTES } from '../../routes/routes';
 import { getOrCreateDeviceId } from '../../lib/e2ee/keyStore';
 import { Sparkles, AtSign, CheckCircle2, AlertCircle, RefreshCw, ArrowRight } from 'lucide-react';
 import { createPortal } from 'react-dom';

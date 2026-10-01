@@ -2,7 +2,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { selectUser } from '../../redux/slices/authSlice';
 import { UserPlus, LogIn, User, Users, MessageSquare } from 'lucide-react';
-import { MARKETING_ROUTES, CHAT_ROUTES } from '../../../routes/routes';
+import { MARKETING_ROUTES, CHAT_ROUTES } from '../../routes/routes';
 import { ShieldCheck } from 'lucide-react';
 export default function LandingPage() {
   const user = useSelector(selectUser);

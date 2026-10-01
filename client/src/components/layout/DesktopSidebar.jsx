@@ -23,7 +23,7 @@ import {
   SETTINGS_ROUTES,
   ADMIN_ROUTES,
   MARKETING_ROUTES,
-} from "../../../routes/routes";
+} from "../../routes/routes";
 
 export default function DesktopSidebar() {
   const dispatch = useDispatch();

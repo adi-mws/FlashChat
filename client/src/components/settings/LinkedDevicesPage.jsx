@@ -3,7 +3,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, KeyRound, Laptop, MonitorSmartphone, RefreshCw, Smartphone, LogOut, QrCode } from 'lucide-react';
 import { useNotification } from '../../hooks/useNotification';
-import { MARKETING_ROUTES } from '../../../routes/routes';
+import { MARKETING_ROUTES } from '../../routes/routes';
 import LinkDeviceScannerModal from './LinkDeviceScannerModal';
 
 const providerBadge = (provider) => {

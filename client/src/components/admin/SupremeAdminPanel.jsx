@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { selectUser, setUser, updateUser, clearUser, logoutUser } from '../../redux/slices/authSlice';
 import { useNotification } from '../../hooks/useNotification';
-import { CHAT_ROUTES } from '../../../routes/routes';
+import { CHAT_ROUTES } from '../../routes/routes';
 import { getImageUrl } from '../../lib/imageUtils';
 import {
   ShieldCheck,

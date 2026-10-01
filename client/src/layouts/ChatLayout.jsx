@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import { CHAT_ROUTES } from "../../routes/routes";
+import { CHAT_ROUTES } from "../routes/routes";
 import Conversation from "../components/chats/conversation/Conversation";
 import ChatList from "../components/chats/chatlist/ChatList";
 export default function ChatLayout() {

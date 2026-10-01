@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Flame, MoreVertical, UserPlus, LogIn } from "lucide-react";
-import { CHAT_ROUTES, SETTINGS_ROUTES } from "../../../../routes/routes";
+import { CHAT_ROUTES, SETTINGS_ROUTES } from "../../../routes/routes";
 
 export default function ChatListHeader({ onCreateGroup }) {
   const [showMenu, setShowMenu] = useState(false);

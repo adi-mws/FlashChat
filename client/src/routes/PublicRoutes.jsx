@@ -1,6 +1,6 @@
 import { Navigate, useSearchParams } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { selectUser } from "../src/redux/slices/authSlice";
+import { selectUser } from "../redux/slices/authSlice";
 import { CHAT_ROUTES, ADMIN_ROUTES } from "./routes";
 
 export default function PublicRoutes({ children }) {

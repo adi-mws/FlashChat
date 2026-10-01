@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
-import { selectUser } from "../src/redux/slices/authSlice";
+import { selectUser } from "../redux/slices/authSlice";
 import { MARKETING_ROUTES, ADMIN_ROUTES } from "./routes";
 
 /**

@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Sparkles, ArrowRight } from 'lucide-react';
 import AppHeader from '../layout/AppHeader';
-import { SETTINGS_ROUTES } from '../../../routes/routes';
+import { SETTINGS_ROUTES } from '../../routes/routes';
 
 export default function Sparks() {
     const navigate = useNavigate();

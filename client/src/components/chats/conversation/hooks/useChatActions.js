@@ -8,7 +8,7 @@ import {
   removeGroupMember,
 } from "../../../../redux/slices/chatsSlice";
 import { useNotification } from "../../../../hooks/useNotification";
-import { CHAT_ROUTES } from "../../../../../routes/routes";
+import { CHAT_ROUTES } from "../../../../routes/routes";
 
 /**
  * useChatActions

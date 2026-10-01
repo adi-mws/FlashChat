@@ -3,7 +3,7 @@ import { useParams, Navigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { selectChats } from "../../../redux/slices/chatsSlice";
 import ProfilePage from "../../settings/Profile";
-import { INFO_ROUTES } from "../../../../routes/routes";
+import { INFO_ROUTES } from "../../../routes/routes";
 
 export default function ChatInfo() {
   const { chatId } = useParams();

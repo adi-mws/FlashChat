@@ -4,7 +4,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { selectUser, logoutUser } from '../../redux/slices/authSlice';
 import { MonitorSmartphone, History, LogOut, MessageSquare, Sparkles, Users } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { MARKETING_ROUTES, SETTINGS_ROUTES } from '../../../routes/routes';
+import { MARKETING_ROUTES, SETTINGS_ROUTES } from '../../routes/routes';
 
 export default function NavigationBar() {
     const dispatch = useDispatch();

@@ -6,7 +6,7 @@ import { useNavigate, Link, useSearchParams, useLocation } from "react-router-do
 import { useDispatch, useSelector } from "react-redux";
 import { setUser } from "../../redux/slices/authSlice";
 import { selectTheme } from "../../redux/slices/uiSlice";
-import { MARKETING_ROUTES, CHAT_ROUTES } from "../../../routes/routes";
+import { MARKETING_ROUTES, CHAT_ROUTES } from "../../routes/routes";
 import { GoogleLogin } from "@react-oauth/google";
 import UserNameForm from "./UserNameForm";
 import CompanionQRLoginModal from "../auth/CompanionQRLoginModal";

@@ -6,7 +6,7 @@ import { useNotification } from "../../hooks/useNotification";
 import { Flame } from "lucide-react";
 import { LogOut, Settings, User } from "lucide-react";
 import { getImageUrl } from "../../lib/imageUtils";
-import { MARKETING_ROUTES, ACCOUNT_ROUTES } from "../../../routes/routes";
+import { MARKETING_ROUTES, ACCOUNT_ROUTES } from "../../routes/routes";
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);

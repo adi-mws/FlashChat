@@ -6,7 +6,7 @@ import { useNotification } from '../../hooks/useNotification';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { selectChats, selectOnlineUsers, setSelectedChat, prependChat } from '../../redux/slices/chatsSlice';
-import { CHAT_ROUTES } from '../../../routes/routes';
+import { CHAT_ROUTES } from '../../routes/routes';
 import AppHeader from '../layout/AppHeader';
 import Loading from '../global/Loading';
 import { socket } from '../../lib/socket';

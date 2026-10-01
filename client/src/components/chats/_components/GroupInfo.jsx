@@ -11,7 +11,7 @@ import {
 } from '../../../redux/slices/chatsSlice';
 import { selectUser } from '../../../redux/slices/authSlice';
 import { useNotification } from '../../../hooks/useNotification';
-import { CHAT_ROUTES } from '../../../../routes/routes';
+import { CHAT_ROUTES } from '../../../routes/routes';
 import AppHeader from '../../layout/AppHeader';
 import { getImageUrl } from '../../../lib/imageUtils';
 import AddMembersModal from './AddMembersModal';

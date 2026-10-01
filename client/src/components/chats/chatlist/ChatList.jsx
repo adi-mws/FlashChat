@@ -19,7 +19,7 @@ import {
 } from "../../../redux/slices/chatsSlice";
 import { selectUser } from "../../../redux/slices/authSlice";
 import { socket } from "../../../lib/socket";
-import { CHAT_ROUTES } from "../../../../routes/routes";
+import { CHAT_ROUTES } from "../../../routes/routes";
 import NoChatsFound from "../_components/NoChatsFound";
 import ChatListHeader from "./ChatListHeader";
 import ChatItem from "./ChatItem";

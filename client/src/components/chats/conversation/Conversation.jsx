@@ -1,7 +1,7 @@
 import React from "react";
 import { useParams } from "react-router-dom";
 import { setActiveAttachements } from "../../../redux/slices/chatsSlice";
-import { INFO_ROUTES } from "../../../../routes/routes";
+import { INFO_ROUTES } from "../../../routes/routes";
 import SelectChat from "../_components/SelectChat";
 import NoChatsFound from "../_components/NoChatsFound";
 import MessageList from "../../messages/MessageList";
