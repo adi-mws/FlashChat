@@ -15,11 +15,10 @@ const getRelativeDateString = (dateString) => {
     } else if (d.toDateString() === yesterday.toDateString()) {
         return "Yesterday";
     } else {
-        return d.toLocaleDateString(undefined, {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
+        return d.toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
         });
     }
 };
@@ -94,8 +93,8 @@ export default function MessageList({ loading, messages, messagesEndRef, handleS
                                 return (
                                     <React.Fragment key={msg._id || `sending-${i}`}>
                                         {showDateHeader && (
-                                            <div className="flex justify-center  sticky top-0 z-10 animate-fade-in">
-                                                <span className="px-3.5 py-1.5 rounded-xl bg-slate-100/90 dark:bg-zinc-900/90 text-slate-500 dark:text-zinc-400 text-[11px] font-semibold tracking-wide select-none shadow-sm backdrop-blur-sm border border-slate-200/20 dark:border-zinc-800/20">
+                                            <div className="flex justify-center my-3 sm:my-4 select-none">
+                                                <span className="px-3.5 py-1 rounded-xl bg-slate-200 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 text-[11px] font-medium tracking-wide shadow-xs border border-slate-300 dark:border-zinc-700">
                                                     {getRelativeDateString(msg.createdAt)}
                                                 </span>
                                             </div>
