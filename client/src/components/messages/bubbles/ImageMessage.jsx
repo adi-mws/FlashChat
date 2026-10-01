@@ -5,11 +5,11 @@ import TimeBadge from "./TimeBadge";
 import useDecryptedAttachment from "./useDecryptedAttachment";
 import ImageViewer from "../ImageViewer";
 
-/**
- * ImageMessage
- * E2EE encrypted image bubble with smooth progress ring, download button,
- * download progress on receiving devices, and lightbox viewer.
- */
+/*
+  ImageMessage
+  E2EE encrypted image bubble with smooth progress ring, download button,
+  download progress on receiving devices, and lightbox viewer.
+*/
 export default function ImageMessage({ message, isSender, time }) {
   const mimeType = message.fileName?.toLowerCase().endsWith(".png")
     ? "image/png"

@@ -1,8 +1,8 @@
-/**
- * FlashChat 12-Word Mnemonic Recovery Phrase Generator
- * Provides cryptographically secure, memorable 12-word seed phrases
- * for zero-knowledge E2EE backup and key rotation.
- */
+/*
+  FlashChat 12-Word Mnemonic Recovery Phrase Generator
+  Provides cryptographically secure, memorable 12-word seed phrases
+  for zero-knowledge E2EE backup and key rotation.
+*/
 
 // Curated list of 256 unambiguous, distinct English words
 export const WORD_LIST = [

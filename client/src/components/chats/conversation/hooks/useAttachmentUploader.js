@@ -14,11 +14,11 @@ import { getSessionPublicKey } from "../../../../lib/e2ee/keyStore";
 import { attachmentBlobCache, getAbsoluteUrl } from "../../../messages/bubbles/useDecryptedAttachment";
 import { socket } from "../../../../lib/socket";
 
-/**
- * useAttachmentUploader
- * Orchestrates file picking, camera capture, multi-session E2EE file encryption,
- * multipart upload with progress tracking, cache pre-population, and socket emission.
- */
+/*
+  useAttachmentUploader
+  Orchestrates file picking, camera capture, multi-session E2EE file encryption,
+  multipart upload with progress tracking, cache pre-population, and socket emission.
+*/
 export default function useAttachmentUploader({ chatId, chat, user }) {
   const dispatch = useDispatch();
 

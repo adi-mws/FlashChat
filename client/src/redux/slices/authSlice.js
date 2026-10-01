@@ -11,8 +11,7 @@ import {
   saveSessionPrivateKey,
 } from '../../lib/e2ee';
 
-// --- Thunks ---
-
+// Thunks
 export const verifyUser = createAsyncThunk(
   'auth/verifyUser',
   async (_, { rejectWithValue }) => {
@@ -185,8 +184,7 @@ export const resetE2EEKeys = createAsyncThunk(
   }
 );
 
-// --- Slice ---
-
+// Slice
 const authSlice = createSlice({
   name: 'auth',
   initialState: {

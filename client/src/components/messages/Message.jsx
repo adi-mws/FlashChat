@@ -4,11 +4,11 @@ import PlainTextMessage from "./bubbles/PlainTextMessage";
 import ImageMessage from "./bubbles/ImageMessage";
 import FileMessage from "./bubbles/FileMessage";
 
-/**
- * Message
- * Decides bubble type (text, image, file), adds hover actions (options trigger),
- * and handles sender vs receiver alignment.
- */
+/*
+  Message
+  Decides bubble type (text, image, file), adds hover actions (options trigger),
+  and handles sender vs receiver alignment.
+*/
 export default function Message({
   isSender,
   message,

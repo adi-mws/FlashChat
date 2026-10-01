@@ -17,11 +17,11 @@ import {
 import { selectUser } from "../../../../redux/slices/authSlice";
 import { socket } from "../../../../lib/socket";
 
-/**
- * useConversation
- * Coordinates chat room participation, socket join/seen events,
- * message feed, draft hydration, and auto-scrolling.
- */
+/*
+  useConversation
+  Coordinates chat room participation, socket join/seen events,
+  message feed, draft hydration, and auto-scrolling.
+*/
 export default function useConversation(chatId) {
   const dispatch = useDispatch();
   const navigate = useNavigate();

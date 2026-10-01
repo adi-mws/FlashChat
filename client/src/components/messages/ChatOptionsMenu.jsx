@@ -1,10 +1,10 @@
 import React from "react";
 import { Users, Trash } from "lucide-react";
 
-/**
- * ChatOptionsMenu
- * Dropdown options menu anchored to the header actions.
- */
+/*
+  ChatOptionsMenu
+  Dropdown options menu anchored to the header actions.
+*/
 export default function ChatOptionsMenu({
   show = false,
   isGroup = false,

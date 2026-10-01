@@ -1,12 +1,12 @@
-/**
- * FlashChat E2EE Cryptographic Library.
- * 
- * NOTE: Legacy user-level single-key functions have been migrated to the
- * modular session-based E2EE subsystem located at `./e2ee/`.
- * 
- * This file re-exports modern session-based E2EE APIs and provides backward-compatible
- * adapters for legacy call sites.
- */
+/*
+  FlashChat E2EE Cryptographic Library.
+
+  NOTE: Legacy user-level single-key functions have been migrated to the
+  modular session-based E2EE subsystem located at `./e2ee/`.
+
+  This file re-exports modern session-based E2EE APIs and provides backward-compatible
+  adapters for legacy call sites.
+*/
 
 export * from './e2ee/index.js';
 
@@ -49,9 +49,9 @@ export async function encryptMessage(text, recipients = []) {
   return await sessionEncryptMessage(text, []);
 }
 
-/**
- * Decrypt a received message using the active session private key.
- */
+/*
+  Decrypt a received message using the active session private key.
+*/
 export async function decryptMessage(encryptedMsg, currentSessionOrUserId, currentUsernameOrUserId = null) {
   return await sessionDecryptMessage(encryptedMsg, currentSessionOrUserId, currentUsernameOrUserId);
 }
@@ -68,9 +68,9 @@ export async function encryptFile(file, recipients = []) {
   return await sessionEncryptFile(file, []);
 }
 
-/**
- * Backward-compatible adapter for decryptFile.
- */
+/*
+  Backward-compatible adapter for decryptFile.
+*/
 export async function decryptFile(url, attachmentEncryption, currentSessionOrUserId, mimeType = "application/octet-stream", currentUsernameOrUserId = null) {
   return await sessionDecryptFile(url, attachmentEncryption, currentSessionOrUserId, mimeType, currentUsernameOrUserId);
 }

@@ -1,15 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { X, Download, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 
-/**
- * ImageViewer
- * Full-screen lightbox that displays a decrypted blob URL.
- *
- * Props:
- *   src        — blob: URL (already decrypted)
- *   fileName   — original file name (used for the download)
- *   onClose    — () => void
- */
+/*
+  ImageViewer
+  Full-screen lightbox that displays a decrypted blob URL.
+*/
 export default function ImageViewer({ src, fileName, onClose }) {
   const [scale, setScale] = useState(1);
   const [pos, setPos] = useState({ x: 0, y: 0 });

@@ -1,8 +1,8 @@
-/**
- * Local Key Store for Session-Based E2EE Keys.
- * Associates private and public keys strictly with the active sessionId.
- * Never stores or indexes keys by username.
- */
+/*
+  Local Key Store for Session-Based E2EE Keys.
+  Associates private and public keys strictly with the active sessionId.
+  Never stores or indexes keys by username.
+*/
 
 const isStorageAvailable = () => typeof localStorage !== 'undefined';
 
@@ -46,10 +46,10 @@ export function clearSessionKeys(sessionId) {
   removeSessionPublicKey(sessionId);
 }
 
-/**
- * Returns a stable device/installation ID for this browser.
- * If this browser already has private keys from a previous login, seamlessly adopts that sessionId.
- */
+/*
+  Returns a stable device/installation ID for this browser.
+  If this browser already has private keys from a previous login, seamlessly adopts that sessionId.
+*/
 export function getOrCreateDeviceId() {
   if (!isStorageAvailable()) return null;
   let deviceId = localStorage.getItem('flashchat_device_id');

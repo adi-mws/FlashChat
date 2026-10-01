@@ -46,11 +46,11 @@ export function formatLastSeen(dateVal) {
   return `Last seen on ${dateStr} at ${timeStr}`;
 }
 
-/**
- * ConversationHeader
- * Displays chat participant/group information, avatar, live online/typing status,
- * and action buttons.
- */
+/*
+  ConversationHeader
+  Displays chat participant/group information, avatar, live online/typing status,
+  and action buttons.
+*/
 export default function ConversationHeader({
   chat,
   chatId,

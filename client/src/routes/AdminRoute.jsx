@@ -5,12 +5,11 @@ import axios from "axios";
 import { selectUser } from "../redux/slices/authSlice";
 import { CHAT_ROUTES } from "./routes";
 
-/**
- * Route guard for Supreme Admin Console (/flsh-ad-pnl).
- * - If NO admin exists in the system yet (!isBootstrapped), users are allowed through
- *   to enter the Master Passkey and claim initial Supreme Admin status.
- * - Once an admin exists, standard users (role !== 'admin') are strictly redirected to /app/chats.
- */
+/*
+  Route guard for Supreme Admin Console (/flsh-ad-pnl).
+  Allows initial bootstrap with Master Passkey if no admin exists yet.
+  Redirects non-admin users to /app/chats once an admin exists.
+*/
 export default function AdminRoute({ children }) {
     const user = useSelector(selectUser);
     const [isBootstrapped, setIsBootstrapped] = useState(null);

@@ -1,8 +1,8 @@
-/**
- * NetworkWatcher
- * Replaces NetworkContext — listens to browser online/offline events
- * and dispatches to Redux uiSlice. Also renders the NetworkStatusBar.
- */
+/*
+  NetworkWatcher
+  Replaces NetworkContext — listens to browser online/offline events
+  and dispatches to Redux uiSlice. Also renders the NetworkStatusBar.
+*/
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { setIsOnline, selectIsOnline } from '../../redux/slices/uiSlice';

@@ -1,18 +1,31 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import axios from "axios";
 import { useNavigate, Link, useLocation } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { setUser } from "../../redux/slices/authSlice";
+import { selectTheme } from "../../redux/slices/uiSlice";
 import { useNotification } from "../../hooks/useNotification";
-import { MARKETING_ROUTES } from "../../routes/routes";
+import { MARKETING_ROUTES, CHAT_ROUTES } from "../../routes/routes";
 import useDebounce from "../../hooks/useDebounce";
 import { Flame, CheckCircle2, XCircle } from "lucide-react";
+import { GoogleLogin } from "@react-oauth/google";
+import UserNameForm from "./UserNameForm";
+import { getOrCreateDeviceId } from "../../lib/e2ee/keyStore";
 
 export default function RegistrationForm() {
   const { showNotification } = useNotification();
+  const dispatch = useDispatch();
+  const theme = useSelector(selectTheme);
   const navigate = useNavigate();
   const location = useLocation();
   const [checkingUsername, setCheckingUsername] = useState(false);
   const [usernameAvailable, setUsernameAvailable] = useState(null);
+  const [showUsernameForm, setShowUsernameForm] = useState(false);
+  const [googleCredentialResponse, setGoogleCredentialResponse] = useState({});
+  const [googleLoading, setGoogleLoading] = useState(false);
+  const googleWrapperRef = useRef(null);
+  const [googleBtnWidth, setGoogleBtnWidth] = useState(384);
 
   const {
     register,
@@ -49,6 +62,85 @@ export default function RegistrationForm() {
     checkUsername();
   }, [debouncedUsername, errors.username]);
 
+  useEffect(() => {
+    const updateWidth = () => {
+      if (googleWrapperRef.current) {
+        const clientWidth = googleWrapperRef.current.clientWidth;
+        if (clientWidth > 0) {
+          const targetWidth = Math.min(400, Math.max(200, Math.floor(clientWidth)));
+          setGoogleBtnWidth(targetWidth);
+        }
+      }
+    };
+
+    updateWidth();
+    window.addEventListener("resize", updateWidth);
+    return () => window.removeEventListener("resize", updateWidth);
+  }, []);
+
+  const navigateAfterLogin = (loggedUser) => {
+    const searchParams = new URLSearchParams(location.search);
+    const redirectUrl = searchParams.get('redirect');
+    if (loggedUser?.role === 'admin' || loggedUser?.role === 'superadmin') {
+      navigate('/flsh-ad-pnl');
+    } else if (redirectUrl && redirectUrl.startsWith('/')) {
+      navigate(redirectUrl);
+    } else {
+      navigate(CHAT_ROUTES.root);
+    }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setGoogleCredentialResponse(credentialResponse);
+
+    try {
+      setGoogleLoading(true);
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/auth/google-check`,
+        { token: credentialResponse.credential },
+        { withCredentials: true }
+      );
+      if (response.status === 200) {
+        if (response.data.available) {
+          try {
+            const r = await axios.post(
+              `${import.meta.env.VITE_API_URL}/auth/google`,
+              {
+                token: credentialResponse.credential,
+                available: response.data.available,
+                deviceId: getOrCreateDeviceId(),
+              },
+              { withCredentials: true }
+            );
+
+            if (r.status === 200) {
+              const userData = r.data.user;
+              dispatch(setUser(userData));
+              showNotification("success", "Login Successful!");
+              navigateAfterLogin(userData);
+            } else {
+              showNotification("error", "Failed to sign in with Google");
+            }
+          } catch (error) {
+            console.error("Google Auth API Error:", error);
+            showNotification("error", "Authentication failed!");
+          }
+        } else {
+          setShowUsernameForm(true);
+        }
+      }
+    } catch (error) {
+      showNotification("error", "Something went wrong with Google authentication!");
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleFailure = () => {
+    console.error("Google Registration Failed");
+    showNotification("error", "Google authentication failed");
+  };
+
   const onSubmit = async (data) => {
     try {
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/auth/register`, data);
@@ -68,7 +160,17 @@ export default function RegistrationForm() {
 
   return (
     <div className="mt-10 w-full flex items-center justify-center p-1 bg-slate-50/50 dark:bg-zinc-950/40">
-      <div className="w-full max-w-md bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800 shadow-xl rounded-2xl p-4 sm:p-6 md:p-8 space-y-6 animate-scale-in">
+      <div className="relative w-full max-w-md bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800 shadow-xl rounded-2xl p-4 sm:p-6 md:p-8 space-y-6 animate-scale-in">
+        
+        {/* Loading Overlay with Spinning Circle */}
+        {googleLoading && (
+          <div className="absolute inset-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-[2px] rounded-2xl flex flex-col items-center justify-center gap-3 z-30 animate-fade-in">
+            <div className="w-10 h-10 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-xs font-semibold text-slate-700 dark:text-zinc-200 tracking-wide">
+              Connecting with Google...
+            </p>
+          </div>
+        )}
         
         {/* Branding & Header */}
         <div className="flex flex-col items-center text-center space-y-2">
@@ -190,6 +292,31 @@ export default function RegistrationForm() {
           </button>
         </form>
 
+        {/* Divider */}
+        <div className="relative flex items-center justify-center my-4">
+          <div className="border-t border-slate-200 dark:border-zinc-800 w-full" />
+          <span className="absolute bg-white dark:bg-zinc-900 px-3 text-xs text-slate-400 dark:text-zinc-500">
+            or continue with
+          </span>
+        </div>
+
+        {/* Google Authentication */}
+        <div
+          ref={googleWrapperRef}
+          className={`w-full flex justify-center items-center min-h-[44px] ${googleLoading ? 'pointer-events-none opacity-60' : ''}`}
+        >
+          <GoogleLogin
+            width={googleBtnWidth}
+            size="large"
+            text="continue_with"
+            theme={theme === "dark" ? "filled_black" : "outline"}
+            shape="rectangular"
+            containerProps={{ className: "google-btn-container" }}
+            onSuccess={handleGoogleSuccess}
+            onError={handleGoogleFailure}
+          />
+        </div>
+
         {/* Redirect Link */}
         <p className="text-center text-xs text-slate-500 dark:text-zinc-400 mt-4">
           Already have an account?{" "}
@@ -201,6 +328,11 @@ export default function RegistrationForm() {
           </Link>
         </p>
 
+        <UserNameForm
+          setShowForm={setShowUsernameForm}
+          showForm={showUsernameForm}
+          credentialResponse={googleCredentialResponse}
+        />
       </div>
     </div>
   );

@@ -17,11 +17,11 @@ import useMessageSender from "./hooks/useMessageSender";
 import useAttachmentUploader from "./hooks/useAttachmentUploader";
 import useChatActions from "./hooks/useChatActions";
 
-/**
- * Conversation
- * Master chat orchestrator. Composes decoupled hooks for messages, attachments,
- * encryption, and chat actions into a responsive messaging layout.
- */
+/*
+  Conversation
+  Master chat orchestrator. Composes decoupled hooks for messages, attachments,
+  encryption, and chat actions into a responsive messaging layout.
+*/
 export default function Conversation() {
   const { chatId } = useParams();
 

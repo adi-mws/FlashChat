@@ -1,10 +1,10 @@
 import React from "react";
 import { Trash } from "lucide-react";
 
-/**
- * MessageContextMenu
- * Context menu displayed upon clicking message options (three-dots/long-press).
- */
+/*
+  MessageContextMenu
+  Context menu displayed upon clicking message options (three-dots/long-press).
+*/
 export default function MessageContextMenu({
   show = false,
   clientX = 0,

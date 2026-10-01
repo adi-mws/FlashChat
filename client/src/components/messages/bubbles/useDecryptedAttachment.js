@@ -7,9 +7,9 @@ import { decryptFile } from "../../../lib/crypto";
 export const attachmentBlobCache = new Map();
 const inFlightDecryptions = new Map();
 
-/**
- * Resolves any relative URL to an absolute URL pointing to the backend.
- */
+/*
+  Resolves any relative URL to an absolute URL pointing to the backend.
+*/
 export function getAbsoluteUrl(url) {
   if (!url) return null;
   if (
@@ -30,11 +30,11 @@ export function getAbsoluteUrl(url) {
   return `${backendBase}${cleanPath}`;
 }
 
-/**
- * useDecryptedAttachment
- * Decrypts an encrypted file attachment on demand and caches the blob URL permanently for the session.
- * Prevents redundant re-decryptions and invalid object URL revocations.
- */
+/*
+  useDecryptedAttachment
+  Decrypts an encrypted file attachment on demand and caches the blob URL permanently for the session.
+  Prevents redundant re-decryptions and invalid object URL revocations.
+*/
 export default function useDecryptedAttachment(
   attachmentUrl,
   attachmentEncryption,

@@ -10,11 +10,11 @@ import {
 import { useNotification } from "../../../../hooks/useNotification";
 import { CHAT_ROUTES } from "../../../../routes/routes";
 
-/**
- * useChatActions
- * Handles message deletion, clearing chat history, deleting contacts,
- * and leaving group chats with appropriate confirmations and notifications.
- */
+/*
+  useChatActions
+  Handles message deletion, clearing chat history, deleting contacts,
+  and leaving group chats with appropriate confirmations and notifications.
+*/
 export default function useChatActions({ chatId, chat, user }) {
   const dispatch = useDispatch();
   const navigate = useNavigate();

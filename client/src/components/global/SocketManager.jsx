@@ -1,12 +1,12 @@
-/**
- * SocketManager
- * 
- * A non-rendering component that owns all socket.io event listeners.
- * It connects/disconnects the socket based on the authenticated user,
- * and dispatches Redux actions for real-time events.
- * 
- * Rendered once inside App (inside Provider + Router).
- */
+/*
+  SocketManager
+
+  A non-rendering component that owns all socket.io event listeners.
+  It connects/disconnects the socket based on the authenticated user,
+  and dispatches Redux actions for real-time events.
+
+  Rendered once inside App (inside Provider + Router).
+*/
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { socket } from '../../lib/socket';

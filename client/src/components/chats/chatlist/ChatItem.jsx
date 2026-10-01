@@ -3,12 +3,12 @@ import { useSelector } from "react-redux";
 import { Check, CheckCheck, Users, Image as ImageIcon, FileText } from "lucide-react";
 import { getImageUrl } from "../../../lib/imageUtils";
 
-/**
- * ChatItem
- * Individual conversation row in the chat sidebar list.
- * Displays avatar, online status indicator, last message preview or draft,
- * real-time typing indicators, timestamp, and unread badge.
- */
+/*
+  ChatItem
+  Individual conversation row in the chat sidebar list.
+  Displays avatar, online status indicator, last message preview or draft,
+  real-time typing indicators, timestamp, and unread badge.
+*/
 export default function ChatItem({
   chat,
   isSelected,

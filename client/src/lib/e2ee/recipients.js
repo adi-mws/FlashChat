@@ -1,12 +1,12 @@
 import axios from 'axios';
 
-/**
- * Fetch authorized, active encryption recipient sessions for a chat conversation.
- * The server resolves chat participants and returns their active sessions that have
- * registered E2EE public keys.
- * 
- * Returns: Array of { sessionId, userId, publicKey }
- */
+/*
+  Fetch authorized, active encryption recipient sessions for a chat conversation.
+  The server resolves chat participants and returns their active sessions that have
+  registered E2EE public keys.
+
+  Returns: Array of { sessionId, userId, publicKey }
+*/
 export async function fetchEncryptionRecipients(chatId) {
   if (!chatId) {
     throw new Error("Chat ID is required to resolve encryption recipients");

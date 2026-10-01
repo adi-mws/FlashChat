@@ -1,10 +1,10 @@
 import React from "react";
 import TimeBadge from "./TimeBadge";
 
-/**
- * PlainTextMessage
- * Standard text bubble with responsive styling and multi-line support.
- */
+/*
+  PlainTextMessage
+  Standard text bubble with responsive styling and multi-line support.
+*/
 export default function PlainTextMessage({ message, isSender, time, isMultiLine }) {
   const bubble = isSender
     ? "bg-primary-2 text-white rounded-br-none"

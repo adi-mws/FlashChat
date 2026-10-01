@@ -76,11 +76,11 @@ const VIEWABLE_EXTENSIONS = new Set([
   "ogg",
 ]);
 
-/**
- * FileMessage
- * Renders non-image file attachment cards with decrypt-on-download,
- * real download progress, browser-viewability detection, notifications, and click-to-open.
- */
+/*
+  FileMessage
+  Renders non-image file attachment cards with decrypt-on-download,
+  real download progress, browser-viewability detection, notifications, and click-to-open.
+*/
 export default function FileMessage({ message, isSender, time }) {
   const { fileName, fileSize, attachmentUrl, attachmentEncryption } = message;
   const ext = getFileExt(fileName);

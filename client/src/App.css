@@ -146,9 +146,21 @@ button:active {
 }
 
 /* Google login overrides */
-.google-login-button-container > div {
-    width: 100%;
-    overflow: hidden;
+.google-btn-container {
+    display: flex !important;
+    justify-content: center !important;
+    width: 100% !important;
+}
+
+.google-btn-container > div {
+    width: 100% !important;
+    display: flex !important;
+    justify-content: center !important;
+}
+
+.google-btn-container iframe {
+    margin: 0 auto !important;
+    max-width: 100% !important;
 }
 
 

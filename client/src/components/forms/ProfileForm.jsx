@@ -130,7 +130,7 @@ const ProfileForm = () => {
               disabled={isSaving}
               className="bg-green-600 text-white px-4 py-2 rounded-md w-full flex items-center justify-center"
             >
-              {isSaving ? 'Saving...' : '✅ Save Changes'}
+              {isSaving ? 'Saving...' : 'Save Changes'}
             </button>
           )}
         </div>

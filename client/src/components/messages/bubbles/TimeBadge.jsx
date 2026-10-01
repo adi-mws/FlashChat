@@ -1,10 +1,10 @@
 import React from "react";
 import { Check, CheckCheck } from "lucide-react";
 
-/**
- * TimeBadge
- * Renders timestamp and status checkmarks (sent / readBy).
- */
+/*
+  TimeBadge
+  Renders timestamp and status checkmarks (sent / readBy).
+*/
 export default function TimeBadge({ time, isSender, message, overlay = false }) {
   const isRead = message?.readBy && message.readBy.length > 1;
 

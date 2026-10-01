@@ -1,11 +1,11 @@
 import React from "react";
 import { Paperclip, Send } from "lucide-react";
 
-/**
- * ConversationInput
- * Handles message typing, auto-resizing textarea, keyboard submission,
- * and attachment button triggering.
- */
+/*
+  ConversationInput
+  Handles message typing, auto-resizing textarea, keyboard submission,
+  and attachment button triggering.
+*/
 export default function ConversationInput({
   message = "",
   onChange,

@@ -48,10 +48,10 @@ export const getRandomValues = (array) => {
   throw new Error("crypto.getRandomValues is not available.");
 };
 
-/**
- * Generate RSA-OAEP 2048-bit Key Pair for an E2EE session.
- * Returns JWK string representations.
- */
+/*
+  Generate RSA-OAEP 2048-bit Key Pair for an E2EE session.
+  Returns JWK string representations.
+*/
 export async function generateE2EEKeyPair() {
   const subtle = getCryptoSubtle();
   const keyPair = await subtle.generateKey(
@@ -74,9 +74,9 @@ export async function generateE2EEKeyPair() {
   };
 }
 
-/**
- * Import an RSA-OAEP public key from a JWK string.
- */
+/*
+  Import an RSA-OAEP public key from a JWK string.
+*/
 export async function importPublicKey(jwkString) {
   const subtle = getCryptoSubtle();
   const jwk = typeof jwkString === 'string' ? JSON.parse(jwkString) : jwkString;
@@ -89,9 +89,9 @@ export async function importPublicKey(jwkString) {
   );
 }
 
-/**
- * Import an RSA-OAEP private key from a JWK string.
- */
+/*
+  Import an RSA-OAEP private key from a JWK string.
+*/
 export async function importPrivateKey(jwkString) {
   const subtle = getCryptoSubtle();
   const jwk = typeof jwkString === 'string' ? JSON.parse(jwkString) : jwkString;
@@ -104,10 +104,10 @@ export async function importPrivateKey(jwkString) {
   );
 }
 
-/**
- * Encrypt a private key string with a user recovery passphrase or 12-word phrase.
- * Uses PBKDF2 (100,000 iterations SHA-256) and AES-GCM (256-bit).
- */
+/*
+  Encrypt a private key string with a user recovery passphrase or 12-word phrase.
+  Uses PBKDF2 (100,000 iterations SHA-256) and AES-GCM (256-bit).
+*/
 export async function encryptPrivateKeyWithPassphrase(privateKeyStr, passphrase) {
   const subtle = getCryptoSubtle();
   const encoder = new TextEncoder();
@@ -151,9 +151,9 @@ export async function encryptPrivateKeyWithPassphrase(privateKeyStr, passphrase)
   };
 }
 
-/**
- * Decrypt an encrypted private key with a user recovery passphrase or 12-word phrase.
- */
+/*
+  Decrypt an encrypted private key with a user recovery passphrase or 12-word phrase.
+*/
 export async function decryptPrivateKeyWithPassphrase(encryptedPrivateKeyBase64, passphrase, saltBase64, ivBase64) {
   const subtle = getCryptoSubtle();
   const encoder = new TextEncoder();

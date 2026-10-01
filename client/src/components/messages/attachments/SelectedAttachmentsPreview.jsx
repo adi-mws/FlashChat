@@ -60,10 +60,10 @@ const getFileExt = (name = "") => {
   return parts.length > 1 ? parts[parts.length - 1].toUpperCase() : "FILE";
 };
 
-/**
- * SelectedAttachmentsPreview
- * Full-screen modal for reviewing, previewing, and captioning selected attachments before sending.
- */
+/*
+  SelectedAttachmentsPreview
+  Full-screen modal for reviewing, previewing, and captioning selected attachments before sending.
+*/
 export default function SelectedAttachmentsPreview({
   show,
   onClose,

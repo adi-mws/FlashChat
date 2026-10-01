@@ -11,11 +11,11 @@ import { useNotification } from "../../../../hooks/useNotification";
 import { encryptMessage, fetchEncryptionRecipients } from "../../../../lib/crypto";
 import { socket } from "../../../../lib/socket";
 
-/**
- * useMessageSender
- * Handles message input state, textarea auto-resizing, multi-session E2EE encryption,
- * optimistic updates, and socket emission.
- */
+/*
+  useMessageSender
+  Handles message input state, textarea auto-resizing, multi-session E2EE encryption,
+  optimistic updates, and socket emission.
+*/
 export default function useMessageSender({ chatId, chat, user }) {
   const dispatch = useDispatch();
   const isOnline = useSelector(selectIsOnline);

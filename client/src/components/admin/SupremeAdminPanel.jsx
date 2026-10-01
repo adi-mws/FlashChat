@@ -43,6 +43,7 @@ import {
   LogOut,
   MessagesSquare,
   MessageSquareX,
+  Crown,
 } from 'lucide-react';
 
 export default function SupremeAdminPanel() {
@@ -796,11 +797,11 @@ export default function SupremeAdminPanel() {
                 </h1>
                 {isSuperAdmin ? (
                   <span className="text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center gap-1 shadow-sm shadow-amber-500/10">
-                    👑 Super Admin
+                    <Crown size={11} /> Super Admin
                   </span>
                 ) : (
-                  <span className="text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
-                    🛡️ System Admin
+                  <span className="text-[10px] uppercase font-mono font-bold px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center gap-1">
+                    <ShieldCheck size={11} /> System Admin
                   </span>
                 )}
               </div>
@@ -1100,7 +1101,7 @@ export default function SupremeAdminPanel() {
                                   <span className="font-semibold text-zinc-100 truncate">{u.name}</span>
                                   {u.role === 'superadmin' && (
                                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1">
-                                      👑 Super Admin
+                                      <Crown size={10} /> Super Admin
                                     </span>
                                   )}
                                   {u.role === 'admin' && (
@@ -1163,8 +1164,8 @@ export default function SupremeAdminPanel() {
                             <div className="flex items-center justify-end gap-2">
                               {/* Toggle Admin Role - ONLY Super Admin can appoint/revoke, Super Admin cannot be revoked */}
                               {u.role === 'superadmin' ? (
-                                <span className="px-2 py-0.5 text-[11px] font-bold text-amber-400/90 font-mono">
-                                  👑 Owner
+                                <span className="px-2 py-0.5 text-[11px] font-bold text-amber-400/90 font-mono flex items-center gap-1">
+                                  <Crown size={11} /> Owner
                                 </span>
                               ) : isSuperAdmin ? (
                                 <button

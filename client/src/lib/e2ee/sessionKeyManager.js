@@ -21,10 +21,10 @@ const getApiUrl = () => {
     : (process.env.VITE_API_URL || 'http://localhost:5000/api');
 };
 
-/**
- * Upload the current session's public key to the server.
- * Associates the public key strictly with the authenticated session on the backend.
- */
+/*
+  Upload the current session's public key to the server.
+  Associates the public key strictly with the authenticated session on the backend.
+*/
 export async function uploadSessionPublicKey(publicKeyString, forceRekey = false) {
   const apiUrl = getApiUrl();
   const response = await axios.put(
@@ -37,12 +37,7 @@ export async function uploadSessionPublicKey(publicKeyString, forceRekey = false
 
 /**
  * Initialize E2EE keys for the current authenticated session.
- * 
- * Safely handles:
- * - Fresh session: generates RSA-OAEP key pair, stores private key locally under sessionId, registers public key to server session.
- * - Ready session: local private key exists and server public key is present.
- * - Missing server key: local private key exists, re-registers public key with server.
- * - Missing local key (storage cleared/new client): DOES NOT silently overwrite. Surfaces REKEY_REQUIRED.
+ * Handles fresh key generation, key registration, and rekey verification.
  * 
  * @param {string} sessionId Authenticated session ID
  * @param {string|null} [serverPublicKey=null] Public key known by the server for this session
@@ -111,10 +106,10 @@ export async function initializeSessionKeys(sessionId, serverPublicKey = null) {
   }
 }
 
-/**
- * Explicit user-authorized rekeying of the active session.
- * Used when the local private key is lost or intentionally replaced.
- */
+/*
+  Explicit user-authorized rekeying of the active session.
+  Used when the local private key is lost or intentionally replaced.
+*/
 export async function rekeySession(sessionId) {
   if (!sessionId) {
     throw new Error("sessionId is required to rekey session");

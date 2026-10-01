@@ -328,7 +328,7 @@ export default function CompanionQRLoginModal({ isOpen, onClose }) {
             <p className="font-semibold text-slate-700 dark:text-zinc-300">How to link:</p>
             <ol className="list-decimal list-inside space-y-0.5 leading-relaxed">
               <li>Open FlashChat on your primary logged-in device.</li>
-              <li>Go to <strong>Settings ➔ Linked Devices</strong>.</li>
+              <li>Go to <strong>Settings &rarr; Linked Devices</strong>.</li>
               <li>Tap <strong>Link a Device</strong> and point your camera here.</li>
             </ol>
           </div>

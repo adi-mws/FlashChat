@@ -31,6 +31,24 @@ export default function LoginForm() {
   const [googleCredentialResponse, setGoogleCredentialResponse] = useState({});
   const [loading, setLoading] = useState(false);
   const { showNotification } = useNotification();
+  const googleWrapperRef = useRef(null);
+  const [googleBtnWidth, setGoogleBtnWidth] = useState(384);
+
+  useEffect(() => {
+    const updateWidth = () => {
+      if (googleWrapperRef.current) {
+        const clientWidth = googleWrapperRef.current.clientWidth;
+        if (clientWidth > 0) {
+          const targetWidth = Math.min(400, Math.max(200, Math.floor(clientWidth)));
+          setGoogleBtnWidth(targetWidth);
+        }
+      }
+    };
+
+    updateWidth();
+    window.addEventListener("resize", updateWidth);
+    return () => window.removeEventListener("resize", updateWidth);
+  }, []);
   const [alertMessage, setAlertMessage] = useState({ show: false, message: "", type: "" });
   const isSuccessAlert = alertMessage.type === "success";
   const alertClasses = isSuccessAlert
@@ -227,17 +245,20 @@ export default function LoginForm() {
         </div>
 
         {/* Google Authentication */}
-        <div className={`w-full overflow-hidden rounded-xl border border-slate-200 dark:border-zinc-800/80 shadow-sm ${loading ? 'pointer-events-none opacity-60' : ''}`}>
-          <div className="w-full b-1">
-            <GoogleLogin
-              width="100%"
-              size="large"
-              text="continue_with"
-              theme={theme === "dark" ? "filled_black" : "outline"}
-              onSuccess={handleGoogleSuccess}
-              onError={handleGoogleFailure}
-            />
-          </div>
+        <div
+          ref={googleWrapperRef}
+          className={`w-full flex justify-center items-center min-h-[44px] ${loading ? 'pointer-events-none opacity-60' : ''}`}
+        >
+          <GoogleLogin
+            width={googleBtnWidth}
+            size="large"
+            text="continue_with"
+            theme={theme === "dark" ? "filled_black" : "outline"}
+            shape="rectangular"
+            containerProps={{ className: "google-btn-container" }}
+            onSuccess={handleGoogleSuccess}
+            onError={handleGoogleFailure}
+          />
         </div>
 
         {/* QR Companion Login Button */}
