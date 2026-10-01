@@ -36,6 +36,27 @@ const E2EEInfoBadge = () => (
 export default function MessageList({ loading, messages, messagesEndRef, handleShowMessageOptions }) {
     const user = useSelector(selectUser);
 
+    const groupedMessages = React.useMemo(() => {
+        const groups = [];
+        let currentGroup = null;
+
+        messages.forEach((msg) => {
+            const dateStr = new Date(msg.createdAt).toDateString();
+            if (!currentGroup || currentGroup.dateStr !== dateStr) {
+                currentGroup = {
+                    dateStr,
+                    date: msg.createdAt,
+                    messages: [msg],
+                };
+                groups.push(currentGroup);
+            } else {
+                currentGroup.messages.push(msg);
+            }
+        });
+
+        return groups;
+    }, [messages]);
+
     return (
         <div className="flex-1 overflow-y-auto overflow-x-hidden bg-slate-50/50 dark:bg-zinc-950 p-4 sm:p-6 space-y-2">
             {loading ? (
@@ -72,43 +93,39 @@ export default function MessageList({ loading, messages, messagesEndRef, handleS
                     ) : (
                         <>
                             <E2EEInfoBadge />
-                            {messages.map((msg, i) => {
-                                const isSender = msg.sender?._id === user.id;
-                                const time = new Date(msg.createdAt).toLocaleTimeString([], {
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                    hour12: false,
-                                });
+                            {groupedMessages.map((group) => (
+                                <div key={group.dateStr} className="space-y-2">
+                                    <div className="sticky top-0 z-10 flex justify-center py-2 select-none pointer-events-none">
+                                        <span className="pointer-events-auto px-3.5 py-1 rounded-xl bg-slate-200 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 text-[11px] font-medium tracking-wide shadow-xs border border-slate-300 dark:border-zinc-700">
+                                            {getRelativeDateString(group.date)}
+                                        </span>
+                                    </div>
+                                    {group.messages.map((msg, i) => {
+                                        const isSender = msg.sender?._id === user.id;
+                                        const time = new Date(msg.createdAt).toLocaleTimeString([], {
+                                            hour: "2-digit",
+                                            minute: "2-digit",
+                                            hour12: false,
+                                        });
 
-                                // Determine the message type
-                                const type = msg.type || "text";
-                                const isMultiLine =
-                                    type === "text" && (msg.content?.includes("\n") || (msg.content?.length || 0) > 65);
+                                        // Determine the message type
+                                        const type = msg.type || "text";
+                                        const isMultiLine =
+                                            type === "text" && (msg.content?.includes("\n") || (msg.content?.length || 0) > 65);
 
-                                const msgDateStr = new Date(msg.createdAt).toDateString();
-                                const prevMsg = i > 0 ? messages[i - 1] : null;
-                                const prevMsgDateStr = prevMsg ? new Date(prevMsg.createdAt).toDateString() : null;
-                                const showDateHeader = msgDateStr !== prevMsgDateStr;
-
-                                return (
-                                    <React.Fragment key={msg._id || `sending-${i}`}>
-                                        {showDateHeader && (
-                                            <div className="flex justify-center my-3 sm:my-4 select-none">
-                                                <span className="px-3.5 py-1 rounded-xl bg-slate-200 dark:bg-zinc-800 text-slate-700 dark:text-zinc-300 text-[11px] font-medium tracking-wide shadow-xs border border-slate-300 dark:border-zinc-700">
-                                                    {getRelativeDateString(msg.createdAt)}
-                                                </span>
-                                            </div>
-                                        )}
-                                        <Message
-                                            isSender={isSender}
-                                            message={msg}
-                                            time={time}
-                                            isMultiLine={isMultiLine}
-                                            handleShowMessageOptions={handleShowMessageOptions}
-                                        />
-                                    </React.Fragment>
-                                );
-                            })}
+                                        return (
+                                            <Message
+                                                key={msg._id || `msg-${group.dateStr}-${i}`}
+                                                isSender={isSender}
+                                                message={msg}
+                                                time={time}
+                                                isMultiLine={isMultiLine}
+                                                handleShowMessageOptions={handleShowMessageOptions}
+                                            />
+                                        );
+                                    })}
+                                </div>
+                            ))}
                         </>
                     )}
                 </>
